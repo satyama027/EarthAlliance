@@ -113,6 +113,9 @@ export function validateSelection(state: WorldState, policyIds: string[]): Valid
         return { ok: false, reason: `${policy.name} requires ${req}` };
       }
     }
+    if (isRegionScoped(policy)) {
+      return { ok: false, reason: `${policy.name}: region-scoped policies are not yet supported` };
+    }
     totalPc += policy.cost.politicalCapital;
     totalMoney += policy.cost.money;
   }
@@ -127,4 +130,8 @@ export function validateSelection(state: WorldState, policyIds: string[]): Valid
 
 export function getPolicy(id: string): Policy | undefined {
   return BY_ID.get(id);
+}
+
+export function isRegionScoped(policy: Policy): boolean {
+  return policy.scope === 'region';
 }
