@@ -1,0 +1,14 @@
+{
+  "name": "earth-alliance",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "pnpm -r test",
+    "test:watch": "pnpm -r test:watch",
+    "coverage": "pnpm -r coverage",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
