@@ -1,0 +1,21 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`golden trajectory (do-nothing) > matches the recorded reference snapshots 1`] = `
+{
+  "2050": {
+    "co2": 458.47,
+    "temp": 1.9322,
+    "year": 2050,
+  },
+  "2100": {
+    "co2": 475.89,
+    "temp": 2.2698,
+    "year": 2100,
+  },
+  "2200": {
+    "co2": 478.21,
+    "temp": 2.3162,
+    "year": 2200,
+  },
+}
+`;
