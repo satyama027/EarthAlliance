@@ -217,9 +217,11 @@ interface Policy {
 }
 
 interface PolicyEffect {
-  target: MetricPath;           // e.g. 'climate.annualEmissions', 'region.publicSupport'
-  delta: number;                // amount applied
+  target: EffectTarget;         // a numeric Region field: 'regionalEmissions',
+                                // 'publicSupport', 'biodiversityIndex', 'gdpPerCapita', …
+  delta: number;                // amount applied (negative reduces)
   duration: 'immediate' | 'ongoing'; // ongoing → registered into activeEffects
+  turns?: number;               // ongoing only: turns it persists (undefined = permanent)
 }
 ```
 
@@ -276,11 +278,16 @@ interface ModelParams { /* every tunable constant from §6.4 */ }
 interface TurnScratch {
   // intermediate values passed BETWEEN sub-models within one turn
   deltaTemperature: number;                  // ΔT this turn (climate → support/constraints/bio)
-  prevGdpPerCapita: Record<RegionId, number>;// economy → support (growth this turn)
-  prevPopulation: Record<RegionId, number>;  // demography → emissions
+  prevGdpPerCapita: Record<RegionId, number>;// economy → support/emissions (growth this turn)
+  prevPopulation: Record<RegionId, number>;  // demography → emissions/constraints
   damageFraction: number;                    // damage → economy
-  policyBacklash: Record<RegionId, number>;  // policies → support
 }
+
+// NOTE: Policy contributions (the "− policyΔ" / backlash terms shown inline in §6.2)
+// are NOT applied inside the natural sub-models. They are applied in a single dedicated
+// effects-layering step AFTER the pipeline (see §6.3 step 13), so ongoing emission cuts
+// are not overwritten by the emissions re-derivation. `climate.annualEmissions` is ALWAYS
+// derived as the sum of regional emissions — it is never a settable effect target.
 
 interface SimContext {
   state: WorldState;      // mutable draft for THIS turn
@@ -371,26 +378,27 @@ money            += TAX_RATE × Σ(gdpPerCapita × population) / MONEY_SCALE
 ### 6.3 `advanceTurn` orchestration order
 
 ```
-1.  Validate selection (reject if unaffordable)              [simulation.ts]
-2.  Spend politicalCapital + money; apply IMMEDIATE effects  [simulation.ts]
-3.  Register/tick ONGOING effects (activeEffects)            [simulation.ts]
-        — populates scratch.policyBacklash + emission deltas
-4.  carbonCycle   (A)   global annualEmissions → co2Concentration
+1.  Validate selection (reject if unaffordable/unavailable)  [simulation.ts]
+2.  Clone state (pure: never mutate the input)               [simulation.ts]
+3.  spendAndRegister: deduct cost, record enacted policies,  [effects.ts]
+        push ONGOING effects to activeEffects, collect this turn's IMMEDIATE effects
+4.  carbonCycle   (A)   current annualEmissions → co2Concentration
 5.  climate       (B)   co2 → temperature; sets scratch.deltaTemperature
 6.  damage        (C)   temperature → scratch.damageFraction
-7.  economy       (D)   per region
-8.  demography    (F)   per region
-9.  emissions     (E)   per region → re-derive regionalEmissions
-10. constraints   (G)   per region
+7.  economy       (D)   per region; records scratch.prevGdpPerCapita
+8.  demography    (F)   per region; records scratch.prevPopulation
+9.  emissions     (E)   per region → re-derive regionalEmissions from output
+10. constraints   (G)   per region (water/land)
 11. biodiversity  (G)   per region
-12. support       (H)   per region
-13. resources     (I)   global; also recompute state.climate.annualEmissions = Σ regionalEmissions
-14. events              seeded RNG fires disasters/milestones → GameEvent[]
-15. clock               turn += 1, year += 5, append to log
-16. endings             early-loss check each turn; at 2200 pick best ending
+12. support       (H)   per region (support + equity)
+13. resources     (I)   global; regenerate political capital + money
+14. applyEffects: layer IMMEDIATE + all ONGOING effects on top; tick/expire ongoing [effects.ts]
+15. recompute state.climate.annualEmissions = Σ regionalEmissions                    [simulation.ts]
+16. clock               turn += 1, year += 5, append to log
+17. endings             early-loss check each turn; at END_YEAR pick resolution ending
 ```
 
-Steps 4–13 are the swappable pipeline; 1–3 and 14–16 are the orchestrator.
+Steps 4–13 are the swappable pipeline; 1–3 and 14–17 are the orchestrator. Applying policy effects at step 14 (after the natural dynamics, including the emissions re-derivation at step 9) is what lets ongoing emission cuts persist instead of being overwritten. Random/disaster events (seeded RNG) are part of the model's room to grow; the engine slice emits a `turn-advanced` event and reserves disaster events for tuning/Plan 2.
 
 ### 6.4 Tunable constants (defaults; all in `data/scenario.ts`)
 
