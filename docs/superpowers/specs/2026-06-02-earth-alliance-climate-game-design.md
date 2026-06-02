@@ -572,3 +572,17 @@ Enforced in `pnpm coverage` (build fails below threshold):
 6. Playing through to 2200 (or an early-loss) reaches one of the 6 endings via `EndingScreen`.
 7. `pnpm test` runs the full suite green — engine sub-model units, golden trajectory, determinism, reversal/doom scenarios, rules, property-based invariants, and web-logic tests.
 8. `pnpm coverage` passes the §10.6 thresholds (engine ≥ 90%, web logic ≥ 70%).
+
+---
+
+## 13. Engine Status & Known Limitations (as built — Plan 1 complete)
+
+The simulation engine (`packages/engine`) is implemented, fully tested (84 tests; engine ≥90% lines/functions, ≥80% branches), and reviewed READY. Lifecycle note: `advanceTurn` **throws** if called on a game whose `status === 'ended'` — the client must stop advancing and show the ending screen once a turn returns an ended state.
+
+**Deferred balance (out of scope for the slice, needs playtesting with the client):**
+- With the conservative default constants, the *do-nothing* baseline ends in an **economic-ruin loss around year 2060** (water/land scarcity drives `constraintFactor` down, collapsing poorer regions' GDP below the floor). Consequently the climate-loss path (+3 °C) and the full multi-decade redemption arc are **not yet reachable in a live game**. Tuning the `constraintFactor` penalty and/or the `economic-ruin` GDP threshold so a well-managed strategy survives toward 2200 is the first balance task — best done once the web client makes playtesting possible. The engine's scenario constants (`data/scenario.ts`) are the single tuning surface.
+
+**Engine backlog (from final review — non-blocking):**
+- **Region-scoped policies:** `effects.ts` reserves a `scope: 'region'` path that currently always targets `regions[0]`. Before adding any region-scoped policy, extend the selection API to carry a target region and add a loud guard in `validateSelection` (reject `scope: 'region'` until supported). Address at the **start of the web-client plan**, since region targeting is the first place the client will stress this seam.
+- **`medianAge`** is the one Region field without a range clamp/invariant; add an upper clamp or an invariant assertion when convenient.
+- **Spec §6.2 vs. code:** the spec writes some warming/econ terms with an illustrative `×100` factor that the code folds into the tuned constants instead. Not a bug; a one-line code comment reconciling the two would prevent a future "fix."
