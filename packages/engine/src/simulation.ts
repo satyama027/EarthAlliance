@@ -23,6 +23,10 @@ export function createSimulation(
 ): Simulation {
   return {
     advanceTurn(state, policyIds) {
+      if (state.status === 'ended') {
+        throw new Error('Cannot advance a game that has already ended');
+      }
+
       const validation = validateSelection(state, policyIds);
       if (!validation.ok) throw new Error(validation.reason ?? 'Invalid policy selection');
 

@@ -1,6 +1,5 @@
 import type { SubModel } from './types.js';
-
-const CO2_PREINDUSTRIAL = 280;
+import { CO2_PREINDUSTRIAL } from '../data/scenario.js';
 
 /** (B) CO2 -> radiative forcing -> equilibrium temp, approached with thermal lag. */
 export const climate: SubModel = {

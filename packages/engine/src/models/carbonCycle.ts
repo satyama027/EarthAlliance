@@ -1,11 +1,12 @@
 import type { SubModel } from './types.js';
+import { CO2_PREINDUSTRIAL } from '../data/scenario.js';
 
 /**
  * Physical floor for atmospheric CO2. Drawdown cannot pull the atmosphere below
  * its preindustrial equilibrium, and keeping the concentration positive guards the
  * downstream log2() forcing calc from producing NaN under aggressive net-negative play.
  */
-const CO2_FLOOR = 280;
+const CO2_FLOOR = CO2_PREINDUSTRIAL;
 
 /** (A) Emissions accumulate into atmospheric CO2; only the airborne fraction stays. */
 export const carbonCycle: SubModel = {

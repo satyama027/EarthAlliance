@@ -49,3 +49,5 @@ export const DEFAULT_SCENARIO: Scenario = {
 };
 
 export const END_YEAR = 2200;
+
+export const CO2_PREINDUSTRIAL = 280;

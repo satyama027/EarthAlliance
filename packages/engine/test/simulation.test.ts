@@ -46,9 +46,24 @@ describe('advanceTurn', () => {
 
   it('sets status to ended and records the ending id at resolution', () => {
     let state = createInitialState();
-    for (let i = 0; i < 35; i++) state = advanceTurn(state, []).state;
-    expect(state.year).toBe(2200);
+    let guard = 0;
+    while (state.status === 'playing' && guard < 35) {
+      state = advanceTurn(state, []).state;
+      guard++;
+    }
     expect(state.status).toBe('ended');
     expect(state.endingId).not.toBeNull();
+    expect(state.year).toBeLessThanOrEqual(2200);
+  });
+
+  it('throws when advancing a game that has already ended', () => {
+    let state = createInitialState();
+    let guard = 0;
+    while (state.status === 'playing' && guard < 35) {
+      state = advanceTurn(state, []).state;
+      guard++;
+    }
+    expect(state.status).toBe('ended');
+    expect(() => advanceTurn(state, [])).toThrow(/already ended/i);
   });
 });

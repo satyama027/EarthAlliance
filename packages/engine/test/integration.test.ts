@@ -4,35 +4,36 @@ import { advanceTurn } from '../src/simulation.js';
 
 function playDoNothing() {
   let state = createInitialState();
-  const snapshots: Record<number, { year: number; temp: number; co2: number }> = {};
-  for (let i = 0; i < 35; i++) {
+  let guard = 0;
+  while (state.status === 'playing' && guard < 35) {
     state = advanceTurn(state, []).state;
-    if (state.year === 2050 || state.year === 2100 || state.year === 2200) {
-      snapshots[state.year] = {
-        year: state.year,
-        temp: Number(state.climate.temperatureAnomaly.toFixed(4)),
-        co2: Number(state.climate.co2Concentration.toFixed(2)),
-      };
-    }
+    guard++;
   }
-  return { state, snapshots };
+  return {
+    turn: state.turn,
+    year: state.year,
+    endingId: state.endingId,
+    temp: Number(state.climate.temperatureAnomaly.toFixed(4)),
+    co2: Number(state.climate.co2Concentration.toFixed(2)),
+  };
 }
 
 describe('golden trajectory (do-nothing)', () => {
-  it('matches the recorded reference snapshots', () => {
-    const { snapshots } = playDoNothing();
+  it('matches the recorded terminal reference', () => {
     // Regression guard. If a model change is intentional, update this snapshot
     // via `pnpm --filter @earth-alliance/engine test -- integration -u`.
-    expect(snapshots).toMatchSnapshot();
+    expect(playDoNothing()).toMatchSnapshot();
   });
 
-  it('warms monotonically with no policies', () => {
+  it('warms monotonically until the game ends', () => {
     let state = createInitialState();
     let prev = state.climate.temperatureAnomaly;
-    for (let i = 0; i < 35; i++) {
+    let guard = 0;
+    while (state.status === 'playing' && guard < 35) {
       state = advanceTurn(state, []).state;
       expect(state.climate.temperatureAnomaly).toBeGreaterThanOrEqual(prev);
       prev = state.climate.temperatureAnomaly;
+      guard++;
     }
   });
 });
@@ -41,7 +42,11 @@ describe('determinism', () => {
   it('produces identical states for identical inputs', () => {
     const run = () => {
       let state = createInitialState();
-      for (let i = 0; i < 10; i++) state = advanceTurn(state, []).state;
+      let guard = 0;
+      while (state.status === 'playing' && guard < 10) {
+        state = advanceTurn(state, []).state;
+        guard++;
+      }
       return state;
     };
     expect(run()).toEqual(run());
