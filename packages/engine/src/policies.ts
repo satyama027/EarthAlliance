@@ -99,6 +99,9 @@ export interface ValidationResult {
 }
 
 export function validateSelection(state: WorldState, policyIds: string[]): ValidationResult {
+  if (new Set(policyIds).size !== policyIds.length) {
+    return { ok: false, reason: 'Duplicate policy in selection' };
+  }
   let totalPc = 0;
   let totalMoney = 0;
   for (const id of policyIds) {

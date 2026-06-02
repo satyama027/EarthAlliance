@@ -11,7 +11,8 @@ export interface Scenario {
   regions: readonly Region[];
 }
 
-export const DEFAULT_PARAMS: ModelParams = {
+// Frozen: shared read-only defaults; never mutate in a sub-model.
+export const DEFAULT_PARAMS: ModelParams = Object.freeze({
   TURN_YEARS: 5,
   GTCO2_PER_PPM: 7.81,
   AIRBORNE_FRACTION: 0.5,
@@ -37,7 +38,7 @@ export const DEFAULT_PARAMS: ModelParams = {
   CAPITAL_PER_SUPPORT: 0.5,
   TAX_RATE: 0.02,
   MONEY_SCALE: 1e9,
-};
+});
 
 export const DEFAULT_SCENARIO: Scenario = {
   startYear: 2025,

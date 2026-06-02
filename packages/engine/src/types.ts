@@ -32,6 +32,9 @@ export interface Region {
 }
 
 /** Numeric Region fields a policy effect may modify. */
+// Numeric Region fields a policy may modify. Demographic fields (population,
+// medianAge, fertilityRate) are intentionally excluded: policies influence them
+// indirectly (via education, health, gdp), never by direct assignment.
 export type EffectTarget =
   | 'regionalEmissions'
   | 'biodiversityIndex'

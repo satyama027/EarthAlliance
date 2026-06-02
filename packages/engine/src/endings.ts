@@ -1,7 +1,7 @@
 import type { Ending, Region, WorldState } from './types.js';
 import { END_YEAR } from './data/scenario.js';
 
-export const ENDINGS: Record<string, Ending> = {
+export const ENDINGS: Readonly<Record<string, Ending>> = Object.freeze({
   'eco-collapse': { id: 'eco-collapse', title: 'Ecological Collapse', kind: 'loss',
     description: 'Runaway warming and dying ecosystems overwhelmed civilization.' },
   'economic-ruin': { id: 'economic-ruin', title: 'Economic Ruin', kind: 'loss',
@@ -14,7 +14,7 @@ export const ENDINGS: Record<string, Ending> = {
     description: 'Targets were met, but only by crushing dissent and equity.' },
   'muddling-through': { id: 'muddling-through', title: 'Muddling Through', kind: 'ambiguous',
     description: 'Humanity survived the century — battered, unequal, but standing.' },
-};
+});
 
 function weightedAvg(regions: readonly Region[], pick: (r: Region) => number): number {
   let acc = 0;

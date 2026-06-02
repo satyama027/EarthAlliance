@@ -49,6 +49,12 @@ describe('evaluateEnding', () => {
     expect(evaluateEnding(noColony)?.id).not.toBe('orbital-exodus');
   });
 
+  it('awards authoritarian-stability when targets are met but support is crushed', () => {
+    const state = makeState({ year: 2200, regions: regionsWith({ publicSupport: 25, biodiversityIndex: 30, equityIndex: 30, gdpPerCapita: 20000 }) });
+    state.climate.temperatureAnomaly = 2.5;
+    expect(evaluateEnding(state)?.id).toBe('authoritarian-stability');
+  });
+
   it('falls back to muddling-through at the end', () => {
     const state = makeState({ year: 2200, regions: regionsWith({ biodiversityIndex: 30, equityIndex: 45, publicSupport: 50 }) });
     state.climate.temperatureAnomaly = 2.8;

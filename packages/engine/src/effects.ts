@@ -17,14 +17,14 @@ export function spendAndRegister(state: WorldState, policyIds: string[]): Active
   const immediate: ActiveEffect[] = [];
   for (const id of policyIds) {
     const policy = getPolicy(id);
-    if (!policy) continue;
+    if (!policy) continue; // precondition: advanceTurn validates the selection first, so unknown ids never reach here
     state.resources.politicalCapital -= policy.cost.politicalCapital;
     state.resources.money -= policy.cost.money;
     state.enactedPolicyIds.push(id);
     for (const effect of policy.effects) {
       const entry: ActiveEffect = {
         policyId: id,
-        regionId: policy.scope === 'global' ? null : state.regions[0]!.id,
+        regionId: policy.scope === 'global' ? null : state.regions[0]!.id, // TODO: region-scoped policies need a target region in the selection API; all current policies are global
         effect,
         turnsRemaining: effect.turns ?? Number.POSITIVE_INFINITY,
       };

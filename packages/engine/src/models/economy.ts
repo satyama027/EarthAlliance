@@ -8,6 +8,7 @@ export const economy: SubModel = {
     for (const r of state.regions) {
       scratch.prevGdpPerCapita[r.id] = r.gdpPerCapita;
       const scarcity = Math.min(r.waterAvailability, r.landAvailability) / 100;
+      // water/land are 0–100 indices; the `0.5 +` floor means scarcity dampens growth to at most 50%.
       const constraintFactor = 0.5 + 0.5 * scarcity;
       r.gdpPerCapita *= growth * (1 - scratch.damageFraction) * constraintFactor;
     }

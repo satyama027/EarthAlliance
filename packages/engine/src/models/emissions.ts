@@ -8,7 +8,8 @@ export const emissions: SubModel = {
     for (const r of state.regions) {
       const prevGdp = scratch.prevGdpPerCapita[r.id] ?? r.gdpPerCapita;
       const prevPop = scratch.prevPopulation[r.id] ?? r.population;
-      const outputRatio = (r.gdpPerCapita * r.population) / (prevGdp * prevPop);
+      const prevOutput = prevGdp * prevPop;
+      const outputRatio = prevOutput > 0 ? (r.gdpPerCapita * r.population) / prevOutput : 1;
       r.regionalEmissions = r.regionalEmissions * outputRatio * decarb;
     }
   },

@@ -8,7 +8,7 @@ export const support: SubModel = {
     const warming = Math.max(0, scratch.deltaTemperature);
     for (const r of state.regions) {
       const prevGdp = scratch.prevGdpPerCapita[r.id] ?? r.gdpPerCapita;
-      const econGrowth = r.gdpPerCapita / prevGdp - 1;
+      const econGrowth = prevGdp > 0 ? r.gdpPerCapita / prevGdp - 1 : 0;
       r.publicSupport = clamp(
         r.publicSupport
           - params.SUPPORT_TEMP_W * warming

@@ -50,4 +50,9 @@ describe('validateSelection', () => {
     const state = makeState({ resources: { politicalCapital: 100, money: 100 } });
     expect(validateSelection(state, ['off-world-colonies']).ok).toBe(false);
   });
+
+  it('rejects a selection containing duplicate ids', () => {
+    const state = makeState({ resources: { politicalCapital: 100, money: 100 } });
+    expect(validateSelection(state, ['reforestation', 'reforestation']).ok).toBe(false);
+  });
 });
