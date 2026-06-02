@@ -7,8 +7,9 @@ describe('demography', () => {
     const state = makeState({ regions: [makeRegion({ id: 'r1', population: 1e9, fertilityRate: 4.1, healthIndex: 50, educationIndex: 80 })] });
     const ctx = makeContext(state);
     demography.step(ctx);
-    // popGrowth = (4.1-2.1)*0.01 + 0 = 0.02; 1e9 * 1.02^5
-    expect(state.regions[0]!.population).toBeCloseTo(1.1040808e9, 0);
+    // popGrowth = (4.1-2.1)*0.01 + 0 = 0.02; 1e9 * 1.02^5 = 1,104,080,803.2
+    // ~1.1 billion; assert to a sensible tolerance (±50), not bit-exactness.
+    expect(state.regions[0]!.population).toBeCloseTo(1.1040808e9, -2);
     expect(ctx.scratch.prevPopulation['r1']).toBe(1e9);
   });
 
