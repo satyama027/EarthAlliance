@@ -1,0 +1,51 @@
+import type { ModelParams } from '../models/types.js';
+import type { Region } from '../types.js';
+import { SAMPLE_REGIONS } from './regions.js';
+
+export interface Scenario {
+  startYear: number;
+  startTemperatureAnomaly: number; // °C, already-warmed world
+  startCo2: number;                // ppm
+  startResources: { politicalCapital: number; money: number };
+  rngSeed: number;
+  regions: readonly Region[];
+}
+
+export const DEFAULT_PARAMS: ModelParams = {
+  TURN_YEARS: 5,
+  GTCO2_PER_PPM: 7.81,
+  AIRBORNE_FRACTION: 0.5,
+  ECS: 3.0,
+  WARMING_ADJUST: 0.3,
+  DAMAGE_COEFF: 0.005,
+  BASE_GROWTH: 0.02,
+  AUTON_DECARB: 0.01,
+  FERT_W: 0.01,
+  HEALTH_W: 0.0002,
+  DEMO_TRANSITION: 0.01,
+  AGEING_RATE: 0.3,
+  EDU_GROWTH: 0.2,
+  WATER_TEMP_LOSS: 5,
+  LAND_DEGRADE: 3,
+  POP_PRESSURE: 5,
+  BIO_TEMP_LOSS: 8,
+  SUPPORT_TEMP_W: 20,
+  SUPPORT_ECON_W: 20,
+  SUPPORT_EQUITY_W: 0.1,
+  INEQUALITY_DRIFT: 5,
+  CAPITAL_BASE: 10,
+  CAPITAL_PER_SUPPORT: 0.5,
+  TAX_RATE: 0.02,
+  MONEY_SCALE: 1e9,
+};
+
+export const DEFAULT_SCENARIO: Scenario = {
+  startYear: 2025,
+  startTemperatureAnomaly: 1.3,
+  startCo2: 420,
+  startResources: { politicalCapital: 100, money: 100 },
+  rngSeed: 12345,
+  regions: SAMPLE_REGIONS,
+};
+
+export const END_YEAR = 2200;
