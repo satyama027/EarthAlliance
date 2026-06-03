@@ -35,7 +35,7 @@ export function useGame(): GameController {
   const [state, setState] = useState<WorldState>(() => createInitialState());
   const [selected, setSelected] = useState<string[]>([]);
   const [lastEvents, setLastEvents] = useState<GameEvent[]>([]);
-  const [history, setHistory] = useState<ClimatePoint[]>(() => [snapshot(createInitialState())]);
+  const [history, setHistory] = useState<ClimatePoint[]>(() => [snapshot(state)]);
 
   const available = useMemo(() => getAvailablePolicies(state), [state]);
 
