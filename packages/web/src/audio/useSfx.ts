@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import type { GameEvent } from '@earth-alliance/engine';
 import { eventToSound } from './sound.js';
 
@@ -36,5 +36,8 @@ export function useSfx() {
     osc.stop(now + tone.durationMs / 1000);
   }, [ensureCtx]);
 
-  return { playForEvent };
+  // Memoized so the returned object has a STABLE identity across renders.
+  // Consumers depend on it in useEffect deps; an unstable identity would make
+  // those effects re-run every render and replay sounds spuriously.
+  return useMemo(() => ({ playForEvent }), [playForEvent]);
 }

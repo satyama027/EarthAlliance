@@ -22,4 +22,20 @@ describe('App integration', () => {
     await userEvent.click(screen.getByRole('button', { name: /end turn/i }));
     expect(screen.getByText(/Year 2030/)).toBeInTheDocument();
   });
+
+  it('shows the ending overlay when the game ends and Play again resets it', async () => {
+    renderApp();
+    // Do-nothing play: keep ending turns until the ending overlay appears.
+    for (let i = 0; i < 35; i++) {
+      if (screen.queryByRole('button', { name: /play again/i })) break;
+      const endBtn = screen.queryByRole('button', { name: /end turn/i }) as HTMLButtonElement | null;
+      if (!endBtn || endBtn.disabled) break;
+      await userEvent.click(endBtn);
+    }
+    expect(screen.getByRole('button', { name: /play again/i })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /play again/i }));
+    expect(screen.getByText(/Year 2025/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /play again/i })).not.toBeInTheDocument();
+  });
 });

@@ -1445,6 +1445,15 @@ describe('useSfx', () => {
     const { result } = renderHook(() => useSfx());
     expect(() => result.current.playForEvent({ turn: 1, type: 'nope', message: '' })).not.toThrow();
   });
+
+  it('returns a referentially stable object across renders', () => {
+    // Guards against the SFX effect re-firing every render: consumers put this
+    // object in useEffect deps, so its identity must not change between renders.
+    const { result, rerender } = renderHook(() => useSfx());
+    const first = result.current;
+    rerender();
+    expect(result.current).toBe(first);
+  });
 });
 ```
 
@@ -1457,7 +1466,7 @@ Expected: FAIL — `useSfx` not found.
 
 `packages/web/src/audio/useSfx.ts`:
 ```ts
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import type { GameEvent } from '@earth-alliance/engine';
 import { eventToSound } from './sound.js';
 
@@ -1495,7 +1504,10 @@ export function useSfx() {
     osc.stop(now + tone.durationMs / 1000);
   }, [ensureCtx]);
 
-  return { playForEvent };
+  // Memoized so the returned object has a STABLE identity across renders.
+  // Consumers depend on it in useEffect deps; an unstable identity would make
+  // those effects re-run every render and replay sounds spuriously.
+  return useMemo(() => ({ playForEvent }), [playForEvent]);
 }
 ```
 
@@ -1625,6 +1637,22 @@ describe('App integration', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /end turn/i }));
     expect(screen.getByText(/Year 2030/)).toBeInTheDocument();
+  });
+
+  it('shows the ending overlay when the game ends and Play again resets it', async () => {
+    renderApp();
+    // Do-nothing play: keep ending turns until the ending overlay appears.
+    for (let i = 0; i < 35; i++) {
+      if (screen.queryByRole('button', { name: /play again/i })) break;
+      const endBtn = screen.queryByRole('button', { name: /end turn/i }) as HTMLButtonElement | null;
+      if (!endBtn || endBtn.disabled) break;
+      await userEvent.click(endBtn);
+    }
+    expect(screen.getByRole('button', { name: /play again/i })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /play again/i }));
+    expect(screen.getByText(/Year 2025/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /play again/i })).not.toBeInTheDocument();
   });
 });
 ```

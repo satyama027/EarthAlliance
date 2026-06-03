@@ -25,4 +25,13 @@ describe('useSfx', () => {
     const { result } = renderHook(() => useSfx());
     expect(() => result.current.playForEvent({ turn: 1, type: 'nope', message: '' })).not.toThrow();
   });
+
+  it('returns a referentially stable object across renders', () => {
+    // Guards against the SFX effect re-firing every render: consumers put this
+    // object in useEffect deps, so its identity must not change between renders.
+    const { result, rerender } = renderHook(() => useSfx());
+    const first = result.current;
+    rerender();
+    expect(result.current).toBe(first);
+  });
 });
