@@ -945,8 +945,28 @@ describe('PolicyTray', () => {
   it('marks unaffordable policies as disabled', () => {
     wrap(<PolicyTray policies={sample} selectedIds={[]} affordableIds={[]}
       onToggle={() => {}} onEndTurn={() => {}} canEndTurn validationReason={null} />);
-    // Unaffordable cards expose aria-disabled
-    expect(screen.getAllByTestId('policy-card').every((el) => el.getAttribute('aria-disabled') === 'true')).toBe(true);
+    // Unaffordable cards expose aria-disabled and are removed from the tab order.
+    const cards = screen.getAllByTestId('policy-card');
+    expect(cards.every((el) => el.getAttribute('aria-disabled') === 'true')).toBe(true);
+    expect(cards.every((el) => el.getAttribute('tabindex') === '-1')).toBe(true);
+  });
+
+  it('does not toggle when an unaffordable card is clicked', async () => {
+    const onToggle = vi.fn();
+    wrap(<PolicyTray policies={sample} selectedIds={[]} affordableIds={[]}
+      onToggle={onToggle} onEndTurn={() => {}} canEndTurn validationReason={null} />);
+    await userEvent.click(screen.getByText(sample[0]!.name));
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it('toggles via keyboard (Enter) for accessibility', async () => {
+    const onToggle = vi.fn();
+    wrap(<PolicyTray policies={sample} selectedIds={[]} affordableIds={sample.map((p) => p.id)}
+      onToggle={onToggle} onEndTurn={() => {}} canEndTurn validationReason={null} />);
+    const card = screen.getAllByTestId('policy-card')[0]!;
+    card.focus();
+    await userEvent.keyboard('{Enter}');
+    expect(onToggle).toHaveBeenCalledWith(sample[0]!.id);
   });
 });
 ```
@@ -978,14 +998,22 @@ interface PolicyCardProps {
 
 export function PolicyCard({ policy, selected, affordable, onToggle }: PolicyCardProps) {
   const disabled = !affordable && !selected;
+  const activate = () => { if (!disabled) onToggle(policy.id); };
   return (
     <motion.div whileHover={disabled ? undefined : { scale: 1.03 }} whileTap={disabled ? undefined : { scale: 0.98 }}>
       <Card
         data-testid="policy-card"
         withBorder
         padding="sm"
+        role="button"
+        tabIndex={disabled ? -1 : 0}
         aria-disabled={disabled}
-        onClick={() => { if (!disabled) onToggle(policy.id); }}
+        aria-pressed={selected}
+        aria-label={`${policy.name}${disabled ? ' (unaffordable)' : ''}`}
+        onClick={activate}
+        onKeyDown={(e) => {
+          if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); activate(); }
+        }}
         style={{
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.5 : 1,

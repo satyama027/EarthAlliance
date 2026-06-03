@@ -16,14 +16,22 @@ interface PolicyCardProps {
 
 export function PolicyCard({ policy, selected, affordable, onToggle }: PolicyCardProps) {
   const disabled = !affordable && !selected;
+  const activate = () => { if (!disabled) onToggle(policy.id); };
   return (
     <motion.div whileHover={disabled ? undefined : { scale: 1.03 }} whileTap={disabled ? undefined : { scale: 0.98 }}>
       <Card
         data-testid="policy-card"
         withBorder
         padding="sm"
+        role="button"
+        tabIndex={disabled ? -1 : 0}
         aria-disabled={disabled}
-        onClick={() => { if (!disabled) onToggle(policy.id); }}
+        aria-pressed={selected}
+        aria-label={`${policy.name}${disabled ? ' (unaffordable)' : ''}`}
+        onClick={activate}
+        onKeyDown={(e) => {
+          if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); activate(); }
+        }}
         style={{
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.5 : 1,

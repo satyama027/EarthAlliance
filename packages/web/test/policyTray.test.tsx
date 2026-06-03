@@ -36,7 +36,27 @@ describe('PolicyTray', () => {
   it('marks unaffordable policies as disabled', () => {
     wrap(<PolicyTray policies={sample} selectedIds={[]} affordableIds={[]}
       onToggle={() => {}} onEndTurn={() => {}} canEndTurn validationReason={null} />);
-    // Unaffordable cards expose aria-disabled
-    expect(screen.getAllByTestId('policy-card').every((el) => el.getAttribute('aria-disabled') === 'true')).toBe(true);
+    // Unaffordable cards expose aria-disabled and are removed from the tab order.
+    const cards = screen.getAllByTestId('policy-card');
+    expect(cards.every((el) => el.getAttribute('aria-disabled') === 'true')).toBe(true);
+    expect(cards.every((el) => el.getAttribute('tabindex') === '-1')).toBe(true);
+  });
+
+  it('does not toggle when an unaffordable card is clicked', async () => {
+    const onToggle = vi.fn();
+    wrap(<PolicyTray policies={sample} selectedIds={[]} affordableIds={[]}
+      onToggle={onToggle} onEndTurn={() => {}} canEndTurn validationReason={null} />);
+    await userEvent.click(screen.getByText(sample[0]!.name));
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it('toggles via keyboard (Enter) for accessibility', async () => {
+    const onToggle = vi.fn();
+    wrap(<PolicyTray policies={sample} selectedIds={[]} affordableIds={sample.map((p) => p.id)}
+      onToggle={onToggle} onEndTurn={() => {}} canEndTurn validationReason={null} />);
+    const card = screen.getAllByTestId('policy-card')[0]!;
+    card.focus();
+    await userEvent.keyboard('{Enter}');
+    expect(onToggle).toHaveBeenCalledWith(sample[0]!.id);
   });
 });
