@@ -255,9 +255,26 @@ export default defineConfig({
 });
 ```
 
-`packages/web/test/setup.ts`:
+`packages/web/test/setup.ts` (Mantine needs `matchMedia`/`ResizeObserver`, which jsdom lacks — see mantine.dev/guides/vitest):
 ```ts
 import '@testing-library/jest-dom/vitest';
+import { vi } from 'vitest';
+
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: (query: string) => ({
+    matches: false, media: query, onchange: null,
+    addListener: vi.fn(), removeListener: vi.fn(),
+    addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+  }),
+});
+
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+(globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = ResizeObserverStub;
 ```
 
 `packages/web/index.html`:
@@ -456,11 +473,11 @@ Expected: FAIL — modules not found.
 /** Convert latitude/longitude (degrees) to a point on a sphere of `radius`.
  *  Lat 0/Lon 0 → +Z; north pole → +Y. Returns [x, y, z]. */
 export function latLonToVector3(lat: number, lon: number, radius: number): [number, number, number] {
-  const phi = (90 - lat) * (Math.PI / 180);   // polar angle from +Y
-  const theta = (lon + 180) * (Math.PI / 180); // azimuth
-  const x = -radius * Math.sin(phi) * Math.cos(theta);
+  const phi = (90 - lat) * (Math.PI / 180); // polar angle from +Y
+  const theta = lon * (Math.PI / 180);      // azimuth, 0 → +Z
+  const x = radius * Math.sin(phi) * Math.sin(theta);
   const y = radius * Math.cos(phi);
-  const z = radius * Math.sin(phi) * Math.sin(theta);
+  const z = radius * Math.sin(phi) * Math.cos(theta);
   return [x, y, z];
 }
 ```
@@ -649,7 +666,7 @@ export function useGame(): GameController {
   const [state, setState] = useState<WorldState>(() => createInitialState());
   const [selected, setSelected] = useState<string[]>([]);
   const [lastEvents, setLastEvents] = useState<GameEvent[]>([]);
-  const [history, setHistory] = useState<ClimatePoint[]>(() => [snapshot(createInitialState())]);
+  const [history, setHistory] = useState<ClimatePoint[]>(() => [snapshot(state)]);
 
   const available = useMemo(() => getAvailablePolicies(state), [state]);
 
@@ -928,8 +945,28 @@ describe('PolicyTray', () => {
   it('marks unaffordable policies as disabled', () => {
     wrap(<PolicyTray policies={sample} selectedIds={[]} affordableIds={[]}
       onToggle={() => {}} onEndTurn={() => {}} canEndTurn validationReason={null} />);
-    // Unaffordable cards expose aria-disabled
-    expect(screen.getAllByTestId('policy-card').every((el) => el.getAttribute('aria-disabled') === 'true')).toBe(true);
+    // Unaffordable cards expose aria-disabled and are removed from the tab order.
+    const cards = screen.getAllByTestId('policy-card');
+    expect(cards.every((el) => el.getAttribute('aria-disabled') === 'true')).toBe(true);
+    expect(cards.every((el) => el.getAttribute('tabindex') === '-1')).toBe(true);
+  });
+
+  it('does not toggle when an unaffordable card is clicked', async () => {
+    const onToggle = vi.fn();
+    wrap(<PolicyTray policies={sample} selectedIds={[]} affordableIds={[]}
+      onToggle={onToggle} onEndTurn={() => {}} canEndTurn validationReason={null} />);
+    await userEvent.click(screen.getByText(sample[0]!.name));
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it('toggles via keyboard (Enter) for accessibility', async () => {
+    const onToggle = vi.fn();
+    wrap(<PolicyTray policies={sample} selectedIds={[]} affordableIds={sample.map((p) => p.id)}
+      onToggle={onToggle} onEndTurn={() => {}} canEndTurn validationReason={null} />);
+    const card = screen.getAllByTestId('policy-card')[0]!;
+    card.focus();
+    await userEvent.keyboard('{Enter}');
+    expect(onToggle).toHaveBeenCalledWith(sample[0]!.id);
   });
 });
 ```
@@ -961,14 +998,22 @@ interface PolicyCardProps {
 
 export function PolicyCard({ policy, selected, affordable, onToggle }: PolicyCardProps) {
   const disabled = !affordable && !selected;
+  const activate = () => { if (!disabled) onToggle(policy.id); };
   return (
     <motion.div whileHover={disabled ? undefined : { scale: 1.03 }} whileTap={disabled ? undefined : { scale: 0.98 }}>
       <Card
         data-testid="policy-card"
         withBorder
         padding="sm"
+        role="button"
+        tabIndex={disabled ? -1 : 0}
         aria-disabled={disabled}
-        onClick={() => { if (!disabled) onToggle(policy.id); }}
+        aria-pressed={selected}
+        aria-label={`${policy.name}${disabled ? ' (unaffordable)' : ''}`}
+        onClick={activate}
+        onKeyDown={(e) => {
+          if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); activate(); }
+        }}
         style={{
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.5 : 1,
@@ -1400,6 +1445,15 @@ describe('useSfx', () => {
     const { result } = renderHook(() => useSfx());
     expect(() => result.current.playForEvent({ turn: 1, type: 'nope', message: '' })).not.toThrow();
   });
+
+  it('returns a referentially stable object across renders', () => {
+    // Guards against the SFX effect re-firing every render: consumers put this
+    // object in useEffect deps, so its identity must not change between renders.
+    const { result, rerender } = renderHook(() => useSfx());
+    const first = result.current;
+    rerender();
+    expect(result.current).toBe(first);
+  });
 });
 ```
 
@@ -1412,7 +1466,7 @@ Expected: FAIL — `useSfx` not found.
 
 `packages/web/src/audio/useSfx.ts`:
 ```ts
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import type { GameEvent } from '@earth-alliance/engine';
 import { eventToSound } from './sound.js';
 
@@ -1450,7 +1504,10 @@ export function useSfx() {
     osc.stop(now + tone.durationMs / 1000);
   }, [ensureCtx]);
 
-  return { playForEvent };
+  // Memoized so the returned object has a STABLE identity across renders.
+  // Consumers depend on it in useEffect deps; an unstable identity would make
+  // those effects re-run every render and replay sounds spuriously.
+  return useMemo(() => ({ playForEvent }), [playForEvent]);
 }
 ```
 
@@ -1580,6 +1637,22 @@ describe('App integration', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /end turn/i }));
     expect(screen.getByText(/Year 2030/)).toBeInTheDocument();
+  });
+
+  it('shows the ending overlay when the game ends and Play again resets it', async () => {
+    renderApp();
+    // Do-nothing play: keep ending turns until the ending overlay appears.
+    for (let i = 0; i < 35; i++) {
+      if (screen.queryByRole('button', { name: /play again/i })) break;
+      const endBtn = screen.queryByRole('button', { name: /end turn/i }) as HTMLButtonElement | null;
+      if (!endBtn || endBtn.disabled) break;
+      await userEvent.click(endBtn);
+    }
+    expect(screen.getByRole('button', { name: /play again/i })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /play again/i }));
+    expect(screen.getByText(/Year 2025/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /play again/i })).not.toBeInTheDocument();
   });
 });
 ```

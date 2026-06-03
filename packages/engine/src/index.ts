@@ -9,7 +9,7 @@ export { SAMPLE_REGIONS } from './data/regions.js';
 
 export { createInitialState } from './state.js';
 export { createRng } from './rng.js';
-export { POLICY_CATALOG, getAvailablePolicies, validateSelection, getPolicy } from './policies.js';
+export { POLICY_CATALOG, getAvailablePolicies, validateSelection, getPolicy, isRegionScoped } from './policies.js';
 export type { ValidationResult } from './policies.js';
 export { ENDINGS, evaluateEnding } from './endings.js';
 export { advanceTurn, createSimulation } from './simulation.js';

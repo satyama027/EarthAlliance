@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { POLICY_CATALOG, getAvailablePolicies, validateSelection } from '../src/policies.js';
+import { POLICY_CATALOG, getAvailablePolicies, validateSelection, getPolicy, isRegionScoped } from '../src/policies.js';
 import { makeState } from './fixtures.js';
 
 describe('policy catalog', () => {
@@ -54,5 +54,12 @@ describe('validateSelection', () => {
   it('rejects a selection containing duplicate ids', () => {
     const state = makeState({ resources: { politicalCapital: 100, money: 100 } });
     expect(validateSelection(state, ['reforestation', 'reforestation']).ok).toBe(false);
+  });
+
+  it('flags region-scoped policies as unsupported for now', () => {
+    const globalPolicy = getPolicy('renewable-subsidy')!;
+    expect(isRegionScoped(globalPolicy)).toBe(false);
+    const regionScoped = { ...globalPolicy, scope: 'region' as const };
+    expect(isRegionScoped(regionScoped)).toBe(true);
   });
 });
