@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Earth Alliance — Current UI (gallery)</title>
+<style>
+  /* ── Design tokens (mirror of packages/web/src/theme.ts, Mantine dark scheme) ── */
+  :root {
+    --earth-3:#63e6be; --earth-5:#20c997; --earth-6:#12b886; --earth-7:#0ca678;
+    --grape:#cc5de8; --grape-light:#3b2540; --teal:#20c997; --teal-light:#163a33;
+    --red:#ff6b6b; --yellow:#ffd43b;
+    --bg:#1a1b1e; --surface:#25262b; --surface-2:#2c2e33; --border:#373a40;
+    --text:#c1c2c5; --text-strong:#f1f3f5; --dimmed:#909296;
+    --scene-bg:#05080f;
+    --cat-energy:#f59f00; --cat-industry:#868e96; --cat-land:#2f9e44;
+    --cat-social:#1971c2; --cat-frontier:#9c36b5;
+    --radius:8px; --radius-sm:4px;
+    font-family: system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); padding:16px;
+         -webkit-font-smoothing:antialiased; }
+
+  /* Gallery chrome */
+  .gallery-note { max-width:1100px; margin:0 auto 16px; padding:10px 14px;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    font-size:13px; color:var(--dimmed); }
+  .gallery-note strong { color:var(--text-strong); }
+
+  /* App frame: 7/5 grid + full-width tray (AppShell padding md) */
+  .app { max-width:1100px; margin:0 auto; display:grid; gap:16px;
+         grid-template-columns: 7fr 5fr; }
+  .col-scene { grid-column: 1; }
+  .col-info  { grid-column: 2; display:flex; flex-direction:column; gap:12px; }
+  .col-full  { grid-column: 1 / -1; }
+  @media (max-width:820px){ .app{ grid-template-columns:1fr; } .col-scene,.col-info,.col-full{ grid-column:1; } }
+
+  .paper { background:var(--surface); border:1px solid var(--border);
+           border-radius:var(--radius); padding:12px; }
+
+  /* Scene viewport */
+  .scene { height:70vh; min-height:420px; border-radius:var(--radius); overflow:hidden;
+    background: radial-gradient(circle at 50% 45%, #0b1830 0%, var(--scene-bg) 70%);
+    position:relative; display:flex; align-items:center; justify-content:center; }
+  .globe { width:300px; height:300px; border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #1c3a6e, #0a1a33 70%);
+    box-shadow: 0 0 60px rgba(32,201,151,.15), inset -20px -20px 60px rgba(0,0,0,.6); position:relative; }
+  .marker { position:absolute; width:14px; height:14px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.7); transform:translate(-50%,-50%); }
+  .scene-caption { position:absolute; bottom:10px; left:12px; font-size:11px; color:#5b6b86; }
+
+  /* Generic bits */
+  .row { display:flex; justify-content:space-between; align-items:center; }
+  .badge { display:inline-flex; align-items:center; padding:3px 10px; border-radius:999px;
+    font-size:12px; font-weight:600; }
+  .badge-lg { padding:5px 12px; font-size:13px; }
+  .badge-grape  { background:var(--grape-light); color:#e599f7; }
+  .badge-teal   { background:var(--teal-light); color:#63e6be; }
+  .badge-grape-solid{ background:#9c36b5; color:#fff; }
+  .badge-teal-solid { background:var(--earth-7); color:#fff; }
+  .badge-red  { background:#3a2326; color:var(--red); }
+  .title { color:var(--text-strong); font-weight:700; }
+  .h4 { font-size:15px; font-weight:700; color:var(--text-strong); margin:0 0 4px; }
+  .dimmed { color:var(--dimmed); }
+  .strong { color:var(--text-strong); font-weight:700; }
+  .sm { font-size:13px; } .xs { font-size:11px; }
+
+  /* Progress bars (RegionPanel) */
+  .prog { height:8px; border-radius:999px; background:var(--surface-2); overflow:hidden; }
+  .prog > span { display:block; height:100%; border-radius:999px; }
+
+  /* Sparkline */
+  .spark { width:100%; height:40px; }
+
+  /* Policy cards */
+  .tray { display:flex; gap:12px; overflow-x:auto; padding-bottom:6px; }
+  .card { width:180px; flex:0 0 180px; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:12px; }
+  .card.selected { outline:2px solid var(--earth-5); }
+  .card.disabled { opacity:.5; }
+  .art { height:36px; border-radius:var(--radius-sm); display:flex; align-items:center;
+    justify-content:center; font-size:22px; }
+  .card .name { font-weight:700; color:var(--text-strong); margin-top:8px; font-size:14px; }
+  .card .desc { font-size:11px; color:var(--dimmed); margin-top:2px; line-height:1.35;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .card .costs { display:flex; gap:6px; margin-top:8px; }
+
+  .btn { display:block; width:100%; padding:10px; border:none; border-radius:var(--radius-sm);
+    background:var(--earth-6); color:#fff; font-weight:600; font-size:14px; cursor:pointer; }
+
+  /* Ending screen mock (boxed, not full-overlay, so it sits in the gallery) */
+  .ending-wrap { grid-column:1/-1; }
+  .ending { background:rgba(0,0,0,.85); border:1px solid var(--border); border-radius:var(--radius);
+    padding:40px; text-align:center; }
+  .ending h1 { color:var(--text-strong); font-size:30px; margin:14px 0 8px; }
+  .ending .btn { max-width:200px; margin:18px auto 0; background:var(--earth-6); }
+
+  h2.section { max-width:1100px; margin:28px auto 8px; color:var(--text-strong);
+    font-size:13px; text-transform:uppercase; letter-spacing:.08em; }
+</style>
+</head>
+<body>
+
+<div class="gallery-note">
+  <strong>Current-state gallery.</strong> A faithful mockup of the Earth Alliance web client as it
+  looks right now, built from the live components and the tokens in
+  <code>DESIGN-SYSTEM.md</code> / <code>packages/web/src/theme.ts</code>. The
+  <code>/implement</code> step keeps this file in sync with the real UI. Open in any browser.
+</div>
+
+<!-- ── Main app layout ───────────────────────────────────────────── -->
+<div class="app">
+  <!-- Scene -->
+  <div class="col-scene">
+    <div class="scene">
+      <div class="globe">
+        <div class="marker" style="top:30%; left:45%; background:#20c997;"></div>
+        <div class="marker" style="top:55%; left:62%; background:#ffd43b;"></div>
+        <div class="marker" style="top:42%; left:30%; background:#74c0fc;"></div>
+        <div class="marker" style="top:68%; left:48%; background:#ff8787;"></div>
+      </div>
+      <div class="scene-caption">EarthScene — markers colored by public support · click to select</div>
+    </div>
+  </div>
+
+  <!-- Info column -->
+  <div class="col-info">
+    <!-- ResourceBar -->
+    <div class="paper">
+      <div class="row">
+        <span class="strong">Year 2025 · Turn 1</span>
+        <span style="display:flex; gap:8px;">
+          <span class="badge badge-lg badge-grape-solid">Political Capital: 100</span>
+          <span class="badge badge-lg badge-teal-solid">Money: 500</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="paper">
+      <div class="h4">Planet</div>
+      <div class="row sm"><span>Warming</span><span style="color:var(--yellow)" class="strong">+1.20 °C</span></div>
+      <div class="row sm" style="margin-top:4px;"><span>CO₂</span><span class="strong">421 ppm</span></div>
+      <div class="row sm" style="margin-top:4px;"><span>Emissions</span><span class="strong">40.2 Gt/yr</span></div>
+      <svg class="spark" viewBox="0 0 240 40" preserveAspectRatio="none">
+        <polyline fill="none" stroke="var(--earth-5)" stroke-width="2"
+          points="0,30 40,28 80,25 120,22 160,18 200,15 240,12" />
+      </svg>
+    </div>
+
+    <!-- RegionPanel -->
+    <div class="paper">
+      <div class="h4">North America</div>
+      <div class="xs dimmed" style="margin-bottom:6px;">GDP/capita $58,000 · pop 370M</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div>
+          <div class="row sm"><span>Public support</span><span class="strong">62</span></div>
+          <div class="prog"><span style="width:62%; background:var(--earth-5);"></span></div>
+        </div>
+        <div>
+          <div class="row sm"><span>Equity</span><span class="strong">55</span></div>
+          <div class="prog"><span style="width:55%; background:var(--earth-5);"></span></div>
+        </div>
+        <div>
+          <div class="row sm"><span>Biodiversity</span><span class="strong">48</span></div>
+          <div class="prog"><span style="width:48%; background:var(--yellow);"></span></div>
+        </div>
+        <div>
+          <div class="row sm"><span>Water</span><span class="strong">71</span></div>
+          <div class="prog"><span style="width:71%; background:var(--earth-5);"></span></div>
+        </div>
+        <div>
+          <div class="row sm"><span>Land</span><span class="strong">66</span></div>
+          <div class="prog"><span style="width:66%; background:var(--earth-5);"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PolicyTray (full width) -->
+  <div class="col-full">
+    <div class="tray">
+      <div class="card selected">
+        <div class="art" style="background:var(--cat-energy);">⚡</div>
+        <div class="name">Solar Buildout</div>
+        <div class="desc">Subsidize utility-scale solar across sunbelt regions to cut grid emissions.</div>
+        <div class="costs"><span class="badge badge-grape">PC 20</span><span class="badge badge-teal">$ 80</span></div>
+      </div>
+      <div class="card">
+        <div class="art" style="background:var(--cat-industry);">🏭</div>
+        <div class="name">Carbon Capture</div>
+        <div class="desc">Mandate CCS retrofits on heavy industry to lower industrial output emissions.</div>
+        <div class="costs"><span class="badge badge-grape">PC 35</span><span class="badge badge-teal">$ 150</span></div>
+      </div>
+      <div class="card">
+        <div class="art" style="background:var(--cat-land);">🌳</div>
+        <div class="name">Reforestation</div>
+        <div class="desc">Large-scale afforestation to restore biodiversity and pull down carbon.</div>
+        <div class="costs"><span class="badge badge-grape">PC 15</span><span class="badge badge-teal">$ 60</span></div>
+      </div>
+      <div class="card disabled">
+        <div class="art" style="background:var(--cat-social);">🤝</div>
+        <div class="name">Just Transition</div>
+        <div class="desc">Retraining and support for fossil-sector workers to protect equity.</div>
+        <div class="costs"><span class="badge badge-grape">PC 25</span><span class="badge badge-teal">$ 120</span></div>
+      </div>
+      <div class="card">
+        <div class="art" style="background:var(--cat-frontier);">🚀</div>
+        <div class="name">Fusion R&D</div>
+        <div class="desc">Fund frontier fusion research for a long-shot clean-baseload breakthrough.</div>
+        <div class="costs"><span class="badge badge-grape">PC 40</span><span class="badge badge-teal">$ 200</span></div>
+      </div>
+    </div>
+    <button class="btn" style="margin-top:8px;">End Turn ▶</button>
+  </div>
+</div>
+
+<!-- ── Ending screen (separate state) ────────────────────────────── -->
+<h2 class="section">Ending screen (game-over overlay)</h2>
+<div class="app">
+  <div class="ending-wrap">
+    <div class="ending">
+      <span class="badge badge-lg badge-teal-solid">WIN</span>
+      <h1>A Habitable Future</h1>
+      <div class="dimmed sm">Year 2120</div>
+      <p style="max-width:480px; margin:10px auto 0; color:var(--text);">
+        Warming stabilized below 2 °C while equity and biodiversity held. The Earth Alliance
+        steered the planet through the bottleneck.
+      </p>
+      <button class="btn">Play again</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
