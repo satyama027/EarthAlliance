@@ -16,7 +16,7 @@ Two packages, one hard boundary:
 ```
 ┌──────────────────────────────┐         ┌──────────────────────────────┐
 │  @earth-alliance/engine      │         │  @earth-alliance/web         │
-│  pure, deterministic TS      │ ◀────── │  React + R3F + Mantine       │
+│  pure, deterministic TS      │ ◀────── │  React + Mantine             │
 │  no React / DOM / Three.js   │ imports │  view + controller only      │
 └──────────────────────────────┘         └──────────────────────────────┘
         the simulation                          the presentation
@@ -63,11 +63,13 @@ EarthAlliance/
 │  │        ├─ regions.ts    # SAMPLE_REGIONS (pure data)
 │  │        └─ scenario.ts   # DEFAULT_SCENARIO + DEFAULT_PARAMS (every tunable constant)
 │  └─ web/                   # React client (depends on engine via workspace:*)
+│     ├─ scripts/            # generate-map.mjs — offline map baker (build-time only)
 │     └─ src/
 │        ├─ main.tsx         # React root + MantineProvider
-│        ├─ App.tsx          # composes scene + HUD; owns selectedRegionId; wires SFX
+│        ├─ App.tsx          # composes map + HUD; owns selectedRegionId; wires SFX
 │        ├─ game/useGame.ts  # the React hook wrapping the engine (holds WorldState)
-│        ├─ scene/           # R3F 3D layer (EarthScene, Globe, RegionMarker, geo, metricColor)
+│        ├─ scene/           # WorldMap (inlines world-map.svg) + metricColor
+│        ├─ assets/          # world-map.svg — baked HD region map (generated, committed)
 │        ├─ components/      # Mantine DOM HUD (ResourceBar, Dashboard, RegionPanel,
 │        │                   #   PolicyTray, PolicyCard, EndingScreen, Sparkline)
 │        └─ audio/           # useSfx + sound (Web Audio SFX, event-driven)
@@ -75,7 +77,8 @@ EarthAlliance/
 ```
 
 Both packages use **Vitest**. The engine runs in `node`; the web package runs in `jsdom`
-with React Testing Library, and mocks the WebGL scene (logic is tested, not GPU output).
+with React Testing Library. `WorldMap` is tested directly (the baked SVG is imported and its
+click/selection wiring asserted), and stubbed in the App integration test to keep it focused.
 
 ---
 
@@ -206,13 +209,15 @@ the dashboard sparkline.
 
 ### From state to pixels (`App.tsx` → scene + HUD)
 
-`App` reads the controller and fans `WorldState` out to two presentation trees, both pure
-functions of the current state:
+`App` reads the controller and fans state out to two presentation trees:
 
-- **3D scene** (`scene/`, R3F): `EarthScene` renders the `Globe` plus one `RegionMarker`
-  per region, positioned via `latLonToVector3(lat, lon)` and colored via `metricColor` of
-  a chosen metric (currently `publicSupport`). Markers are clickable; `App` owns the
-  `selectedRegionId` (a *view* concern, not engine state).
+- **World map** (`scene/WorldMap.tsx`): a flat, static map of the 10 regions rendered from the
+  pre-baked `assets/world-map.svg` (real Natural Earth geometry; one filled `<path>` per region
+  in its fixed `REGION_COLORS` hue, region partition lines, no internal country borders). The
+  component inlines the SVG and wires click-to-select + selection dimming; `App` owns the
+  `selectedRegionId` (a *view* concern, not engine state). India follows the Government-of-India
+  depiction. The geometry is baked offline by `scripts/generate-map.mjs` — **no D3/TopoJSON
+  ships at runtime** (the former R3F globe and `three` are gone).
 - **HUD** (`components/`, Mantine DOM overlay): `ResourceBar`, `Dashboard` (+ `Sparkline`
   trend), `RegionPanel` (the selected region), `PolicyTray` of `PolicyCard`s, and
   `EndingScreen` (shown when `game.ending` is non-null).
@@ -280,3 +285,8 @@ These hold across the engine and are guarded by the test suite. Treat them as lo
 - **Art & audio.** Card art is referenced by asset *key* and SFX are synthesized in-browser;
   both are placeholder pipelines meant to be swapped for real assets (and Howler) without
   code changes.
+- **World-map boundaries.** The map is a baked `assets/world-map.svg`; regenerate it with
+  `scripts/generate-map.mjs` whenever regions or borders change. India's J&K / Aksai Chin
+  depiction follows the Government of India but uses an **approximate** correction polygon —
+  swap in a vetted GoI-aligned boundary before a public release. Bumping `world-atlas` from the
+  110m to the 50m dataset sharpens coastlines if higher fidelity is wanted.
