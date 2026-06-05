@@ -104,6 +104,17 @@ Everything crossing the boundary is a **plain, JSON-serializable object** (`Worl
 `Policy`, `GameEvent`, `Ending`). No class instances, no functions on the wire — which is
 what keeps the state save/load-able and the engine portable.
 
+**Resolution: web reads engine *source*, not its compiled `dist`.** The engine's
+`package.json` `exports` point at `dist/`, but both `web/vite.config.ts` and
+`web/vitest.config.ts` add a `resolve.alias` mapping `@earth-alliance/engine` →
+`packages/engine/src/index.ts`. So the dev server, production build, and the web test suite
+all consume the live TypeScript source — no manual engine rebuild step, and no chance of a
+stale `dist` shipping outdated data. (This bit once: a stale 5-region `dist` rendered behind
+a freshly-baked 10-region map, so the new regions showed on the map but resolved to no data
+when selected. `web/test/engineBoundary.test.ts` now guards that all 10 regions reach the
+client.) The engine's `dist` is still built (`tsc -p tsconfig.build.json`) for `tsc --noEmit`
+type-resolution and for any external consumer, but it is no longer on the web runtime path.
+
 `WorldState` is the whole game in one object: `turn`/`year`/`status`/`endingId`,
 `resources` (politicalCapital + money), `climate` (temperatureAnomaly, co2Concentration,
 annualEmissions), `regions[]`, `activeEffects[]` (ongoing policy effects still ticking),
