@@ -290,3 +290,20 @@ These hold across the engine and are guarded by the test suite. Treat them as lo
   depiction follows the Government of India but uses an **approximate** correction polygon —
   swap in a vetted GoI-aligned boundary before a public release. Bumping `world-atlas` from the
   110m to the 50m dataset sharpens coastlines if higher fidelity is wanted.
+
+---
+
+## 8. Development process
+
+Two processes are mandatory for all work in this repo (also stated in `CLAUDE.md`):
+
+1. **Test-Driven Development.** Write a failing test first, implement the minimum to make
+   it pass, then refactor. Every new test joins the package vitest suite. After development
+   is done, the **full** automated suite is run to check for regressions before the work is
+   considered complete: `pnpm -r test` and `pnpm -r typecheck`.
+
+2. **ARCHITECTURE.md is updated before every commit.** This document must reflect the change
+   and be staged before committing. Enforced by a pre-commit hook
+   (`.claude/hooks/require-architecture-md.sh`, wired via `.claude/settings.json` as a
+   `PreToolUse` hook on `git commit`): the commit is blocked unless `ARCHITECTURE.md` is among
+   the staged files.
