@@ -5,6 +5,7 @@ import { ResourceBar } from './components/ResourceBar.js';
 import { Dashboard } from './components/Dashboard.js';
 import { PolicyTray } from './components/PolicyTray.js';
 import { RegionPanel } from './components/RegionPanel.js';
+import { TurnLog } from './components/TurnLog.js';
 import { EndingScreen } from './components/EndingScreen.js';
 import { useGame } from './game/useGame.js';
 import { useSfx } from './audio/useSfx.js';
@@ -46,6 +47,7 @@ export default function App() {
               <Dashboard temperature={game.state.climate.temperatureAnomaly} co2={game.state.climate.co2Concentration}
                 annualEmissions={game.state.climate.annualEmissions} history={game.history} />
               <RegionPanel region={selectedRegion} />
+              <TurnLog turnLog={game.turnLog} selectedRegionId={selectedRegionId} />
             </Box>
           </Grid.Col>
           <Grid.Col span={12}>

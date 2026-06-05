@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Earth Alliance — Turn Log panel (approved)</title>
+<style>
+  /* ── Design tokens (mirror of packages/web/src/theme.ts + DESIGN-SYSTEM.md) ── */
+  :root {
+    --earth-3:#63e6be; --earth-5:#20c997; --earth-6:#12b886; --earth-7:#0ca678;
+    --grape:#cc5de8; --teal:#20c997;
+    --red:#ff6b6b; --yellow:#ffd43b; --orange:#ffa94d;
+    --bg:#1a1b1e; --surface:#25262b; --surface-2:#2c2e33; --border:#373a40;
+    --text:#c1c2c5; --text-strong:#f1f3f5; --dimmed:#909296;
+    --radius:8px; --radius-sm:4px;
+    font-family: system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); padding:16px;
+         -webkit-font-smoothing:antialiased; }
+
+  .note { max-width:760px; margin:0 auto 16px; padding:10px 14px;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    font-size:13px; color:var(--dimmed); }
+  .note strong { color:var(--text-strong); }
+
+  /* Info column (matches live right column: 12px gap, p="sm" papers) */
+  .col-info { display:flex; flex-direction:column; gap:12px; width:380px; max-width:100%;
+    margin:0 auto; }
+  .paper { background:var(--surface); border:1px solid var(--border);
+           border-radius:var(--radius); padding:12px; }
+  .row { display:flex; justify-content:space-between; align-items:center; }
+  .h4 { font-size:15px; font-weight:700; color:var(--text-strong); margin:0 0 4px; }
+  .dimmed { color:var(--dimmed); }
+  .strong { color:var(--text-strong); font-weight:700; }
+  .xs { font-size:11px; }
+  .badge { display:inline-flex; align-items:center; padding:5px 12px; border-radius:999px;
+    font-size:13px; font-weight:600; }
+  .badge-grape-solid{ background:#9c36b5; color:#fff; }
+  .badge-teal-solid { background:var(--earth-7); color:#fff; }
+
+  /* delta chips — arrow = numeric direction, color = good/bad/neutral */
+  .delta { font-size:11px; font-weight:700; margin-left:6px; font-variant-numeric:tabular-nums; }
+  .good { color:var(--earth-3); }
+  .bad  { color:var(--red); }
+  .neutral { color:var(--dimmed); }
+
+  /* ── Turn Log shell (scrollable, fixed height, newest first) ── */
+  .turnlog .log-scroll { max-height:360px; overflow-y:auto; margin:0 -4px; padding:0 4px;
+    display:flex; flex-direction:column; gap:10px; }
+  .turnlog .log-scroll::-webkit-scrollbar { width:8px; }
+  .turnlog .log-scroll::-webkit-scrollbar-thumb { background:var(--border); border-radius:999px; }
+
+  .entry { background:var(--surface-2); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:10px; }
+  .entry-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .entry-turn { font-weight:700; color:var(--text-strong); font-size:13px; }
+  .entry-year { font-size:11px; color:var(--dimmed); }
+  .blocklabel { font-size:10px; text-transform:uppercase; letter-spacing:.07em;
+    color:var(--dimmed); margin:6px 0 3px; }
+  .region-tag { display:inline-block; font-size:10px; font-weight:700; padding:1px 7px;
+    border-radius:999px; background:#2a1f1f; color:var(--red); margin-left:6px; }
+
+  /* Compact ledger grid */
+  .b-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:2px 14px; }
+  .b-cell { display:flex; justify-content:space-between; align-items:baseline; font-size:12px;
+    padding:1px 0; border-bottom:1px dotted #303237; }
+  .b-cell .lbl { color:var(--dimmed); }
+  .b-cell .val { color:var(--text-strong); font-weight:600; font-variant-numeric:tabular-nums; }
+
+  .empty-hint { font-size:12px; color:var(--dimmed); font-style:italic; padding:4px 0 2px; }
+</style>
+</head>
+<body>
+
+<div class="note">
+  <strong>Approved — Turn Log panel (Variant B, compact ledger).</strong> A scrollable history panel
+  for the right info column (below RegionPanel). Newest turn on top; each entry shows the
+  <strong>global</strong> block always, plus the <strong>selected region's</strong> full block.
+  Economic growth is the GDP/capita ▲% delta (no separate row). Delta arrows: ▲/▼ = numeric
+  direction, color = <span class="good">good</span> / <span class="bad">bad</span> /
+  <span class="neutral">neutral</span> for the planet/region. Sample: South Asia selected, turns 1–3.
+</div>
+
+<div class="col-info">
+
+  <!-- ResourceBar (context) -->
+  <div class="paper">
+    <div class="row">
+      <span class="strong">Year 2040 · Turn 3</span>
+      <span style="display:flex; gap:8px;">
+        <span class="badge badge-grape-solid">PC: 84</span>
+        <span class="badge badge-teal-solid">$ 612</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- ── TURN LOG ── -->
+  <div class="paper turnlog">
+    <div class="h4">Turn Log</div>
+    <div class="log-scroll">
+
+      <!-- Turn 3 (newest) -->
+      <div class="entry">
+        <div class="entry-head"><span class="entry-turn">Turn 3</span><span class="entry-year">2040</span></div>
+        <div class="blocklabel">Planet</div>
+        <div class="b-grid">
+          <div class="b-cell"><span class="lbl">Warming</span><span class="val" style="color:var(--orange)">+1.34 °C<span class="delta bad">▲ .04</span></span></div>
+          <div class="b-cell"><span class="lbl">CO₂</span><span class="val">421 ppm<span class="delta bad">▲ 2</span></span></div>
+          <div class="b-cell"><span class="lbl">Emissions</span><span class="val">41.2 Gt<span class="delta good">▼ .3</span></span></div>
+          <div class="b-cell"><span class="lbl">Damage</span><span class="val" style="color:var(--red)">0.90%<span class="delta bad">▲ .06</span></span></div>
+        </div>
+        <div class="blocklabel">South Asia <span class="region-tag">selected</span></div>
+        <div class="b-grid">
+          <div class="b-cell"><span class="lbl">GDP/cap</span><span class="val">7,420<span class="delta good">▲ 4.8%</span></span></div>
+          <div class="b-cell"><span class="lbl">Pop</span><span class="val">1.92B<span class="delta neutral">▲ .6%</span></span></div>
+          <div class="b-cell"><span class="lbl">Support</span><span class="val">61<span class="delta good">▲ 2</span></span></div>
+          <div class="b-cell"><span class="lbl">Equity</span><span class="val">54<span class="delta bad">▼ 1</span></span></div>
+          <div class="b-cell"><span class="lbl">Biodiv</span><span class="val">47<span class="delta bad">▼ 1</span></span></div>
+          <div class="b-cell"><span class="lbl">Water</span><span class="val">63<span class="delta bad">▼ 2</span></span></div>
+          <div class="b-cell"><span class="lbl">Land</span><span class="val">70<span class="delta bad">▼ 1</span></span></div>
+          <div class="b-cell"><span class="lbl">Educ</span><span class="val">55<span class="delta good">▲ 1</span></span></div>
+          <div class="b-cell"><span class="lbl">Health</span><span class="val">58<span class="delta neutral">— 0</span></span></div>
+          <div class="b-cell"><span class="lbl">Med age</span><span class="val">29.4<span class="delta neutral">▲ .5</span></span></div>
+          <div class="b-cell"><span class="lbl">Fertility</span><span class="val">2.18<span class="delta neutral">▼ .03</span></span></div>
+          <div class="b-cell"><span class="lbl">Emissions</span><span class="val">6.10 Gt<span class="delta good">▼ .2</span></span></div>
+        </div>
+      </div>
+
+      <!-- Turn 2 -->
+      <div class="entry">
+        <div class="entry-head"><span class="entry-turn">Turn 2</span><span class="entry-year">2035</span></div>
+        <div class="blocklabel">Planet</div>
+        <div class="b-grid">
+          <div class="b-cell"><span class="lbl">Warming</span><span class="val" style="color:var(--yellow)">+1.30 °C<span class="delta bad">▲ .05</span></span></div>
+          <div class="b-cell"><span class="lbl">CO₂</span><span class="val">419 ppm<span class="delta bad">▲ 3</span></span></div>
+          <div class="b-cell"><span class="lbl">Emissions</span><span class="val">41.5 Gt<span class="delta good">▼ .4</span></span></div>
+          <div class="b-cell"><span class="lbl">Damage</span><span class="val" style="color:var(--red)">0.84%<span class="delta bad">▲ .06</span></span></div>
+        </div>
+        <div class="blocklabel">South Asia <span class="region-tag">selected</span></div>
+        <div class="b-grid">
+          <div class="b-cell"><span class="lbl">GDP/cap</span><span class="val">7,080<span class="delta good">▲ 4.9%</span></span></div>
+          <div class="b-cell"><span class="lbl">Support</span><span class="val">59<span class="delta good">▲ 3</span></span></div>
+          <div class="b-cell"><span class="lbl">Biodiv</span><span class="val">48<span class="delta bad">▼ 1</span></span></div>
+          <div class="b-cell"><span class="lbl">Water</span><span class="val">65<span class="delta bad">▼ 2</span></span></div>
+          <div class="b-cell dimmed"><span class="lbl">…and 8 more</span><span class="val"></span></div>
+        </div>
+      </div>
+
+      <!-- Turn 1 (baseline) -->
+      <div class="entry">
+        <div class="entry-head"><span class="entry-turn">Turn 1</span><span class="entry-year">2030</span></div>
+        <div class="blocklabel">Planet</div>
+        <div class="b-grid">
+          <div class="b-cell"><span class="lbl">Warming</span><span class="val" style="color:var(--yellow)">+1.25 °C<span class="delta neutral">—</span></span></div>
+          <div class="b-cell"><span class="lbl">Damage</span><span class="val" style="color:var(--red)">0.78%<span class="delta neutral">—</span></span></div>
+        </div>
+        <div class="empty-hint">baseline — no prior turn to compare</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Empty state (no region selected) -->
+  <div class="paper turnlog">
+    <div class="h4">Turn Log <span class="xs dimmed" style="font-weight:400;">· no region selected</span></div>
+    <div class="entry">
+      <div class="entry-head"><span class="entry-turn">Turn 3</span><span class="entry-year">2040</span></div>
+      <div class="blocklabel">Planet</div>
+      <div class="b-grid">
+        <div class="b-cell"><span class="lbl">Warming</span><span class="val" style="color:var(--orange)">+1.34 °C<span class="delta bad">▲ .04</span></span></div>
+        <div class="b-cell"><span class="lbl">Damage</span><span class="val" style="color:var(--red)">0.90%<span class="delta bad">▲ .06</span></span></div>
+      </div>
+      <div class="empty-hint">Select a region on the map to log its parameters.</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

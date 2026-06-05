@@ -101,6 +101,19 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   colored by `temperatureColor`, trailed by a `Sparkline` (240×40) of temperature history.
 - **RegionPanel** — bordered `Paper`; per-metric rows with a `Progress` bar colored by
   `metricColor(value)`. Empty state: dimmed "Select a region on the globe."
+- **TurnLog** — bordered `Paper` titled "Turn Log"; a `ScrollArea.Autosize` (max-height ~340) of
+  per-turn entries, **newest first**. Each entry is a `dark-6` sub-card (`dark-4` border, radius 4)
+  with a `Turn N · year` header, a **Planet** block (Warming/CO₂/Emissions/Damage) always, and the
+  **selected region's** block (GDP/cap + growth, population, and every region index/demography field)
+  in a 2-column ledger grid (`SimpleGrid cols={2}`, dotted row separators, `tabular-nums`). When no
+  region is selected, the entry shows the Planet block + a dimmed "Select a region…" hint.
+  - **Delta chips.** Each value carries a change-vs-previous-turn chip: the arrow shows numeric
+    direction (`▲` up / `▼` down / `—` unchanged) and the **color shows good/bad/neutral** for the
+    planet/region — good = `#63e6be` (earth-3), bad = `#ff6b6b` (red), neutral/unchanged = dimmed.
+    Up-is-bad fields: warming, CO₂, emissions, damage. Up-is-good fields: GDP, support, equity,
+    biodiversity, water, land, education, health. Neutral: population, median age, fertility. The
+    baseline (turn 0) entry shows no chips (no prior turn). Damage and growth come from the engine's
+    exact per-turn `TurnDiagnostics`, never re-derived.
 - **PolicyCard** — bordered `Card`, 180px wide; category-colored art band (height 36, icon) on top,
   name (`fw={700}`), 2-line clamped description, PC + Money `Badge`s (`variant="light"`). Hover
   scales 1.03, tap 0.98 (framer-motion); selected → 2px `earth-5` outline; unaffordable → 0.5

@@ -93,7 +93,7 @@ The contract the client uses:
 createInitialState(scenario?): WorldState
 getAvailablePolicies(state): Policy[]
 validateSelection(state, policyIds): { ok: boolean; reason?: string }
-advanceTurn(state, policyIds): { state: WorldState; events: GameEvent[] }
+advanceTurn(state, policyIds): { state: WorldState; events: GameEvent[]; diagnostics: TurnDiagnostics }
 evaluateEnding(state): Ending | null            // (used internally by advanceTurn)
 ENDINGS                                          // id → Ending lookup for the EndingScreen
 getPolicy(id), isRegionScoped(policy)            // helpers for cost preview / guards
@@ -101,8 +101,15 @@ createSimulation(models?, params?)               // build a pipeline with swappe
 ```
 
 Everything crossing the boundary is a **plain, JSON-serializable object** (`WorldState`,
-`Policy`, `GameEvent`, `Ending`). No class instances, no functions on the wire — which is
-what keeps the state save/load-able and the engine portable.
+`Policy`, `GameEvent`, `Ending`, `TurnDiagnostics`). No class instances, no functions on the
+wire — which is what keeps the state save/load-able and the engine portable.
+
+`advanceTurn` also returns a `TurnDiagnostics` alongside the new state: the intermediates the
+pipeline computes but the state discards — `damageFraction` (global), `deltaTemperature`, and
+`growthByRegion` (per-region GDP/capita growth). These are surfaced so the client can show climate
+damage and economic growth *exactly*, without re-deriving the model equations (the web layer
+duplicates no engine logic). The field is additive: existing `{ state, events }` consumers are
+unaffected.
 
 **Resolution: web reads engine *source*, not its compiled `dist`.** The engine's
 `package.json` `exports` point at `dist/`, but both `web/vite.config.ts` and
@@ -202,14 +209,16 @@ advanceTurn(state, policyIds):
 calls the engine:
 
 ```
-useState: state (WorldState), selected (policy ids), lastEvents, history (climate points)
+useState: state (WorldState), selected (policy ids), lastEvents,
+         history (climate points), turnLog (full per-turn snapshots + diagnostics)
 
 togglePolicy(id)  → add/remove from `selected`
 selectionCost     → derived sum via getPolicy (live cost preview)
 validation        → validateSelection(state, selected); canEndTurn = playing && ok
 endTurn()         → advanceTurn(state, selected)
                     → setState(next); setLastEvents(events)
-                    → append snapshot to history; clear selection
+                    → append snapshot to history; append {state,diagnostics} to turnLog
+                    → clear selection
 ending            → ENDINGS[state.endingId] when status === 'ended'
 reset()           → createInitialState() + clear everything
 ```
@@ -232,8 +241,10 @@ the dashboard sparkline.
   painted on top. The geometry is baked offline by `scripts/generate-map.mjs` — **no D3/TopoJSON
   ships at runtime** (the former R3F globe and `three` are gone).
 - **HUD** (`components/`, Mantine DOM overlay): `ResourceBar`, `Dashboard` (+ `Sparkline`
-  trend), `RegionPanel` (the selected region), `PolicyTray` of `PolicyCard`s, and
-  `EndingScreen` (shown when `game.ending` is non-null).
+  trend), `RegionPanel` (the selected region), `TurnLog` (a scrollable, newest-first history of
+  every per-turn data point — a global "Planet" block plus the selected region's full block, each
+  value carrying a good/bad-colored change chip vs. the prior turn), `PolicyTray` of `PolicyCard`s,
+  and `EndingScreen` (shown when `game.ending` is non-null).
 
 ### Events → sound
 

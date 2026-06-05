@@ -28,6 +28,32 @@ describe('useGame', () => {
     expect(result.current.history.length).toBeGreaterThan(0);
   });
 
+  it('records a turn-log baseline and appends a diagnostics record per turn', () => {
+    const { result } = renderHook(() => useGame());
+    // Baseline snapshot for turn 0, with no diagnostics to compare against.
+    expect(result.current.turnLog).toHaveLength(1);
+    expect(result.current.turnLog[0]!.turn).toBe(0);
+    expect(result.current.turnLog[0]!.diagnostics).toBeNull();
+
+    act(() => result.current.endTurn());
+    expect(result.current.turnLog).toHaveLength(2);
+    const latest = result.current.turnLog[1]!;
+    expect(latest.turn).toBe(1);
+    expect(latest.year).toBe(2030);
+    expect(latest.diagnostics).not.toBeNull();
+    expect(latest.state.regions.length).toBeGreaterThan(0);
+  });
+
+  it('collapses the turn log back to a single baseline on reset', () => {
+    const { result } = renderHook(() => useGame());
+    act(() => result.current.endTurn());
+    act(() => result.current.endTurn());
+    expect(result.current.turnLog.length).toBeGreaterThan(1);
+    act(() => result.current.reset());
+    expect(result.current.turnLog).toHaveLength(1);
+    expect(result.current.turnLog[0]!.turn).toBe(0);
+  });
+
   it('blocks ending the turn when the selection is unaffordable', () => {
     const { result } = renderHook(() => useGame());
     // Select enough policies to exceed the starting budget.

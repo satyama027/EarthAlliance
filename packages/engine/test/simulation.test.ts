@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { advanceTurn } from '../src/simulation.js';
 import { createInitialState } from '../src/state.js';
 import { validateSelection } from '../src/policies.js';
+import { DEFAULT_PARAMS } from '../src/data/scenario.js';
 
 describe('advanceTurn', () => {
   it('advances the clock by one 5-year turn', () => {
@@ -54,6 +55,33 @@ describe('advanceTurn', () => {
     expect(state.status).toBe('ended');
     expect(state.endingId).not.toBeNull();
     expect(state.year).toBeLessThanOrEqual(2200);
+  });
+
+  it('reports per-turn diagnostics the pipeline computed but the state discards', () => {
+    const s0 = createInitialState();
+    const { state: s1, diagnostics } = advanceTurn(s0, []);
+
+    // Damage is the DICE-style quadratic of this turn's (post-climate) temperature.
+    const t = s1.climate.temperatureAnomaly;
+    expect(diagnostics.damageFraction).toBeCloseTo(
+      Math.min(DEFAULT_PARAMS.DAMAGE_COEFF * t * t, 1),
+      9,
+    );
+
+    // Temperature change matches the state delta.
+    expect(diagnostics.deltaTemperature).toBeCloseTo(
+      s1.climate.temperatureAnomaly - s0.climate.temperatureAnomaly,
+      9,
+    );
+
+    // Every region has an exact GDP/capita growth fraction.
+    for (const r1 of s1.regions) {
+      const r0 = s0.regions.find((r) => r.id === r1.id)!;
+      expect(diagnostics.growthByRegion[r1.id]).toBeCloseTo(
+        (r1.gdpPerCapita - r0.gdpPerCapita) / r0.gdpPerCapita,
+        9,
+      );
+    }
   });
 
   it('throws when advancing a game that has already ended', () => {

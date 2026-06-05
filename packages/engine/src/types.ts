@@ -105,3 +105,14 @@ export interface Ending {
   description: string;
   kind: 'win' | 'loss' | 'ambiguous';
 }
+
+/**
+ * Per-turn diagnostics: values the pipeline computes as intermediates (`TurnScratch`)
+ * and then discards. Surfaced so the client can show climate damage and economic
+ * growth exactly, without re-deriving the model equations.
+ */
+export interface TurnDiagnostics {
+  damageFraction: number;                    // global, 0–1: GDP fraction lost to warming this turn
+  deltaTemperature: number;                  // °C change this turn
+  growthByRegion: Record<RegionId, number>;  // per-region GDP/capita fractional change this turn
+}

@@ -1,4 +1,4 @@
-import type { GameEvent, WorldState } from './types.js';
+import type { GameEvent, TurnDiagnostics, WorldState } from './types.js';
 import type { ModelParams, SubModel } from './models/types.js';
 import { createScratch } from './models/types.js';
 import { DEFAULT_MODELS } from './models/pipeline.js';
@@ -11,6 +11,7 @@ import { evaluateEnding } from './endings.js';
 export interface AdvanceResult {
   state: WorldState;
   events: GameEvent[];
+  diagnostics: TurnDiagnostics;
 }
 
 export interface Simulation {
@@ -66,7 +67,19 @@ export function createSimulation(
         draft.endingId = ending.id;
       }
 
-      return { state: draft, events };
+      // Surface the intermediates the pipeline computed but the state discards.
+      const diagnostics: TurnDiagnostics = {
+        damageFraction: ctx.scratch.damageFraction,
+        deltaTemperature: ctx.scratch.deltaTemperature,
+        growthByRegion: Object.fromEntries(
+          draft.regions.map((r) => {
+            const prev = ctx.scratch.prevGdpPerCapita[r.id] ?? r.gdpPerCapita;
+            return [r.id, prev > 0 ? (r.gdpPerCapita - prev) / prev : 0];
+          }),
+        ),
+      };
+
+      return { state: draft, events, diagnostics };
     },
   };
 }

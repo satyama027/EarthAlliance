@@ -2,13 +2,25 @@ import { useCallback, useMemo, useState } from 'react';
 import {
   createInitialState, getAvailablePolicies, validateSelection, advanceTurn,
   getPolicy, ENDINGS,
-  type WorldState, type Policy, type GameEvent, type Ending,
+  type WorldState, type Policy, type GameEvent, type Ending, type TurnDiagnostics,
 } from '@earth-alliance/engine';
 
 export interface ClimatePoint {
   year: number;
   temperature: number;
   co2: number;
+}
+
+/**
+ * A full snapshot of one turn for the Turn Log. `diagnostics` is null for the
+ * initial baseline (turn 0), which has no prior turn to compare against. Retaining
+ * past `state` objects is safe: the engine never mutates a state it has returned.
+ */
+export interface TurnRecord {
+  turn: number;
+  year: number;
+  state: WorldState;
+  diagnostics: TurnDiagnostics | null;
 }
 
 export interface GameController {
@@ -23,6 +35,7 @@ export interface GameController {
   endTurn(): void;
   lastEvents: GameEvent[];
   history: ClimatePoint[];
+  turnLog: TurnRecord[];
   ending: Ending | null;
   reset(): void;
 }
@@ -31,11 +44,16 @@ function snapshot(state: WorldState): ClimatePoint {
   return { year: state.year, temperature: state.climate.temperatureAnomaly, co2: state.climate.co2Concentration };
 }
 
+function baselineRecord(state: WorldState): TurnRecord {
+  return { turn: state.turn, year: state.year, state, diagnostics: null };
+}
+
 export function useGame(): GameController {
   const [state, setState] = useState<WorldState>(() => createInitialState());
   const [selected, setSelected] = useState<string[]>([]);
   const [lastEvents, setLastEvents] = useState<GameEvent[]>([]);
   const [history, setHistory] = useState<ClimatePoint[]>(() => [snapshot(state)]);
+  const [turnLog, setTurnLog] = useState<TurnRecord[]>(() => [baselineRecord(state)]);
 
   const available = useMemo(() => getAvailablePolicies(state), [state]);
 
@@ -64,10 +82,11 @@ export function useGame(): GameController {
     if (state.status === 'ended') return;              // mirror engine guard; never throw
     const check = validateSelection(state, selected);
     if (!check.ok) return;
-    const { state: next, events } = advanceTurn(state, selected);
+    const { state: next, events, diagnostics } = advanceTurn(state, selected);
     setState(next);
     setLastEvents(events);
     setHistory((h) => [...h, snapshot(next)]);
+    setTurnLog((log) => [...log, { turn: next.turn, year: next.year, state: next, diagnostics }]);
     setSelected([]);
   }, [state, selected]);
 
@@ -79,10 +98,11 @@ export function useGame(): GameController {
     setSelected([]);
     setLastEvents([]);
     setHistory([snapshot(fresh)]);
+    setTurnLog([baselineRecord(fresh)]);
   }, []);
 
   return {
     state, available, selected, isSelected, togglePolicy, selectionCost,
-    validationReason, canEndTurn, endTurn, lastEvents, history, ending, reset,
+    validationReason, canEndTurn, endTurn, lastEvents, history, turnLog, ending, reset,
   };
 }
