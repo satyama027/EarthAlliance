@@ -44,9 +44,25 @@ Used as the placeholder card-art band; real art will drop in later behind the sa
 | social | `#1971c2` | 🤝 |
 | frontier | `#9c36b5` | 🚀 |
 
+### World-map region colors (`REGION_COLORS` in `theme.ts`)
+
+Distinct fixed fill per map region (keyed by engine region id). The map generator
+(`scripts/generate-map.mjs`) bakes these same values into `world-map.svg` — keep them in sync.
+
+| Region | Color | Region | Color |
+|--------|-------|--------|-------|
+| north-america | `#4dabf7` | sub-saharan-africa | `#69db7c` |
+| latin-america | `#ffa94d` | south-asia | `#ff8787` |
+| europe | `#9775fa` | east-asia | `#38d9a9` |
+| russia-central-asia | `#f783ac` | southeast-asia | `#a9e34b` |
+| mena | `#ffd43b` | oceania | `#66d9e8` |
+
+Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#05080f`, graticule
+`#1b3a5c`, region partition line `#0a0f17`, selected outline = `earth-5` (`#20c997`).
+
 ### Surfaces
 
-- 3D scene viewport background: `#05080f` (near-black blue), radius `8`.
+- World-map / scene viewport background: `#05080f` (near-black blue), radius `8`.
 - Panels: Mantine `Paper` / `Card` with `withBorder` (no custom elevation yet).
 
 ---
@@ -73,6 +89,12 @@ Used as the placeholder card-art band; real art will drop in later behind the sa
 
 ## Components (appearance rules)
 
+- **WorldMap** (`scene/WorldMap.tsx`) — flat, static equirectangular world map of the 10 regions,
+  rendered from the pre-baked `src/assets/world-map.svg` (real Natural Earth geometry). Each region
+  is one filled shape in its `REGION_COLORS` hue with **no internal country borders** — only region
+  partition lines. Realistic ocean (gradient + graticule). Click a region to select it (others dim
+  to 0.32; hover brightens). India follows the Government-of-India depiction (J&K incl. Azad
+  Kashmir, Gilgit-Baltistan, Shaksgam, Aksai Chin). Replaces the former 3D R3F globe.
 - **ResourceBar** — bordered `Paper`, year/turn on the left (`fw={700}`), PC (`grape`) and Money
   (`teal`) `Badge`s (`size="lg"`) on the right.
 - **Dashboard** — bordered `Paper`, title "Planet", warming/CO₂/emissions rows, temperature value

@@ -4,9 +4,10 @@ import { MantineProvider } from '@mantine/core';
 import { vi } from 'vitest';
 import App from '../src/App.js';
 
-// jsdom has no WebGL — replace the 3D scene with a stub so App can render.
-vi.mock('../src/scene/EarthScene.js', () => ({
-  EarthScene: () => <div data-testid="earth-scene-stub" />,
+// Stub the map so the integration test stays focused on the HUD/turn loop
+// (the SVG asset + click wiring are covered in worldMap.test.tsx).
+vi.mock('../src/scene/WorldMap.js', () => ({
+  WorldMap: () => <div data-testid="world-map-stub" />,
 }));
 
 function renderApp() {
@@ -17,7 +18,7 @@ describe('App integration', () => {
   it('renders the HUD and advances a turn when End Turn is clicked', async () => {
     renderApp();
     expect(screen.getByText(/Year 2025/)).toBeInTheDocument();
-    expect(screen.getByTestId('earth-scene-stub')).toBeInTheDocument();
+    expect(screen.getByTestId('world-map-stub')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: /end turn/i }));
     expect(screen.getByText(/Year 2030/)).toBeInTheDocument();

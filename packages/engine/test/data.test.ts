@@ -3,10 +3,10 @@ import { SAMPLE_REGIONS } from '../src/data/regions.js';
 import { DEFAULT_PARAMS, DEFAULT_SCENARIO, END_YEAR } from '../src/data/scenario.js';
 
 describe('sample regions', () => {
-  it('has five regions with unique ids', () => {
-    expect(SAMPLE_REGIONS).toHaveLength(5);
+  it('has ten regions with unique ids', () => {
+    expect(SAMPLE_REGIONS).toHaveLength(10);
     const ids = new Set(SAMPLE_REGIONS.map((r) => r.id));
-    expect(ids.size).toBe(5);
+    expect(ids.size).toBe(10);
   });
 
   it('keeps 0–100 indices within range', () => {

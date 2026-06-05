@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Earth Alliance — World Map (real-data region mockup)</title>
+<style>
+  :root{
+    --earth-5:#20c997; --bg:#1a1b1e; --surface:#25262b; --surface-2:#2c2e33;
+    --border:#373a40; --text:#c1c2c5; --text-strong:#f1f3f5; --dimmed:#909296;
+    --scene-bg:#05080f; font-family: system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text); padding:18px; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px; margin:0 auto;}
+  h1{font-size:20px; color:var(--text-strong); margin:0 0 4px;}
+  .lede{color:var(--dimmed); font-size:13.5px; margin:0 0 14px; max-width:880px; line-height:1.55;}
+  .lede code{color:var(--text-strong);}
+
+  .controls{display:flex; gap:18px; flex-wrap:wrap; align-items:center; margin-bottom:10px;}
+  .seg{display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden;}
+  .seg button{background:var(--surface); color:var(--text); border:none; padding:6px 12px;
+    font-size:12.5px; cursor:pointer;}
+  .seg button.on{background:var(--earth-5); color:#04201a; font-weight:700;}
+  .seg .lbl{padding:6px 10px; font-size:11px; color:var(--dimmed); background:var(--surface-2);}
+
+  .scene{background:var(--scene-bg); border:1px solid var(--border); border-radius:10px;
+    padding:8px; position:relative; overflow:hidden;}
+  svg#map{width:100%; height:auto; display:block;}
+
+  .country{cursor:pointer;}
+  .country.dim{opacity:.32;}
+  .rlabel{fill:#fff; font-size:11px; font-weight:700; text-anchor:middle; pointer-events:none;
+    paint-order:stroke; stroke:rgba(0,0,0,.55); stroke-width:2.4px;}
+
+  .bar{display:flex; justify-content:space-between; align-items:flex-start; margin-top:12px; gap:20px; flex-wrap:wrap;}
+  .sel{font-size:14px;} .sel b{color:var(--text-strong);}
+  .legend{display:flex; flex-wrap:wrap; gap:6px 12px; max-width:680px;}
+  .chip{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text);}
+  .sw{width:12px; height:12px; border-radius:3px; display:inline-block;}
+  .ramp-wrap{display:none; align-items:center; gap:8px; font-size:11px; color:var(--dimmed);}
+  .ramp{width:160px; height:10px; border-radius:6px;
+    background:linear-gradient(90deg, rgb(230,60,60), rgb(230,210,60), rgb(50,210,60));}
+
+  .note{background:var(--surface); border:1px solid var(--border); border-radius:8px;
+    padding:10px 14px; font-size:12.5px; color:var(--dimmed); margin-top:14px; line-height:1.55;}
+  .note b{color:var(--text-strong);}
+  #status{padding:40px; text-align:center; color:var(--dimmed); font-size:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>World map — 10 regions on real geography</h1>
+  <p class="lede">
+    Flat, static world map (no rotation/zoom) built from <b>real Natural Earth coastline data</b>,
+    not hand-drawn. The world's countries are grouped into the 10 regions; <b>region boundaries</b>
+    (thick lines) fall on real national borders. Each region is clickable and is filled either by a
+    distinct region color or by its <code>publicSupport</code> value (the in-game metric). This
+    mockup loads map data + D3 from a CDN, so it needs internet; the real build bundles the data
+    so the app is self-contained.
+  </p>
+
+  <div class="controls">
+    <div class="seg">
+      <span class="lbl">Fill</span>
+      <button id="cRegion" class="on">Region color</button>
+      <button id="cSupport">Public support</button>
+    </div>
+    <div class="seg">
+      <span class="lbl">Ocean</span>
+      <button id="oFlat">Flat</button>
+      <button id="oReal" class="on">Realistic</button>
+    </div>
+    <div class="seg">
+      <span class="lbl">Labels</span>
+      <button id="lOn" class="on">On</button>
+      <button id="lOff">Off</button>
+    </div>
+  </div>
+
+  <div class="scene">
+    <svg id="map" viewBox="0 0 960 500" role="img" aria-label="World map of 10 regions"></svg>
+    <div id="status">Loading real map data…</div>
+  </div>
+
+  <div class="bar">
+    <div class="sel" id="sel">Hover or click a region…</div>
+    <div>
+      <div class="legend" id="legend"></div>
+      <div class="ramp-wrap" id="rampWrap"><span>Low support</span><span class="ramp"></span><span>High</span></div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Note:</b> the public-support values shown are placeholders to demonstrate the color ramp.
+    The 5 new regions (Latin America, Russia &amp; Central Asia, MENA, Southeast Asia, Oceania) get
+    real gameplay stats in the engine during implementation. Tiny island nations not present in the
+    low-res dataset are simply absent here; the production dataset resolution can be raised.
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+<script>
+  // ── 10 regions: distinct color + placeholder support, ordered for legend ──
+  const REGIONS = {
+    'north-america':       {name:'North America',        color:'#4dabf7', support:62},
+    'latin-america':       {name:'Latin America',        color:'#ffa94d', support:54},
+    'europe':              {name:'Europe',               color:'#9775fa', support:70},
+    'russia-central-asia': {name:'Russia & Central Asia',color:'#f783ac', support:50},
+    'mena':                {name:'MENA',                 color:'#ffd43b', support:33},
+    'sub-saharan-africa':  {name:'Sub-Saharan Africa',   color:'#69db7c', support:44},
+    'south-asia':          {name:'South Asia',           color:'#ff8787', support:48},
+    'east-asia':           {name:'East Asia',            color:'#38d9a9', support:38},
+    'southeast-asia':      {name:'Southeast Asia',       color:'#a9e34b', support:52},
+    'oceania':             {name:'Oceania',              color:'#66d9e8', support:76},
+  };
+
+  // ── Every country in world-atlas countries-110m → a region ──
+  const NAME2REGION = {};
+  const put = (reg, names) => names.forEach(n => NAME2REGION[n] = reg);
+  put('north-america', ['Canada','United States of America','Mexico','Greenland']);
+  put('latin-america', ['Guatemala','Belize','Honduras','El Salvador','Nicaragua','Costa Rica','Panama','Cuba','Haiti','Dominican Rep.','Jamaica','Bahamas','Trinidad and Tobago','Puerto Rico','Colombia','Venezuela','Guyana','Suriname','Ecuador','Peru','Brazil','Bolivia','Paraguay','Uruguay','Argentina','Chile','Falkland Is.']);
+  put('europe', ['Iceland','Ireland','United Kingdom','France','Spain','Portugal','Belgium','Netherlands','Luxembourg','Germany','Switzerland','Austria','Italy','Denmark','Norway','Sweden','Finland','Estonia','Latvia','Lithuania','Poland','Czechia','Slovakia','Hungary','Slovenia','Croatia','Bosnia and Herz.','Serbia','Montenegro','Kosovo','Albania','Macedonia','Greece','Bulgaria','Romania','Moldova','Ukraine','Belarus']);
+  put('russia-central-asia', ['Russia','Kazakhstan','Uzbekistan','Turkmenistan','Kyrgyzstan','Tajikistan','Mongolia','Georgia','Armenia','Azerbaijan']);
+  put('mena', ['W. Sahara','Morocco','Algeria','Tunisia','Libya','Egypt','Sudan','Turkey','Cyprus','N. Cyprus','Syria','Lebanon','Israel','Palestine','Jordan','Iraq','Iran','Kuwait','Saudi Arabia','Yemen','Oman','United Arab Emirates','Qatar','Bahrain']);
+  put('sub-saharan-africa', ['Mauritania','Mali','Niger','Chad','Senegal','Gambia','Guinea-Bissau','Guinea','Sierra Leone','Liberia',"Côte d'Ivoire",'Ghana','Togo','Benin','Burkina Faso','Nigeria','Cameroon','Eq. Guinea','Gabon','Congo','Dem. Rep. Congo','Central African Rep.','S. Sudan','Ethiopia','Eritrea','Djibouti','Somalia','Somaliland','Kenya','Uganda','Rwanda','Burundi','Tanzania','Angola','Zambia','Malawi','Mozambique','Zimbabwe','Botswana','Namibia','South Africa','Lesotho','eSwatini','Madagascar']);
+  put('south-asia', ['Afghanistan','Pakistan','India','Nepal','Bhutan','Bangladesh','Sri Lanka']);
+  put('east-asia', ['China','Taiwan','North Korea','South Korea','Japan']);
+  put('southeast-asia', ['Myanmar','Thailand','Laos','Vietnam','Cambodia','Malaysia','Brunei','Indonesia','Timor-Leste','Philippines']);
+  put('oceania', ['Australia','New Zealand','Papua New Guinea','Fiji','Solomon Is.','Vanuatu','New Caledonia']);
+  NAME2REGION['Aksai Chin (India)'] = 'south-asia'; // GoI boundary correction (see overlay below)
+  const EXCLUDE = new Set(['Antarctica','Fr. S. Antarctic Lands']);
+  const regionOf = name => NAME2REGION[name] || null;
+
+  // metricColor: identical ramp to packages/web/src/scene/metricColor.ts
+  function metricColor(value){
+    const t = Math.min(Math.max(value,0),100)/100;
+    const r = t<0.5 ? 230 : Math.round(230-(t-0.5)*2*180);
+    const g = t<0.5 ? Math.round(60+t*2*150) : 210;
+    return `rgb(${r},${g},60)`;
+  }
+
+  const W=960, H=500;
+  let colorMode='region', selected=null;
+
+  function fillFor(reg){
+    return colorMode==='region' ? REGIONS[reg].color : metricColor(REGIONS[reg].support);
+  }
+
+  function render(topo){
+    document.getElementById('status').remove();
+    const svg = d3.select('#map');
+    const all = topojson.feature(topo, topo.objects.countries).features;
+    const features = all.filter(f => !EXCLUDE.has(f.properties.name));
+
+    // Data quirk: the "France" feature includes French Guiana (South America).
+    // Split it out so it colors as Latin America, not Europe.
+    const fr = features.find(f => f.properties.name === 'France');
+    if (fr && fr.geometry.type === 'MultiPolygon') {
+      const metro = [], guiana = [];
+      fr.geometry.coordinates.forEach(poly => { (poly[0][0][0] < -20 ? guiana : metro).push(poly); });
+      fr.geometry.coordinates = metro;
+      if (guiana.length) {
+        features.push({type:'Feature', properties:{name:'French Guiana'}, geometry:{type:'MultiPolygon', coordinates:guiana}});
+        NAME2REGION['French Guiana'] = 'latin-america';
+      }
+    }
+    const fc = {type:'FeatureCollection', features};
+
+    const projection = d3.geoEquirectangular().fitExtent([[8,10],[W-8,H-70]], fc);
+    const path = d3.geoPath(projection);
+
+    // ocean layers
+    const ocean = svg.append('g');
+    ocean.append('rect').attr('id','oceanFlat').attr('x',0).attr('y',0).attr('width',W).attr('height',H).attr('fill','#05080f').style('display','none');
+    const defs = svg.append('defs');
+    const og = defs.append('radialGradient').attr('id','oc').attr('cx','50%').attr('cy','40%').attr('r','75%');
+    og.append('stop').attr('offset','0%').attr('stop-color','#0d2440');
+    og.append('stop').attr('offset','70%').attr('stop-color','#071529');
+    og.append('stop').attr('offset','100%').attr('stop-color','#05080f');
+    const oceanReal = svg.append('g').attr('id','oceanReal');
+    oceanReal.append('path').attr('d', path({type:'Sphere'})).attr('fill','url(#oc)');
+    oceanReal.append('path').attr('d', path(d3.geoGraticule().step([30,20])()))
+      .attr('fill','none').attr('stroke','#1b3a5c').attr('stroke-width',0.5).attr('opacity',0.55);
+
+    // countries
+    const gCountries = svg.append('g');
+    gCountries.selectAll('path').data(features).join('path')
+      .attr('class','country')
+      .attr('d', path)
+      .attr('fill', d => { const r=regionOf(d.properties.name); return r?fillFor(r):'#3a3f47'; })
+      // stroke in the SAME color dissolves anti-alias seams → adjacent same-region countries merge
+      .attr('stroke', d => { const r=regionOf(d.properties.name); return r?fillFor(r):'#3a3f47'; })
+      .attr('stroke-width', 0.75).attr('stroke-linejoin','round')
+      .attr('data-region', d => regionOf(d.properties.name) || '')
+      .on('mouseenter', (e,d)=>{ const r=regionOf(d.properties.name); if(r && selected===null) setCaption(r,false); })
+      .on('click', (e,d)=>{ const r=regionOf(d.properties.name); if(r) selectRegion(r); });
+
+    // region partition lines (between different regions) — strong
+    svg.append('path').attr('id','partition')
+      .attr('d', path(topojson.mesh(topo, topo.objects.countries, (a,b)=>{
+        if(a===b) return false;
+        if(a.properties.name==='France' || b.properties.name==='France') return false; // FG handled separately
+        const ra=regionOf(a.properties.name), rb=regionOf(b.properties.name);
+        return ra && rb && ra!==rb;
+      })))
+      .attr('fill','none').attr('stroke','#0a0f17').attr('stroke-width',1.4).attr('stroke-linejoin','round');
+
+    // Government of India depiction: show J&K incl. Aksai Chin as part of India (South Asia).
+    // Drawn ON TOP of the source data (covers China's Aksai Chin fill + the disputed LAC line).
+    // Approximate footprint for the mockup; production must use a vetted GoI-aligned boundary.
+    const goiClaim = {type:'Feature', properties:{name:'Aksai Chin (India)'}, geometry:{type:'Polygon', coordinates:[[
+      [75.0,36.6],[76.8,36.4],[78.5,35.9],[80.5,35.4],[80.1,34.0],[78.6,33.2],[77.0,33.5],[76.3,34.5],[75.6,35.6],[75.0,36.6]
+    ]]}};
+    const goiG = svg.append('g').attr('id','goi');
+    goiG.append('path').datum(goiClaim)
+      .attr('class','country').attr('data-region','south-asia')
+      .attr('d', path(goiClaim)).attr('fill', fillFor('south-asia'))
+      .attr('stroke', fillFor('south-asia')).attr('stroke-width',0.75).attr('stroke-linejoin','round')
+      .on('mouseenter', ()=>{ if(selected===null) setCaption('south-asia', false); })
+      .on('click', ()=>selectRegion('south-asia'));
+    // GoI India–China boundary along the China-facing edge of the claim (matches the region-line style).
+    goiG.append('path')
+      .attr('d', path({type:'LineString', coordinates:[
+        [75.0,36.6],[76.8,36.4],[78.5,35.9],[80.5,35.4],[80.1,34.0],[78.6,33.2],[79.2,32.4]
+      ]}))
+      .attr('fill','none').attr('stroke','#0a0f17').attr('stroke-width',1.4)
+      .attr('stroke-linejoin','round').attr('stroke-linecap','round')
+      .style('pointer-events','none');
+
+    // labels at region centroids (merged geometry)
+    const geoms = topo.objects.countries.geometries;
+    const byRegion = {};
+    geoms.forEach(g=>{ const r=regionOf(g.properties.name); if(r){(byRegion[r]=byRegion[r]||[]).push(g);} });
+    const gLabels = svg.append('g').attr('id','labels');
+    Object.keys(byRegion).forEach(r=>{
+      const c = path.centroid(topojson.merge(topo, byRegion[r]));
+      if(!isFinite(c[0])) return;
+      // nudge a few labels that land awkwardly
+      gLabels.append('text').attr('class','rlabel').attr('x',c[0]).attr('y',c[1]).text(REGIONS[r].name);
+    });
+
+    buildLegend();
+
+    // ── interactions / toggles ──
+    function recolor(){ d3.select('#map').selectAll('.country').each(function(d){ const r=regionOf(d.properties.name); const c=r?fillFor(r):'#3a3f47'; d3.select(this).attr('fill',c).attr('stroke',c); }); }
+    window.__recolor = recolor;
+
+    document.getElementById('cRegion').onclick = ()=>{ colorMode='region'; toggle('cRegion','cSupport'); document.getElementById('rampWrap').style.display='none'; document.getElementById('legend').style.display='flex'; recolor(); };
+    document.getElementById('cSupport').onclick = ()=>{ colorMode='support'; toggle('cSupport','cRegion'); document.getElementById('rampWrap').style.display='flex'; document.getElementById('legend').style.display='none'; recolor(); };
+    document.getElementById('oFlat').onclick = ()=>{ toggle('oFlat','oReal'); document.getElementById('oceanFlat').style.display=''; oceanReal.style('display','none'); };
+    document.getElementById('oReal').onclick = ()=>{ toggle('oReal','oFlat'); document.getElementById('oceanFlat').style.display='none'; oceanReal.style('display',''); };
+    document.getElementById('lOn').onclick = ()=>{ toggle('lOn','lOff'); gLabels.style('display',''); };
+    document.getElementById('lOff').onclick = ()=>{ toggle('lOff','lOn'); gLabels.style('display','none'); };
+  }
+
+  function toggle(onId,offId){ document.getElementById(onId).classList.add('on'); document.getElementById(offId).classList.remove('on'); }
+
+  function setCaption(reg, isSelected){
+    const r=REGIONS[reg];
+    document.getElementById('sel').innerHTML = `${isSelected?'Selected: ':''}<b>${r.name}</b> · public support ${r.support}`;
+  }
+  function selectRegion(reg){
+    selected=reg; setCaption(reg,true);
+    d3.selectAll('#map .country').classed('dim', function(){ return this.getAttribute('data-region')!==reg; });
+  }
+
+  function buildLegend(){
+    const el=document.getElementById('legend'); el.innerHTML='';
+    Object.keys(REGIONS).forEach(r=>{
+      const c=document.createElement('span'); c.className='chip';
+      c.innerHTML=`<span class="sw" style="background:${REGIONS[r].color}"></span>${REGIONS[r].name}`;
+      c.style.cursor='pointer'; c.onclick=()=>selectRegion(r);
+      el.appendChild(c);
+    });
+  }
+
+  // load + guard
+  (async ()=>{
+    try{
+      if(!window.d3 || !window.topojson) throw new Error('CDN libraries failed to load');
+      const topo = await d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+      render(topo);
+    }catch(err){
+      document.getElementById('status').textContent = '⚠ Could not load map data ('+err.message+'). Check internet connection and reload.';
+    }
+  })();
+</script>
+</body>
+</html>

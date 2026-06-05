@@ -29,6 +29,6 @@ Mockups are self-contained HTML — open them directly in a browser (`file://`).
 
 | Date | Topic | Status | Proposal |
 |------|-------|--------|----------|
-| _(none yet — first `/design` run will add a row here)_ | | | |
+| 2026-06-04 | World map — 10 divided regions (replaces 3D globe) | **Implemented** | [proposal](./proposals/2026-06-04-world-map-regions/design.md) |
 
 Statuses: **Approved** (design signed off, not yet built) → **Implemented** (shipped to the app).

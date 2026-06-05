@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AppShell, Grid, Box } from '@mantine/core';
-import { EarthScene } from './scene/EarthScene.js';
+import { WorldMap } from './scene/WorldMap.js';
 import { ResourceBar } from './components/ResourceBar.js';
 import { Dashboard } from './components/Dashboard.js';
 import { PolicyTray } from './components/PolicyTray.js';
@@ -33,9 +33,7 @@ export default function App() {
         <Grid gutter="md">
           <Grid.Col span={{ base: 12, md: 7 }}>
             <Box style={{ height: '70vh', minHeight: 420, borderRadius: 8, overflow: 'hidden', background: '#05080f' }}>
-              <EarthScene
-                regions={game.state.regions}
-                metricOf={(r) => r.publicSupport}
+              <WorldMap
                 selectedRegionId={selectedRegionId}
                 onSelectRegion={setSelectedRegionId}
               />

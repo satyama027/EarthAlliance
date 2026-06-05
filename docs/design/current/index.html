@@ -49,6 +49,7 @@
   .marker { position:absolute; width:14px; height:14px; border-radius:50%;
     border:2px solid rgba(255,255,255,.7); transform:translate(-50%,-50%); }
   .scene-caption { position:absolute; bottom:10px; left:12px; font-size:11px; color:#5b6b86; }
+  .worldmap { width:100%; height:100%; object-fit:contain; display:block; }
 
   /* Generic bits */
   .row { display:flex; justify-content:space-between; align-items:center; }
@@ -114,13 +115,8 @@
   <!-- Scene -->
   <div class="col-scene">
     <div class="scene">
-      <div class="globe">
-        <div class="marker" style="top:30%; left:45%; background:#20c997;"></div>
-        <div class="marker" style="top:55%; left:62%; background:#ffd43b;"></div>
-        <div class="marker" style="top:42%; left:30%; background:#74c0fc;"></div>
-        <div class="marker" style="top:68%; left:48%; background:#ff8787;"></div>
-      </div>
-      <div class="scene-caption">EarthScene — markers colored by public support · click to select</div>
+      <img class="worldmap" src="../../../packages/web/src/assets/world-map.svg" alt="World map of the 10 regions" />
+      <div class="scene-caption">WorldMap — 10 regions on real geography · click to select</div>
     </div>
   </div>
 
