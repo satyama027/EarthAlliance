@@ -16,7 +16,7 @@ importers:
     devDependencies:
       '@vitest/coverage-v8':
         specifier: ^2.1.1
-        version: 2.1.9(vitest@2.1.9(jsdom@25.0.1))
+        version: 2.1.9(vitest@2.1.9(@types/node@25.9.1)(jsdom@25.0.1))
       fast-check:
         specifier: ^3.22.0
         version: 3.23.2
@@ -25,7 +25,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^2.1.1
-        version: 2.1.9(jsdom@25.0.1)
+        version: 2.1.9(@types/node@25.9.1)(jsdom@25.0.1)
 
   packages/web:
     dependencies:
@@ -60,6 +60,9 @@ importers:
       '@types/d3-geo':
         specifier: ^3.1.0
         version: 3.1.0
+      '@types/node':
+        specifier: ^25.9.1
+        version: 25.9.1
       '@types/react':
         specifier: ^18.3.5
         version: 18.3.29
@@ -71,28 +74,34 @@ importers:
         version: 3.1.5
       '@vitejs/plugin-react':
         specifier: ^4.3.1
-        version: 4.7.0(vite@5.4.21)
+        version: 4.7.0(vite@5.4.21(@types/node@25.9.1))
       '@vitest/coverage-v8':
         specifier: ^2.1.1
-        version: 2.1.9(vitest@2.1.9(jsdom@25.0.1))
+        version: 2.1.9(vitest@2.1.9(@types/node@25.9.1)(jsdom@25.0.1))
       d3-geo:
         specifier: ^3.1.1
         version: 3.1.1
       jsdom:
         specifier: ^25.0.0
         version: 25.0.1
+      polygon-clipping:
+        specifier: ^0.15.7
+        version: 0.15.7
       topojson-client:
         specifier: ^3.1.0
         version: 3.1.0
+      topojson-server:
+        specifier: ^3.0.1
+        version: 3.0.1
       typescript:
         specifier: ^5.5.4
         version: 5.9.3
       vite:
         specifier: ^5.4.0
-        version: 5.4.21
+        version: 5.4.21(@types/node@25.9.1)
       vitest:
         specifier: ^2.1.1
-        version: 2.1.9(jsdom@25.0.1)
+        version: 2.1.9(@types/node@25.9.1)(jsdom@25.0.1)
       world-atlas:
         specifier: ^2.0.2
         version: 2.0.2
@@ -619,6 +628,9 @@ packages:
 
   '@types/geojson@7946.0.16':
     resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
+
+  '@types/node@25.9.1':
+    resolution: {integrity: sha512-xfrlY7UD5rMJk3ZVJP8BNzS28J36YJg+xp+LPXV1TdWxr8uMH5A860QNxYDGQe/ylDSgjxE52Q9VnO7p75tJxg==}
 
   '@types/prop-types@15.7.15':
     resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
@@ -1150,6 +1162,9 @@ packages:
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
+  polygon-clipping@0.15.7:
+    resolution: {integrity: sha512-nhfdr83ECBg6xtqOAJab1tbksbBAOMUltN60bU+llHVOL0e5Onm1WpAXXWXVB39L8AJFssoIhEVuy/S90MmotA==}
+
   postcss@8.5.15:
     resolution: {integrity: sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==}
     engines: {node: ^10 || ^12 || >=14}
@@ -1227,6 +1242,9 @@ packages:
     resolution: {integrity: sha512-6tDA8g98We0zd0GvVeMT9arEOnTw9qM03L9cJXaCjrip1OO764RDBLBfrB4cwzNGDj5OA5ioymC9GkizgWJDUg==}
     engines: {node: '>=8'}
 
+  robust-predicates@3.0.3:
+    resolution: {integrity: sha512-NS3levdsRIUOmiJ8FZWCP7LG3QpJyrs/TE0Zpf1yvZu8cAJJ6QMW92H1c7kWpdIHo8RvmLxN/o2JXTKHp74lUA==}
+
   rollup@4.61.0:
     resolution: {integrity: sha512-T9mWdbWfQtp0B5lv/HX+wrhYsmXRlcWnXXmJbXqKJhlRaoS6KMhq0gpyzW4UJfclcxrEdLnTgjT2NjruLONu0g==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
@@ -1275,6 +1293,10 @@ packages:
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
+
+  splaytree@3.2.3:
+    resolution: {integrity: sha512-7OXrNWzy6CK+r7Ch9OLPBDTKfB6XlWHjX4P0RU5B3IgFuWPeYN0XtRtlexGRjgbQxpfaUve6jTAwBGWuGntz/w==}
+    engines: {node: '>=18.20 || >=20'}
 
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
@@ -1345,6 +1367,10 @@ packages:
     resolution: {integrity: sha512-605uxS6bcYxGXw9qi62XyrV6Q3xwbndjachmNxu8HWTtVPxZfEJN9fd/SZS1Q54Sn2y0TMyMxFj/cJINqGHrKw==}
     hasBin: true
 
+  topojson-server@3.0.1:
+    resolution: {integrity: sha512-/VS9j/ffKr2XAOjlZ9CgyyeLmgJ9dMwq6Y0YEON8O7p/tGGk+dCWnrE03zEdu7i4L7YsFZLEPZPzCvcB7lEEXw==}
+    hasBin: true
+
   tough-cookie@5.1.2:
     resolution: {integrity: sha512-FVDYdxtnj0G6Qm/DhNPSb8Ju59ULcup3tuJxkFb5K8Bv2pUXILbf0xZWU8PX8Ov19OXljbUyveOFwRMwkXzO+A==}
     engines: {node: '>=16'}
@@ -1364,6 +1390,9 @@ packages:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
     hasBin: true
+
+  undici-types@7.24.6:
+    resolution: {integrity: sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg==}
 
   update-browserslist-db@1.2.3:
     resolution: {integrity: sha512-Js0m9cx+qOgDxo0eMiFGEueWztz+d4+M3rGlmKPT+T4IS/jP4ylw3Nwpu6cpTTP8R1MAC1kF4VbdLt3ARf209w==}
@@ -1983,6 +2012,10 @@ snapshots:
 
   '@types/geojson@7946.0.16': {}
 
+  '@types/node@25.9.1':
+    dependencies:
+      undici-types: 7.24.6
+
   '@types/prop-types@15.7.15': {}
 
   '@types/react-dom@18.3.7(@types/react@18.3.29)':
@@ -2003,7 +2036,7 @@ snapshots:
     dependencies:
       '@types/geojson': 7946.0.16
 
-  '@vitejs/plugin-react@4.7.0(vite@5.4.21)':
+  '@vitejs/plugin-react@4.7.0(vite@5.4.21(@types/node@25.9.1))':
     dependencies:
       '@babel/core': 7.29.7
       '@babel/plugin-transform-react-jsx-self': 7.29.7(@babel/core@7.29.7)
@@ -2011,11 +2044,11 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-beta.27
       '@types/babel__core': 7.20.5
       react-refresh: 0.17.0
-      vite: 5.4.21
+      vite: 5.4.21(@types/node@25.9.1)
     transitivePeerDependencies:
       - supports-color
 
-  '@vitest/coverage-v8@2.1.9(vitest@2.1.9(jsdom@25.0.1))':
+  '@vitest/coverage-v8@2.1.9(vitest@2.1.9(@types/node@25.9.1)(jsdom@25.0.1))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@bcoe/v8-coverage': 0.2.3
@@ -2029,7 +2062,7 @@ snapshots:
       std-env: 3.10.0
       test-exclude: 7.0.2
       tinyrainbow: 1.2.0
-      vitest: 2.1.9(jsdom@25.0.1)
+      vitest: 2.1.9(@types/node@25.9.1)(jsdom@25.0.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -2040,13 +2073,13 @@ snapshots:
       chai: 5.3.3
       tinyrainbow: 1.2.0
 
-  '@vitest/mocker@2.1.9(vite@5.4.21)':
+  '@vitest/mocker@2.1.9(vite@5.4.21(@types/node@25.9.1))':
     dependencies:
       '@vitest/spy': 2.1.9
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 5.4.21
+      vite: 5.4.21(@types/node@25.9.1)
 
   '@vitest/pretty-format@2.1.9':
     dependencies:
@@ -2519,6 +2552,11 @@ snapshots:
 
   picocolors@1.1.1: {}
 
+  polygon-clipping@0.15.7:
+    dependencies:
+      robust-predicates: 3.0.3
+      splaytree: 3.2.3
+
   postcss@8.5.15:
     dependencies:
       nanoid: 3.3.12
@@ -2595,6 +2633,8 @@ snapshots:
       indent-string: 4.0.0
       strip-indent: 3.0.0
 
+  robust-predicates@3.0.3: {}
+
   rollup@4.61.0:
     dependencies:
       '@types/estree': 1.0.9
@@ -2655,6 +2695,8 @@ snapshots:
   signal-exit@4.1.0: {}
 
   source-map-js@1.2.1: {}
+
+  splaytree@3.2.3: {}
 
   stackback@0.0.2: {}
 
@@ -2718,6 +2760,10 @@ snapshots:
     dependencies:
       commander: 2.20.3
 
+  topojson-server@3.0.1:
+    dependencies:
+      commander: 2.20.3
+
   tough-cookie@5.1.2:
     dependencies:
       tldts: 6.1.86
@@ -2731,6 +2777,8 @@ snapshots:
   type-fest@4.41.0: {}
 
   typescript@5.9.3: {}
+
+  undici-types@7.24.6: {}
 
   update-browserslist-db@1.2.3(browserslist@4.28.2):
     dependencies:
@@ -2772,13 +2820,13 @@ snapshots:
     optionalDependencies:
       '@types/react': 18.3.29
 
-  vite-node@2.1.9:
+  vite-node@2.1.9(@types/node@25.9.1):
     dependencies:
       cac: 6.7.14
       debug: 4.4.3
       es-module-lexer: 1.7.0
       pathe: 1.1.2
-      vite: 5.4.21
+      vite: 5.4.21(@types/node@25.9.1)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -2790,18 +2838,19 @@ snapshots:
       - supports-color
       - terser
 
-  vite@5.4.21:
+  vite@5.4.21(@types/node@25.9.1):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.5.15
       rollup: 4.61.0
     optionalDependencies:
+      '@types/node': 25.9.1
       fsevents: 2.3.3
 
-  vitest@2.1.9(jsdom@25.0.1):
+  vitest@2.1.9(@types/node@25.9.1)(jsdom@25.0.1):
     dependencies:
       '@vitest/expect': 2.1.9
-      '@vitest/mocker': 2.1.9(vite@5.4.21)
+      '@vitest/mocker': 2.1.9(vite@5.4.21(@types/node@25.9.1))
       '@vitest/pretty-format': 2.1.9
       '@vitest/runner': 2.1.9
       '@vitest/snapshot': 2.1.9
@@ -2817,10 +2866,11 @@ snapshots:
       tinyexec: 0.3.2
       tinypool: 1.1.1
       tinyrainbow: 1.2.0
-      vite: 5.4.21
-      vite-node: 2.1.9
+      vite: 5.4.21(@types/node@25.9.1)
+      vite-node: 2.1.9(@types/node@25.9.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
+      '@types/node': 25.9.1
       jsdom: 25.0.1
     transitivePeerDependencies:
       - less

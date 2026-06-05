@@ -11,6 +11,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { geoEquirectangular, geoPath, geoGraticule } from 'd3-geo';
 import { feature, mesh } from 'topojson-client';
+import { topology } from 'topojson-server';
+import { regionOf, applyGoiCorrection } from './regions.mjs';
 
 const require = createRequire(import.meta.url);
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -37,23 +39,8 @@ const REGION_NAMES = {
   'south-asia': 'South Asia', 'east-asia': 'East Asia', 'southeast-asia': 'Southeast Asia', 'oceania': 'Oceania',
 };
 
-// ── Country → region (every country in countries-110m) ──
-const NAME2REGION = {};
-const put = (reg, names) => names.forEach((n) => { NAME2REGION[n] = reg; });
-put('north-america', ['Canada', 'United States of America', 'Mexico', 'Greenland']);
-put('latin-america', ['Guatemala', 'Belize', 'Honduras', 'El Salvador', 'Nicaragua', 'Costa Rica', 'Panama', 'Cuba', 'Haiti', 'Dominican Rep.', 'Jamaica', 'Bahamas', 'Trinidad and Tobago', 'Puerto Rico', 'Colombia', 'Venezuela', 'Guyana', 'Suriname', 'Ecuador', 'Peru', 'Brazil', 'Bolivia', 'Paraguay', 'Uruguay', 'Argentina', 'Chile', 'Falkland Is.']);
-put('europe', ['Iceland', 'Ireland', 'United Kingdom', 'France', 'Spain', 'Portugal', 'Belgium', 'Netherlands', 'Luxembourg', 'Germany', 'Switzerland', 'Austria', 'Italy', 'Denmark', 'Norway', 'Sweden', 'Finland', 'Estonia', 'Latvia', 'Lithuania', 'Poland', 'Czechia', 'Slovakia', 'Hungary', 'Slovenia', 'Croatia', 'Bosnia and Herz.', 'Serbia', 'Montenegro', 'Kosovo', 'Albania', 'Macedonia', 'Greece', 'Bulgaria', 'Romania', 'Moldova', 'Ukraine', 'Belarus']);
-put('russia-central-asia', ['Russia', 'Kazakhstan', 'Uzbekistan', 'Turkmenistan', 'Kyrgyzstan', 'Tajikistan', 'Mongolia', 'Georgia', 'Armenia', 'Azerbaijan']);
-put('mena', ['W. Sahara', 'Morocco', 'Algeria', 'Tunisia', 'Libya', 'Egypt', 'Sudan', 'Turkey', 'Cyprus', 'N. Cyprus', 'Syria', 'Lebanon', 'Israel', 'Palestine', 'Jordan', 'Iraq', 'Iran', 'Kuwait', 'Saudi Arabia', 'Yemen', 'Oman', 'United Arab Emirates', 'Qatar', 'Bahrain']);
-put('sub-saharan-africa', ['Mauritania', 'Mali', 'Niger', 'Chad', 'Senegal', 'Gambia', 'Guinea-Bissau', 'Guinea', 'Sierra Leone', 'Liberia', "Côte d'Ivoire", 'Ghana', 'Togo', 'Benin', 'Burkina Faso', 'Nigeria', 'Cameroon', 'Eq. Guinea', 'Gabon', 'Congo', 'Dem. Rep. Congo', 'Central African Rep.', 'S. Sudan', 'Ethiopia', 'Eritrea', 'Djibouti', 'Somalia', 'Somaliland', 'Kenya', 'Uganda', 'Rwanda', 'Burundi', 'Tanzania', 'Angola', 'Zambia', 'Malawi', 'Mozambique', 'Zimbabwe', 'Botswana', 'Namibia', 'South Africa', 'Lesotho', 'eSwatini', 'Madagascar']);
-put('south-asia', ['Afghanistan', 'Pakistan', 'India', 'Nepal', 'Bhutan', 'Bangladesh', 'Sri Lanka']);
-put('east-asia', ['China', 'Taiwan', 'North Korea', 'South Korea', 'Japan']);
-put('southeast-asia', ['Myanmar', 'Thailand', 'Laos', 'Vietnam', 'Cambodia', 'Malaysia', 'Brunei', 'Indonesia', 'Timor-Leste', 'Philippines']);
-put('oceania', ['Australia', 'New Zealand', 'Papua New Guinea', 'Fiji', 'Solomon Is.', 'Vanuatu', 'New Caledonia']);
-NAME2REGION['French Guiana'] = 'latin-america';     // split out of France below
-NAME2REGION['Aksai Chin (India)'] = 'south-asia';   // GoI correction overlay
+// ── Country → region lookup + GoI Aksai Chin correction live in regions.mjs ──
 const EXCLUDE = new Set(['Antarctica', 'Fr. S. Antarctic Lands']);
-const regionOf = (name) => NAME2REGION[name] || null;
 
 // Explicit label anchors (more reliable than centroids for spread-out regions).
 const LABEL = {
@@ -75,6 +62,9 @@ if (fr && fr.geometry.type === 'MultiPolygon') {
   if (guiana.length) features.push({ type: 'Feature', properties: { name: 'French Guiana' }, geometry: { type: 'MultiPolygon', coordinates: guiana } });
 }
 
+// ── GoI correction: cut Aksai Chin out of China and re-add it as South Asia ──
+applyGoiCorrection(features);
+
 const projection = geoEquirectangular().fitExtent([[10, 12], [W - 10, H - 12]], { type: 'FeatureCollection', features });
 const path = geoPath(projection);
 
@@ -87,21 +77,17 @@ const regionPaths = Object.keys(REGION_COLORS).map((r) => {
   return `<path id="${r}" data-region="${r}" class="region" d="${d}" fill="${c}" stroke="${c}" stroke-width="0.8" stroke-linejoin="round"/>`;
 }).join('\n    ');
 
-// ── Region partition lines (real borders where the region differs; France handled via overlay) ──
-const partition = path(mesh(topo, topo.objects.countries, (a, b) => {
+// ── Region partition lines: real borders where the region differs. Rebuilt from
+//    the GoI-corrected features (not the raw topo) so the China↔Aksai-Chin edge
+//    follows the GoI line and the old Chinese-aligned segment is gone. France's
+//    only cross-region edge is via French Guiana, handled by the split above. ──
+const corrected = topology({ countries: { type: 'FeatureCollection', features } });
+const partition = path(mesh(corrected, corrected.objects.countries, (a, b) => {
   if (a === b) return false;
   if (a.properties.name === 'France' || b.properties.name === 'France') return false;
   const ra = regionOf(a.properties.name), rb = regionOf(b.properties.name);
   return ra && rb && ra !== rb;
 }));
-
-// ── Government of India correction: J&K incl. Azad Kashmir, Gilgit-Baltistan, Shaksgam & Aksai Chin = India.
-//    Approximate footprint — replace with a vetted GoI-aligned boundary for a production release. ──
-const goiClaim = { type: 'Polygon', coordinates: [[[75.0, 36.6], [76.8, 36.4], [78.5, 35.9], [80.5, 35.4], [80.1, 34.0], [78.6, 33.2], [77.0, 33.5], [76.3, 34.5], [75.6, 35.6], [75.0, 36.6]]] };
-const goiBoundary = { type: 'LineString', coordinates: [[75.0, 36.6], [76.8, 36.4], [78.5, 35.9], [80.5, 35.4], [80.1, 34.0], [78.6, 33.2], [79.2, 32.4]] };
-const sa = REGION_COLORS['south-asia'];
-const goi = `<path id="south-asia-jk" data-region="south-asia" class="region" d="${path(goiClaim)}" fill="${sa}" stroke="${sa}" stroke-width="0.8" stroke-linejoin="round"/>\n    `
-  + `<path class="partition" d="${path(goiBoundary)}" fill="none" stroke="${PARTITION}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`;
 
 // ── Ocean + graticule ──
 const graticule = path(geoGraticule().step([30, 20])());
@@ -128,7 +114,6 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" wid
   <path class="graticule" d="${graticule}" fill="none" stroke="${GRATICULE}" stroke-width="0.5" opacity="0.5"/>
   <g id="regions">
     ${regionPaths}
-    ${goi}
   </g>
   <path class="partition" d="${partition}" fill="none" stroke="${PARTITION}" stroke-width="1.5" stroke-linejoin="round"/>
   <g id="labels">

@@ -63,7 +63,7 @@ EarthAlliance/
 │  │        ├─ regions.ts    # SAMPLE_REGIONS (pure data)
 │  │        └─ scenario.ts   # DEFAULT_SCENARIO + DEFAULT_PARAMS (every tunable constant)
 │  └─ web/                   # React client (depends on engine via workspace:*)
-│     ├─ scripts/            # generate-map.mjs — offline map baker (build-time only)
+│     ├─ scripts/            # generate-map.mjs map baker + regions.mjs (region/GoI logic), build-time only
 │     └─ src/
 │        ├─ main.tsx         # React root + MantineProvider
 │        ├─ App.tsx          # composes map + HUD; owns selectedRegionId; wires SFX
@@ -216,7 +216,9 @@ the dashboard sparkline.
   in its fixed `REGION_COLORS` hue, region partition lines, no internal country borders). The
   component inlines the SVG and wires click-to-select + selection dimming; `App` owns the
   `selectedRegionId` (a *view* concern, not engine state). India follows the Government-of-India
-  depiction. The geometry is baked offline by `scripts/generate-map.mjs` — **no D3/TopoJSON
+  depiction: Aksai Chin is **cut out of China's geometry and reassigned to South Asia** at bake
+  time (see below), so it carries the South Asia hue and selects with South Asia — not an overlay
+  painted on top. The geometry is baked offline by `scripts/generate-map.mjs` — **no D3/TopoJSON
   ships at runtime** (the former R3F globe and `three` are gone).
 - **HUD** (`components/`, Mantine DOM overlay): `ResourceBar`, `Dashboard` (+ `Sparkline`
   trend), `RegionPanel` (the selected region), `PolicyTray` of `PolicyCard`s, and
@@ -286,10 +288,16 @@ These hold across the engine and are guarded by the test suite. Treat them as lo
   both are placeholder pipelines meant to be swapped for real assets (and Howler) without
   code changes.
 - **World-map boundaries.** The map is a baked `assets/world-map.svg`; regenerate it with
-  `scripts/generate-map.mjs` whenever regions or borders change. India's J&K / Aksai Chin
-  depiction follows the Government of India but uses an **approximate** correction polygon —
-  swap in a vetted GoI-aligned boundary before a public release. Bumping `world-atlas` from the
-  110m to the 50m dataset sharpens coastlines if higher fidelity is wanted.
+  `scripts/generate-map.mjs` whenever regions or borders change. The country→region lookup and
+  the GoI correction live in `scripts/regions.mjs` (shared with `test/regions.test.ts`).
+  `applyGoiCorrection` uses `polygon-clipping` to cut the GoI claim out of China and re-add it as
+  a `south-asia` feature; the partition mesh is then rebuilt from the corrected features with
+  `topojson-server`'s `topology()` so a single GoI-aligned border is drawn (the Chinese-aligned
+  line is gone). `polygon-clipping` emits RFC-7946 winding while d3-geo/`world-atlas` use the
+  opposite, so clipped rings are reversed (`rewindToD3`) before baking. The GoI claim polygon is
+  still an **approximate** footprint — swap in a vetted GoI-aligned boundary before a public
+  release. Bumping `world-atlas` from the 110m to the 50m dataset sharpens coastlines if higher
+  fidelity is wanted.
 
 ---
 
