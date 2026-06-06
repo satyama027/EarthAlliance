@@ -3,7 +3,7 @@ import type { SubModel } from './types.js';
 /** (I) Regenerate political capital (from support) and money (from taxed GDP). */
 export const resources: SubModel = {
   id: 'resources',
-  step({ state, params }) {
+  step({ state, params, scratch }) {
     let supportPop = 0;
     let totalPop = 0;
     let taxable = 0;
@@ -13,7 +13,14 @@ export const resources: SubModel = {
       taxable += r.gdpPerCapita * r.population;
     }
     const avgSupport = totalPop > 0 ? supportPop / totalPop : 0;
-    state.resources.politicalCapital += params.CAPITAL_BASE + params.CAPITAL_PER_SUPPORT * avgSupport;
-    state.resources.money += (params.TAX_RATE * taxable) / params.MONEY_SCALE;
+    const capitalGain = params.CAPITAL_BASE + params.CAPITAL_PER_SUPPORT * avgSupport;
+    const moneyGain = (params.TAX_RATE * taxable) / params.MONEY_SCALE;
+    state.resources.politicalCapital += capitalGain;
+    state.resources.money += moneyGain;
+    scratch.avgSupport = avgSupport;
+    scratch.worldPopulation = totalPop;
+    scratch.worldGdp = taxable;
+    scratch.capitalGain = capitalGain;
+    scratch.moneyGain = moneyGain;
   },
 };

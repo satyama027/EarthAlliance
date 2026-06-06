@@ -68,15 +68,38 @@ export function createSimulation(
       }
 
       // Surface the intermediates the pipeline computed but the state discards.
+      const { scratch } = ctx;
       const diagnostics: TurnDiagnostics = {
-        damageFraction: ctx.scratch.damageFraction,
-        deltaTemperature: ctx.scratch.deltaTemperature,
+        damageFraction: scratch.damageFraction,
+        deltaTemperature: scratch.deltaTemperature,
         growthByRegion: Object.fromEntries(
           draft.regions.map((r) => {
-            const prev = ctx.scratch.prevGdpPerCapita[r.id] ?? r.gdpPerCapita;
+            const prev = scratch.prevGdpPerCapita[r.id] ?? r.gdpPerCapita;
             return [r.id, prev > 0 ? (r.gdpPerCapita - prev) / prev : 0];
           }),
         ),
+        co2Ratio: scratch.co2Ratio,
+        equilibriumTemp: scratch.equilibriumTemp,
+        deltaPpm: scratch.deltaPpm,
+        grossEmissions: scratch.grossEmissions,
+        baseGrowthFactor: scratch.baseGrowthFactor,
+        decarbFactor: scratch.decarbFactor,
+        avgSupport: scratch.avgSupport,
+        worldPopulation: scratch.worldPopulation,
+        worldGdp: scratch.worldGdp,
+        capitalGain: scratch.capitalGain,
+        moneyGain: scratch.moneyGain,
+        scarcityByRegion: { ...scratch.scarcityByRegion },
+        constraintFactorByRegion: { ...scratch.constraintFactorByRegion },
+        outputRatioByRegion: { ...scratch.outputRatioByRegion },
+        popGrowthByRegion: { ...scratch.popGrowthByRegion },
+        waterLossByRegion: { ...scratch.waterLossByRegion },
+        landLossByRegion: { ...scratch.landLossByRegion },
+        bioLossByRegion: { ...scratch.bioLossByRegion },
+        supportTempTermByRegion: { ...scratch.supportTempTermByRegion },
+        supportEconTermByRegion: { ...scratch.supportEconTermByRegion },
+        supportEquityTermByRegion: { ...scratch.supportEquityTermByRegion },
+        equityDriftByRegion: { ...scratch.equityDriftByRegion },
       };
 
       return { state: draft, events, diagnostics };

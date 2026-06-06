@@ -94,6 +94,15 @@
   .ttag { font-size:10px; font-weight:700; padding:1px 7px; border-radius:999px;
     background:#2a1f1f; color:var(--red); margin-left:6px; }
   .thint { font-size:12px; color:var(--dimmed); font-style:italic; padding:4px 0 2px; }
+  /* Turn Log "More" calc-internals toggle + section */
+  .tmore { display:flex; align-items:center; justify-content:center; gap:5px; width:100%;
+    margin-top:8px; padding:4px 0 1px; border:none; background:none; cursor:pointer;
+    border-top:1px solid var(--border); color:var(--dimmed); font-size:11px; font-weight:600;
+    letter-spacing:.04em; text-transform:uppercase; font-family:inherit; }
+  .tmore:hover { color:var(--earth-3); }
+  .tcalc-lbl { font-size:10px; text-transform:uppercase; letter-spacing:.07em; font-weight:700;
+    color:var(--earth-7); margin:7px 0 3px; }
+  .tcalc-lbl .reg { color:var(--dimmed); font-weight:600; }
 
   /* Policy cards */
   .tray { display:flex; gap:12px; overflow-x:auto; padding-bottom:6px; }
@@ -223,6 +232,52 @@
             <div class="tcell"><span class="lbl">Fertility</span><span class="val">1.74<span class="tdelta d-flat">▼ .02</span></span></div>
             <div class="tcell"><span class="lbl">Emissions</span><span class="val">5.20 Gt<span class="tdelta d-good">▼ .2</span></span></div>
           </div>
+          <!-- CALC section (revealed by "More") -->
+          <div class="tcalc-lbl">Calc · Climate</div>
+          <div class="tgrid">
+            <div class="tcell"><span class="lbl">ΔTemp</span><span class="val">+0.04 °C</span></div>
+            <div class="tcell"><span class="lbl">Warming⁺</span><span class="val">+0.04 °C</span></div>
+            <div class="tcell"><span class="lbl">Eq. temp</span><span class="val">+1.92 °C</span></div>
+            <div class="tcell"><span class="lbl">CO₂ ratio</span><span class="val">1.504×</span></div>
+            <div class="tcell"><span class="lbl">ΔCO₂</span><span class="val">+2.1 ppm</span></div>
+            <div class="tcell"><span class="lbl">Gross emis</span><span class="val">206 Gt</span></div>
+          </div>
+          <div class="tcalc-lbl">Calc · Economy</div>
+          <div class="tgrid">
+            <div class="tcell"><span class="lbl">Damage</span><span class="val">0.90%</span></div>
+            <div class="tcell"><span class="lbl">Base growth</span><span class="val">1.110×</span></div>
+            <div class="tcell"><span class="lbl">Decarb</span><span class="val">0.928×</span></div>
+          </div>
+          <div class="tcalc-lbl">Calc · Resources</div>
+          <div class="tgrid">
+            <div class="tcell"><span class="lbl">World pop</span><span class="val">8.10B</span></div>
+            <div class="tcell"><span class="lbl">World GDP</span><span class="val">$118.4T</span></div>
+            <div class="tcell"><span class="lbl">Avg support</span><span class="val">58.3</span></div>
+            <div class="tcell"><span class="lbl">PC regen</span><span class="val">+39.2</span></div>
+            <div class="tcell"><span class="lbl">Money regen</span><span class="val">+2.4</span></div>
+          </div>
+          <div class="tcalc-lbl">Calc · <span class="reg">North America</span> growth</div>
+          <div class="tgrid">
+            <div class="tcell"><span class="lbl">Econ growth</span><span class="val">+4.8%</span></div>
+            <div class="tcell"><span class="lbl">Scarcity</span><span class="val">0.65</span></div>
+            <div class="tcell"><span class="lbl">Constraint</span><span class="val">0.825×</span></div>
+            <div class="tcell"><span class="lbl">Output ratio</span><span class="val">1.051×</span></div>
+            <div class="tcell"><span class="lbl">Pop growth</span><span class="val">0.31%/yr</span></div>
+          </div>
+          <div class="tcalc-lbl">Pressures (pre-clamp drop)</div>
+          <div class="tgrid">
+            <div class="tcell"><span class="lbl">Water loss</span><span class="val">−1.2</span></div>
+            <div class="tcell"><span class="lbl">Land loss</span><span class="val">−0.7</span></div>
+            <div class="tcell"><span class="lbl">Bio loss</span><span class="val">−1.9</span></div>
+          </div>
+          <div class="tcalc-lbl">Support Δ breakdown</div>
+          <div class="tgrid">
+            <div class="tcell"><span class="lbl">from warming</span><span class="val">−0.9</span></div>
+            <div class="tcell"><span class="lbl">from growth</span><span class="val">+1.0</span></div>
+            <div class="tcell"><span class="lbl">from equity</span><span class="val">+0.4</span></div>
+            <div class="tcell"><span class="lbl">Equity drift</span><span class="val">−0.24</span></div>
+          </div>
+          <button class="tmore">▴ Less</button>
         </div>
         <!-- Turn 2 -->
         <div class="tentry">
@@ -239,6 +294,7 @@
             <div class="tcell"><span class="lbl">GDP/cap</span><span class="val">59,600<span class="tdelta d-good">▲ 4.9%</span></span></div>
             <div class="tcell"><span class="lbl">Support</span><span class="val">60<span class="tdelta d-good">▲ 3</span></span></div>
           </div>
+          <button class="tmore">▾ More</button>
         </div>
         <!-- Turn 1 (baseline) -->
         <div class="tentry">

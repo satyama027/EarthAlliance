@@ -9,11 +9,12 @@ export const constraints: SubModel = {
     for (const r of state.regions) {
       const prevPop = scratch.prevPopulation[r.id] ?? r.population;
       const popGrowth = Math.max(0, r.population / prevPop - 1);
-      r.waterAvailability = clamp(
-        r.waterAvailability - params.WATER_TEMP_LOSS * warming - params.POP_PRESSURE * popGrowth,
-        0, 100,
-      );
-      r.landAvailability = clamp(r.landAvailability - params.LAND_DEGRADE * warming, 0, 100);
+      const waterLoss = params.WATER_TEMP_LOSS * warming + params.POP_PRESSURE * popGrowth;
+      const landLoss = params.LAND_DEGRADE * warming;
+      r.waterAvailability = clamp(r.waterAvailability - waterLoss, 0, 100);
+      r.landAvailability = clamp(r.landAvailability - landLoss, 0, 100);
+      scratch.waterLossByRegion[r.id] = waterLoss;
+      scratch.landLossByRegion[r.id] = landLoss;
     }
   },
 };

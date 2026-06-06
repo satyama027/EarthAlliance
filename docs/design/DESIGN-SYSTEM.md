@@ -114,6 +114,17 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
     biodiversity, water, land, education, health. Neutral: population, median age, fertility. The
     baseline (turn 0) entry shows no chips (no prior turn). Damage and growth come from the engine's
     exact per-turn `TurnDiagnostics`, never re-derived.
+  - **"More" calc-internals.** Each non-baseline entry has a dimmed, full-width **More ▾ / Less ▴**
+    toggle (hairline top rule, uppercase 11px, hover → `earth-3`) that reveals a **CALC** section in
+    a Mantine `Collapse`. Per-entry state (collapsed by default; toggling one entry never affects
+    others). CALC labels are earth-tinted (`earth-7`) to mark *derived internals* apart from headline
+    state. Global groups: **Calc · Climate** (ΔTemp, Warming⁺, Eq. temp, CO₂ ratio, ΔCO₂, Gross emis),
+    **Calc · Economy** (Damage, Base growth ×, Decarb ×), and **Calc · Resources** (World pop, World
+    GDP, Avg support, PC regen, Money regen). When a region is selected it adds **growth** (Econ
+    growth, Scarcity, Constraint ×, Output ratio, Pop growth), **Pressures** (Water/Land/Bio loss —
+    pre-clamp drop), and a **Support Δ breakdown** (from warming / growth / equity, plus Equity
+    drift). All values come from the widened `TurnDiagnostics`; only `Warming⁺ = max(0, ΔTemp)` is
+    derived in the UI.
 - **PolicyCard** — bordered `Card`, 180px wide; category-colored art band (height 36, icon) on top,
   name (`fw={700}`), 2-line clamped description, PC + Money `Badge`s (`variant="light"`). Hover
   scales 1.03, tap 0.98 (framer-motion); selected → 2px `earth-5` outline; unaffordable → 0.5

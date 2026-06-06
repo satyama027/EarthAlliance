@@ -11,9 +11,11 @@ const CO2_FLOOR = CO2_PREINDUSTRIAL;
 /** (A) Emissions accumulate into atmospheric CO2; only the airborne fraction stays. */
 export const carbonCycle: SubModel = {
   id: 'carbonCycle',
-  step({ state, params }) {
+  step({ state, params, scratch }) {
     const gross = state.climate.annualEmissions * params.TURN_YEARS;
     const deltaPpm = (params.AIRBORNE_FRACTION * gross) / params.GTCO2_PER_PPM;
     state.climate.co2Concentration = Math.max(CO2_FLOOR, state.climate.co2Concentration + deltaPpm);
+    scratch.grossEmissions = gross;
+    scratch.deltaPpm = deltaPpm;
   },
 };

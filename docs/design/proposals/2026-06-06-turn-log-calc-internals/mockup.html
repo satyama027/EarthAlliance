@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Earth Alliance — Turn Log "More" calc-internals (proposal)</title>
+<style>
+  /* ── Design tokens (mirror of packages/web/src/theme.ts / DESIGN-SYSTEM.md) ── */
+  :root {
+    --earth-3:#63e6be; --earth-5:#20c997; --earth-6:#12b886; --earth-7:#0ca678;
+    --grape:#cc5de8; --grape-light:#3b2540; --teal:#20c997; --teal-light:#163a33;
+    --red:#ff6b6b; --yellow:#ffd43b; --orange:#ffa94d;
+    --bg:#1a1b1e; --surface:#25262b; --surface-2:#2c2e33; --border:#373a40;
+    --text:#c1c2c5; --text-strong:#f1f3f5; --dimmed:#909296;
+    --radius:8px; --radius-sm:4px;
+    font-family: system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); padding:24px;
+         -webkit-font-smoothing:antialiased; }
+
+  .note { max-width:760px; margin:0 auto 18px; padding:12px 16px; background:var(--surface);
+    border:1px solid var(--border); border-radius:var(--radius); font-size:13px; color:var(--dimmed);
+    line-height:1.5; }
+  .note strong { color:var(--text-strong); }
+  .note kbd { background:var(--surface-2); border:1px solid var(--border); border-radius:4px;
+    padding:1px 6px; font-size:12px; color:var(--text-strong); }
+
+  .stage { max-width:760px; margin:0 auto; display:grid; gap:18px;
+    grid-template-columns:1fr 1fr; }
+  @media (max-width:720px){ .stage{ grid-template-columns:1fr; } }
+  .panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:12px; }
+  .panel > .h4 { font-size:15px; font-weight:700; color:var(--text-strong); margin:0 0 4px; }
+  .caption { font-size:11px; color:var(--dimmed); text-transform:uppercase; letter-spacing:.07em;
+    margin:0 0 10px; }
+
+  /* Turn Log (identical to current/index.html) */
+  .tlog-scroll { display:flex; flex-direction:column; gap:12px; }
+  .tentry { background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:10px; }
+  .tentry-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+  .tturn { font-weight:700; color:var(--text-strong); font-size:13px; }
+  .tyear { font-size:11px; color:var(--dimmed); }
+  .tblock { font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--dimmed);
+    margin:6px 0 3px; font-weight:600; }
+  .tgrid { display:grid; grid-template-columns:repeat(2,1fr); gap:2px 14px; }
+  .tcell { display:flex; justify-content:space-between; align-items:baseline; font-size:12px;
+    padding:1px 0; border-bottom:1px dotted #303237; }
+  .tcell .lbl { color:var(--dimmed); }
+  .tcell .val { color:var(--text-strong); font-weight:600; font-variant-numeric:tabular-nums; }
+  .tdelta { font-size:11px; font-weight:700; margin-left:6px; }
+  .d-good { color:var(--earth-3); } .d-bad { color:var(--red); } .d-flat { color:var(--dimmed); }
+  .ttag { font-size:10px; font-weight:700; padding:1px 7px; border-radius:999px;
+    background:#2a1f1f; color:var(--red); margin-left:6px; }
+  .thint { font-size:12px; color:var(--dimmed); font-style:italic; padding:4px 0 2px; }
+
+  /* NEW — "More" toggle: subtle, dimmed micro-text, full-width, hairline top rule */
+  .tmore { display:flex; align-items:center; justify-content:center; gap:5px; width:100%;
+    margin-top:8px; padding:4px 0 1px; border:none; background:none; cursor:pointer;
+    border-top:1px solid var(--border); color:var(--dimmed); font-size:11px; font-weight:600;
+    letter-spacing:.04em; text-transform:uppercase; font-family:inherit; }
+  .tmore:hover { color:var(--earth-3); }
+  .tmore .chev { transition:transform .15s ease; }
+
+  /* NEW — CALC section: faint earth-tinted labels mark "derived internals" vs headline state */
+  .tcalc { margin-top:2px; }
+  .tcalc-lbl { font-size:10px; text-transform:uppercase; letter-spacing:.07em; font-weight:700;
+    color:var(--earth-7); margin:7px 0 3px; }
+  .tcalc-lbl .reg { color:var(--dimmed); font-weight:600; }
+  /* calc values read slightly quieter than headline values (these are mechanism, not outcome) */
+  .tcalc .tcell .val { color:var(--text); font-weight:600; }
+</style>
+</head>
+<body>
+
+<div class="note">
+  <strong>Proposal — Turn Log “More”.</strong> Each turn entry gains a dimmed, full-width
+  <kbd>More ▾</kbd> toggle under the existing ledger. Expanding reveals a <strong>CALC</strong>
+  section: the engine’s per-turn intermediate variables (climate physics, economy/decarb factors,
+  and the selected region’s growth mechanics) — the numbers behind <em>why</em> the headline values
+  moved. Built from the same tokens/classes as the live Turn Log. The baseline turn (no prior turn /
+  no diagnostics) has no <kbd>More</kbd>. Toggles are per-entry. Two panels below: a region selected
+  (left) and no region selected (right).
+</div>
+
+<div class="stage">
+
+  <!-- ── Panel A: region selected ─────────────────────────────────── -->
+  <div class="panel">
+    <div class="h4">Turn Log</div>
+    <div class="caption">North America selected</div>
+    <div class="tlog-scroll">
+
+      <!-- Turn 3 — EXPANDED -->
+      <div class="tentry">
+        <div class="tentry-head"><span class="tturn">Turn 3</span><span class="tyear">2040</span></div>
+        <div class="tblock">Planet</div>
+        <div class="tgrid">
+          <div class="tcell"><span class="lbl">Warming</span><span class="val" style="color:var(--orange);">+1.34 °C<span class="tdelta d-bad">▲ .04</span></span></div>
+          <div class="tcell"><span class="lbl">CO₂</span><span class="val">421 ppm<span class="tdelta d-bad">▲ 2</span></span></div>
+          <div class="tcell"><span class="lbl">Emissions</span><span class="val">41.2 Gt<span class="tdelta d-good">▼ .3</span></span></div>
+          <div class="tcell"><span class="lbl">Damage</span><span class="val" style="color:var(--red);">0.90%<span class="tdelta d-bad">▲ .06</span></span></div>
+        </div>
+        <div class="tblock">North America <span class="ttag">selected</span></div>
+        <div class="tgrid">
+          <div class="tcell"><span class="lbl">GDP/cap</span><span class="val">62,400<span class="tdelta d-good">▲ 4.8%</span></span></div>
+          <div class="tcell"><span class="lbl">Population</span><span class="val">372M<span class="tdelta d-flat">▲ .3%</span></span></div>
+          <div class="tcell"><span class="lbl">Support</span><span class="val">62<span class="tdelta d-good">▲ 2</span></span></div>
+          <div class="tcell"><span class="lbl">Equity</span><span class="val">54<span class="tdelta d-bad">▼ 1</span></span></div>
+          <div class="tcell"><span class="lbl">Biodiversity</span><span class="val">47<span class="tdelta d-bad">▼ 1</span></span></div>
+          <div class="tcell"><span class="lbl">Water</span><span class="val">70<span class="tdelta d-bad">▼ 1</span></span></div>
+          <div class="tcell"><span class="lbl">Land</span><span class="val">65<span class="tdelta d-bad">▼ 1</span></span></div>
+          <div class="tcell"><span class="lbl">Education</span><span class="val">78<span class="tdelta d-good">▲ 1</span></span></div>
+          <div class="tcell"><span class="lbl">Health</span><span class="val">74<span class="tdelta d-flat">— 0</span></span></div>
+          <div class="tcell"><span class="lbl">Median age</span><span class="val">39.6<span class="tdelta d-flat">▲ .5</span></span></div>
+          <div class="tcell"><span class="lbl">Fertility</span><span class="val">1.74<span class="tdelta d-flat">▼ .02</span></span></div>
+          <div class="tcell"><span class="lbl">Emissions</span><span class="val">5.20 Gt<span class="tdelta d-good">▼ .2</span></span></div>
+        </div>
+
+        <!-- NEW CALC section -->
+        <div class="tcalc">
+          <div class="tcalc-lbl">Calc · Climate</div>
+          <div class="tgrid">
+            <div class="tcell"><span class="lbl">ΔTemp</span><span class="val">+0.04 °C</span></div>
+            <div class="tcell"><span class="lbl">Warming⁺</span><span class="val">+0.04 °C</span></div>
+            <div class="tcell"><span class="lbl">Eq. temp</span><span class="val">+1.92 °C</span></div>
+            <div class="tcell"><span class="lbl">CO₂ ratio</span><span class="val">1.504×</span></div>
+            <div class="tcell"><span class="lbl">ΔCO₂</span><span class="val">+2.1 ppm</span></div>
+            <div class="tcell"><span class="lbl">Gross emis</span><span class="val">206 Gt</span></div>
+          </div>
+          <div class="tcalc-lbl">Calc · Economy</div>
+          <div class="tgrid">
+            <div class="tcell"><span class="lbl">Base growth</span><span class="val">1.110×</span></div>
+            <div class="tcell"><span class="lbl">Decarb</span><span class="val">0.928×</span></div>
+            <div class="tcell"><span class="lbl">Avg support</span><span class="val">58.3</span></div>
+          </div>
+          <div class="tcalc-lbl">Calc · <span class="reg">North America</span></div>
+          <div class="tgrid">
+            <div class="tcell"><span class="lbl">Econ growth</span><span class="val">+4.8%</span></div>
+            <div class="tcell"><span class="lbl">Scarcity</span><span class="val">0.65</span></div>
+            <div class="tcell"><span class="lbl">Constraint</span><span class="val">0.825×</span></div>
+            <div class="tcell"><span class="lbl">Output ratio</span><span class="val">1.051×</span></div>
+            <div class="tcell"><span class="lbl">Pop growth</span><span class="val">0.31%/yr</span></div>
+          </div>
+        </div>
+
+        <button class="tmore"><span class="chev" style="transform:rotate(180deg);">▾</span> Less</button>
+      </div>
+
+      <!-- Turn 2 — COLLAPSED -->
+      <div class="tentry">
+        <div class="tentry-head"><span class="tturn">Turn 2</span><span class="tyear">2035</span></div>
+        <div class="tblock">Planet</div>
+        <div class="tgrid">
+          <div class="tcell"><span class="lbl">Warming</span><span class="val" style="color:var(--yellow);">+1.30 °C<span class="tdelta d-bad">▲ .05</span></span></div>
+          <div class="tcell"><span class="lbl">CO₂</span><span class="val">419 ppm<span class="tdelta d-bad">▲ 3</span></span></div>
+          <div class="tcell"><span class="lbl">Emissions</span><span class="val">41.5 Gt<span class="tdelta d-good">▼ .4</span></span></div>
+          <div class="tcell"><span class="lbl">Damage</span><span class="val" style="color:var(--red);">0.84%<span class="tdelta d-bad">▲ .06</span></span></div>
+        </div>
+        <div class="tblock">North America <span class="ttag">selected</span></div>
+        <div class="tgrid">
+          <div class="tcell"><span class="lbl">GDP/cap</span><span class="val">59,600<span class="tdelta d-good">▲ 4.9%</span></span></div>
+          <div class="tcell"><span class="lbl">Support</span><span class="val">60<span class="tdelta d-good">▲ 3</span></span></div>
+        </div>
+        <button class="tmore"><span class="chev">▾</span> More</button>
+      </div>
+
+      <!-- Turn 1 — baseline, no More -->
+      <div class="tentry">
+        <div class="tentry-head"><span class="tturn">Turn 1</span><span class="tyear">2030</span></div>
+        <div class="tblock">Planet</div>
+        <div class="tgrid">
+          <div class="tcell"><span class="lbl">Warming</span><span class="val" style="color:var(--yellow);">+1.25 °C<span class="tdelta d-flat">—</span></span></div>
+          <div class="tcell"><span class="lbl">Damage</span><span class="val" style="color:var(--red);">0.78%<span class="tdelta d-flat">—</span></span></div>
+        </div>
+        <div class="thint">baseline — no prior turn to compare</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Panel B: no region selected ──────────────────────────────── -->
+  <div class="panel">
+    <div class="h4">Turn Log</div>
+    <div class="caption">no region selected</div>
+    <div class="tlog-scroll">
+
+      <!-- Turn 3 — EXPANDED, global CALC only -->
+      <div class="tentry">
+        <div class="tentry-head"><span class="tturn">Turn 3</span><span class="tyear">2040</span></div>
+        <div class="tblock">Planet</div>
+        <div class="tgrid">
+          <div class="tcell"><span class="lbl">Warming</span><span class="val" style="color:var(--orange);">+1.34 °C<span class="tdelta d-bad">▲ .04</span></span></div>
+          <div class="tcell"><span class="lbl">CO₂</span><span class="val">421 ppm<span class="tdelta d-bad">▲ 2</span></span></div>
+          <div class="tcell"><span class="lbl">Emissions</span><span class="val">41.2 Gt<span class="tdelta d-good">▼ .3</span></span></div>
+          <div class="tcell"><span class="lbl">Damage</span><span class="val" style="color:var(--red);">0.90%<span class="tdelta d-bad">▲ .06</span></span></div>
+        </div>
+        <div class="thint">Select a region on the map to log its parameters.</div>
+
+        <div class="tcalc">
+          <div class="tcalc-lbl">Calc · Climate</div>
+          <div class="tgrid">
+            <div class="tcell"><span class="lbl">ΔTemp</span><span class="val">+0.04 °C</span></div>
+            <div class="tcell"><span class="lbl">Warming⁺</span><span class="val">+0.04 °C</span></div>
+            <div class="tcell"><span class="lbl">Eq. temp</span><span class="val">+1.92 °C</span></div>
+            <div class="tcell"><span class="lbl">CO₂ ratio</span><span class="val">1.504×</span></div>
+            <div class="tcell"><span class="lbl">ΔCO₂</span><span class="val">+2.1 ppm</span></div>
+            <div class="tcell"><span class="lbl">Gross emis</span><span class="val">206 Gt</span></div>
+          </div>
+          <div class="tcalc-lbl">Calc · Economy</div>
+          <div class="tgrid">
+            <div class="tcell"><span class="lbl">Base growth</span><span class="val">1.110×</span></div>
+            <div class="tcell"><span class="lbl">Decarb</span><span class="val">0.928×</span></div>
+            <div class="tcell"><span class="lbl">Avg support</span><span class="val">58.3</span></div>
+          </div>
+        </div>
+
+        <button class="tmore"><span class="chev" style="transform:rotate(180deg);">▾</span> Less</button>
+      </div>
+
+      <!-- Turn 2 — COLLAPSED -->
+      <div class="tentry">
+        <div class="tentry-head"><span class="tturn">Turn 2</span><span class="tyear">2035</span></div>
+        <div class="tblock">Planet</div>
+        <div class="tgrid">
+          <div class="tcell"><span class="lbl">Warming</span><span class="val" style="color:var(--yellow);">+1.30 °C<span class="tdelta d-bad">▲ .05</span></span></div>
+          <div class="tcell"><span class="lbl">CO₂</span><span class="val">419 ppm<span class="tdelta d-bad">▲ 3</span></span></div>
+          <div class="tcell"><span class="lbl">Emissions</span><span class="val">41.5 Gt<span class="tdelta d-good">▼ .4</span></span></div>
+          <div class="tcell"><span class="lbl">Damage</span><span class="val" style="color:var(--red);">0.84%<span class="tdelta d-bad">▲ .06</span></span></div>
+        </div>
+        <div class="thint">Select a region on the map to log its parameters.</div>
+        <button class="tmore"><span class="chev">▾</span> More</button>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

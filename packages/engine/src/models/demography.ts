@@ -12,6 +12,7 @@ export const demography: SubModel = {
         (r.fertilityRate - 2.1) * params.FERT_W + (r.healthIndex - 50) * params.HEALTH_W,
         -0.02, 0.04,
       );
+      scratch.popGrowthByRegion[r.id] = popGrowth;
       r.population *= Math.pow(1 + popGrowth, y);
       r.fertilityRate = Math.max(1.5, r.fertilityRate - params.DEMO_TRANSITION * (r.educationIndex / 100) * y);
       r.medianAge += params.AGEING_RATE * y * (r.fertilityRate < 2.1 ? 1 : 0.3);

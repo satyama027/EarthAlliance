@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { createInitialState, advanceTurn } from '@earth-alliance/engine';
 import type { ReactNode } from 'react';
@@ -42,5 +42,38 @@ describe('TurnLog', () => {
     expect(screen.getAllByText('Education').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Health').length).toBeGreaterThan(0);
     expect(screen.getAllByText('GDP/cap').length).toBeGreaterThan(0);
+  });
+
+  it('hides the calc internals behind a per-entry "More" toggle', () => {
+    const log = sampleLog();
+    const region = log[1]!.state.regions[0]!;
+    wrap(<TurnLog turnLog={log} selectedRegionId={region.id} />);
+
+    // Only the turn with diagnostics (turn 1) gets a More toggle; the baseline (turn 0) does not.
+    const toggles = screen.getAllByRole('button', { name: /more/i });
+    expect(toggles).toHaveLength(1);
+
+    // Calc rows are mounted but collapsed (not visible) by default.
+    expect(screen.getByText('CO₂ ratio')).not.toBeVisible();
+    expect(screen.getByText('Constraint')).not.toBeVisible();
+    expect(screen.getByText('Base growth')).not.toBeVisible();
+
+    // Expanding reveals them — including the swept-in damage, pressure, and support drivers.
+    fireEvent.click(toggles[0]!);
+    expect(screen.getByText('CO₂ ratio')).toBeVisible();
+    expect(screen.getByText('Constraint')).toBeVisible();
+    expect(screen.getAllByText('Damage').length).toBeGreaterThan(1); // headline + CALC
+    expect(screen.getByText('Water loss')).toBeVisible();
+    expect(screen.getByText('Bio loss')).toBeVisible();
+    expect(screen.getByText('from warming')).toBeVisible();
+    expect(screen.getByText('Money regen')).toBeVisible();
+    expect(screen.getByRole('button', { name: /less/i })).toBeInTheDocument();
+  });
+
+  it('shows global calc internals but no region calc when no region is selected', () => {
+    wrap(<TurnLog turnLog={sampleLog()} selectedRegionId={null} />);
+    fireEvent.click(screen.getByRole('button', { name: /more/i }));
+    expect(screen.getByText('CO₂ ratio')).toBeVisible();   // global calc present
+    expect(screen.queryByText('Constraint')).toBeNull();   // region calc absent
   });
 });

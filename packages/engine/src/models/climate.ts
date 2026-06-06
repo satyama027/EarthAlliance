@@ -10,5 +10,7 @@ export const climate: SubModel = {
     const dT = (tEq - state.climate.temperatureAnomaly) * params.WARMING_ADJUST;
     state.climate.temperatureAnomaly += dT;
     scratch.deltaTemperature = dT;
+    scratch.co2Ratio = ratio;
+    scratch.equilibriumTemp = tEq;
   },
 };

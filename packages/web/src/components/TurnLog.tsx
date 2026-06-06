@@ -1,6 +1,6 @@
-import { Box, Group, Paper, ScrollArea, SimpleGrid, Stack, Text, Title } from '@mantine/core';
-import type { ReactNode } from 'react';
-import type { Region } from '@earth-alliance/engine';
+import { Box, Collapse, Group, Paper, ScrollArea, SimpleGrid, Stack, Text, Title, UnstyledButton } from '@mantine/core';
+import { useState, type ReactNode } from 'react';
+import type { Region, TurnDiagnostics } from '@earth-alliance/engine';
 import { temperatureColor } from '../scene/metricColor.js';
 import type { TurnRecord } from '../game/useGame.js';
 
@@ -64,6 +64,119 @@ function BlockLabel({ children }: { children: ReactNode }) {
 
 function formatPop(pop: number): string {
   return pop >= 1e9 ? `${(pop / 1e9).toFixed(2)}B` : `${(pop / 1e6).toFixed(0)}M`;
+}
+
+// ── CALC ("More") section: engine intermediates, formatted like the ledger above. ──
+const mult = (n: number) => `${n.toFixed(3)}×`;
+const signed = (n: number, digits: number) => `${n >= 0 ? '+' : ''}${n.toFixed(digits)}`;
+const tempSigned = (n: number) => `${signed(n, 2)} °C`;
+const ppmSigned = (n: number) => `${signed(n, 1)} ppm`;
+const pctSigned = (n: number, digits: number) => `${n >= 0 ? '+' : ''}${(n * 100).toFixed(digits)}%`;
+
+/** Earth-tinted block label that marks a "derived internals" section apart from headline state. */
+function CalcLabel({ children }: { children: ReactNode }) {
+  return (
+    <Text tt="uppercase" mt={7} mb={3} fw={700} c="#0ca678"
+      style={{ fontSize: 10, letterSpacing: '0.07em' }}>
+      {children}
+    </Text>
+  );
+}
+
+/** Global climate, economy, and resource intermediates the pipeline computed this turn. */
+function PlanetCalcBlock({ d }: { d: TurnDiagnostics }) {
+  const warming = Math.max(0, d.deltaTemperature); // the positive-only driver ecosystems/support feel
+  return (
+    <>
+      <CalcLabel>Calc · Climate</CalcLabel>
+      <SimpleGrid cols={2} spacing="md" verticalSpacing={2}>
+        <Cell label="ΔTemp" value={tempSigned(d.deltaTemperature)} />
+        <Cell label="Warming⁺" value={tempSigned(warming)} />
+        <Cell label="Eq. temp" value={tempSigned(d.equilibriumTemp)} />
+        <Cell label="CO₂ ratio" value={mult(d.co2Ratio)} />
+        <Cell label="ΔCO₂" value={ppmSigned(d.deltaPpm)} />
+        <Cell label="Gross emis" value={`${d.grossEmissions.toFixed(0)} Gt`} />
+      </SimpleGrid>
+      <CalcLabel>Calc · Economy</CalcLabel>
+      <SimpleGrid cols={2} spacing="md" verticalSpacing={2}>
+        <Cell label="Damage" value={`${(d.damageFraction * 100).toFixed(2)}%`} />
+        <Cell label="Base growth" value={mult(d.baseGrowthFactor)} />
+        <Cell label="Decarb" value={mult(d.decarbFactor)} />
+      </SimpleGrid>
+      <CalcLabel>Calc · Resources</CalcLabel>
+      <SimpleGrid cols={2} spacing="md" verticalSpacing={2}>
+        <Cell label="World pop" value={formatPop(d.worldPopulation)} />
+        <Cell label="World GDP" value={`$${(d.worldGdp / 1e12).toFixed(1)}T`} />
+        <Cell label="Avg support" value={d.avgSupport.toFixed(1)} />
+        <Cell label="PC regen" value={signed(d.capitalGain, 1)} />
+        <Cell label="Money regen" value={signed(d.moneyGain, 1)} />
+      </SimpleGrid>
+    </>
+  );
+}
+
+/** The selected region's growth mechanics, environmental pressures, and support breakdown. */
+function RegionCalcBlock({ d, region }: { d: TurnDiagnostics; region: Region }) {
+  const id = region.id;
+  const econ = d.growthByRegion[id];
+  const scarcity = d.scarcityByRegion[id];
+  const constraint = d.constraintFactorByRegion[id];
+  const output = d.outputRatioByRegion[id];
+  const pop = d.popGrowthByRegion[id];
+  const waterLoss = d.waterLossByRegion[id];
+  const landLoss = d.landLossByRegion[id];
+  const bioLoss = d.bioLossByRegion[id];
+  const sTemp = d.supportTempTermByRegion[id];
+  const sEcon = d.supportEconTermByRegion[id];
+  const sEquity = d.supportEquityTermByRegion[id];
+  const eqDrift = d.equityDriftByRegion[id];
+  const num = (n: number | undefined, fmt: (x: number) => string) => (n === undefined ? '—' : fmt(n));
+  return (
+    <>
+      <CalcLabel>
+        Calc · <Text component="span" c="dimmed" fw={600} style={{ fontSize: 10 }} span>{region.name}</Text> growth
+      </CalcLabel>
+      <SimpleGrid cols={2} spacing="md" verticalSpacing={2}>
+        <Cell label="Econ growth" value={num(econ, (x) => pctSigned(x, 1))} />
+        <Cell label="Scarcity" value={num(scarcity, (x) => x.toFixed(2))} />
+        <Cell label="Constraint" value={num(constraint, mult)} />
+        <Cell label="Output ratio" value={num(output, mult)} />
+        <Cell label="Pop growth" value={num(pop, (x) => `${(x * 100).toFixed(2)}%/yr`)} />
+      </SimpleGrid>
+      <CalcLabel>Pressures (pre-clamp drop)</CalcLabel>
+      <SimpleGrid cols={2} spacing="md" verticalSpacing={2}>
+        <Cell label="Water loss" value={num(waterLoss, (x) => signed(-x, 1))} />
+        <Cell label="Land loss" value={num(landLoss, (x) => signed(-x, 1))} />
+        <Cell label="Bio loss" value={num(bioLoss, (x) => signed(-x, 1))} />
+      </SimpleGrid>
+      <CalcLabel>Support Δ breakdown</CalcLabel>
+      <SimpleGrid cols={2} spacing="md" verticalSpacing={2}>
+        <Cell label="from warming" value={num(sTemp, (x) => signed(x, 1))} />
+        <Cell label="from growth" value={num(sEcon, (x) => signed(x, 1))} />
+        <Cell label="from equity" value={num(sEquity, (x) => signed(x, 1))} />
+        <Cell label="Equity drift" value={num(eqDrift, (x) => signed(-x, 2))} />
+      </SimpleGrid>
+    </>
+  );
+}
+
+/** Dimmed full-width toggle that reveals/hides a turn's CALC section. */
+function MoreToggle({ opened, onToggle }: { opened: boolean; onToggle: () => void }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <UnstyledButton onClick={onToggle} aria-expanded={opened}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+        width: '100%', marginTop: 8, paddingTop: 4, paddingBottom: 1,
+        borderTop: '1px solid var(--mantine-color-dark-4)',
+        color: hover ? GOOD : 'var(--mantine-color-dimmed)',
+        fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase',
+      }}>
+      <Text component="span" span style={{ color: 'inherit', fontSize: 11, transform: opened ? 'rotate(180deg)' : undefined }}>▾</Text>
+      {opened ? 'Less' : 'More'}
+    </UnstyledButton>
+  );
 }
 
 function PlanetBlock({ record, prev }: { record: TurnRecord; prev: TurnRecord | null }) {
@@ -154,6 +267,41 @@ function RegionBlock({ record, prev, region }: {
   );
 }
 
+/** One turn's sub-card: headline ledger + an opt-in, self-contained CALC collapse. */
+function TurnEntry({ record, prev, selectedRegionId }: {
+  record: TurnRecord; prev: TurnRecord | null; selectedRegionId: string | null;
+}) {
+  const [opened, setOpened] = useState(false); // per-entry: toggling one entry never affects others
+  const region = selectedRegionId
+    ? record.state.regions.find((r) => r.id === selectedRegionId) ?? null
+    : null;
+  const d = record.diagnostics;
+  return (
+    <Box style={{ background: 'var(--mantine-color-dark-6)', border: '1px solid var(--mantine-color-dark-4)', borderRadius: 4, padding: 10 }}>
+      <Group justify="space-between" align="baseline">
+        <Text fw={700} size="sm">Turn {record.turn}</Text>
+        <Text size="xs" c="dimmed">{record.year}</Text>
+      </Group>
+      <PlanetBlock record={record} prev={prev} />
+      {region
+        ? <RegionBlock record={record} prev={prev} region={region} />
+        : <Text size="xs" c="dimmed" fs="italic" mt={6}>Select a region on the map to log its parameters.</Text>}
+      {/* The baseline turn has no diagnostics, so no CALC section / toggle. */}
+      {d && (
+        <>
+          <Collapse in={opened}>
+            <Box>
+              <PlanetCalcBlock d={d} />
+              {region && <RegionCalcBlock d={d} region={region} />}
+            </Box>
+          </Collapse>
+          <MoreToggle opened={opened} onToggle={() => setOpened((o) => !o)} />
+        </>
+      )}
+    </Box>
+  );
+}
+
 export function TurnLog({ turnLog, selectedRegionId }: {
   turnLog: TurnRecord[]; selectedRegionId: string | null;
 }) {
@@ -166,24 +314,9 @@ export function TurnLog({ turnLog, selectedRegionId }: {
       <Title order={4} mb="xs">Turn Log</Title>
       <ScrollArea.Autosize mah={340} type="auto">
         <Stack gap="sm">
-          {entries.map(({ record, prev }) => {
-            const region = selectedRegionId
-              ? record.state.regions.find((r) => r.id === selectedRegionId) ?? null
-              : null;
-            return (
-              <Box key={record.turn}
-                style={{ background: 'var(--mantine-color-dark-6)', border: '1px solid var(--mantine-color-dark-4)', borderRadius: 4, padding: 10 }}>
-                <Group justify="space-between" align="baseline">
-                  <Text fw={700} size="sm">Turn {record.turn}</Text>
-                  <Text size="xs" c="dimmed">{record.year}</Text>
-                </Group>
-                <PlanetBlock record={record} prev={prev} />
-                {region
-                  ? <RegionBlock record={record} prev={prev} region={region} />
-                  : <Text size="xs" c="dimmed" fs="italic" mt={6}>Select a region on the map to log its parameters.</Text>}
-              </Box>
-            );
-          })}
+          {entries.map(({ record, prev }) => (
+            <TurnEntry key={record.turn} record={record} prev={prev} selectedRegionId={selectedRegionId} />
+          ))}
         </Stack>
       </ScrollArea.Autosize>
     </Paper>

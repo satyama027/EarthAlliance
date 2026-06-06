@@ -84,6 +84,76 @@ describe('advanceTurn', () => {
     }
   });
 
+  it('surfaces the widened per-turn calc intermediates exactly', () => {
+    const s0 = createInitialState();
+    const { state: s1, diagnostics: d } = advanceTurn(s0, []);
+    const P = DEFAULT_PARAMS;
+    const CO2_PREINDUSTRIAL = 280;
+
+    // ── Global climate intermediates ──
+    // Ratio/equilibrium temp use the post-carbonCycle CO2, which is s1's final CO2.
+    expect(d.co2Ratio).toBeCloseTo(s1.climate.co2Concentration / CO2_PREINDUSTRIAL, 9);
+    expect(d.equilibriumTemp).toBeCloseTo(P.ECS * Math.log2(d.co2Ratio), 9);
+    // Gross emissions = the pre-turn annual rate over the turn period; ΔCO2 is its airborne share.
+    expect(d.grossEmissions).toBeCloseTo(s0.climate.annualEmissions * P.TURN_YEARS, 9);
+    expect(d.deltaPpm).toBeCloseTo((P.AIRBORNE_FRACTION * d.grossEmissions) / P.GTCO2_PER_PPM, 9);
+    expect(d.deltaPpm).toBeCloseTo(s1.climate.co2Concentration - s0.climate.co2Concentration, 6);
+
+    // ── Global economy intermediates ──
+    expect(d.baseGrowthFactor).toBeCloseTo(Math.pow(1 + P.BASE_GROWTH, P.TURN_YEARS), 9);
+    expect(d.decarbFactor).toBeCloseTo(Math.pow(1 - P.AUTON_DECARB, P.TURN_YEARS), 9);
+    // Avg support is the population-weighted mean of the post-turn (final) regional support.
+    const supportPop = s1.regions.reduce((a, r) => a + r.publicSupport * r.population, 0);
+    const totalPop = s1.regions.reduce((a, r) => a + r.population, 0);
+    expect(d.avgSupport).toBeCloseTo(supportPop / totalPop, 9);
+
+    // ── Per-region intermediates ──
+    for (const r1 of s1.regions) {
+      const r0 = s0.regions.find((r) => r.id === r1.id)!;
+      const scarcity = Math.min(r0.waterAvailability, r0.landAvailability) / 100;
+      expect(d.scarcityByRegion[r1.id]).toBeCloseTo(scarcity, 9);
+      expect(d.constraintFactorByRegion[r1.id]).toBeCloseTo(0.5 + 0.5 * scarcity, 9);
+      expect(d.outputRatioByRegion[r1.id]).toBeCloseTo(
+        (r1.gdpPerCapita * r1.population) / (r0.gdpPerCapita * r0.population),
+        9,
+      );
+      const popGrowth = Math.max(-0.02, Math.min(0.04,
+        (r0.fertilityRate - 2.1) * P.FERT_W + (r0.healthIndex - 50) * P.HEALTH_W));
+      expect(d.popGrowthByRegion[r1.id]).toBeCloseTo(popGrowth, 9);
+    }
+  });
+
+  it('surfaces the constraints / biodiversity / support / resources drivers exactly', () => {
+    const s0 = createInitialState();
+    const { state: s1, diagnostics: d } = advanceTurn(s0, []);
+    const P = DEFAULT_PARAMS;
+    const warming = Math.max(0, s1.climate.temperatureAnomaly - s0.climate.temperatureAnomaly);
+
+    // ── Global resource aggregates (do-nothing turn ⇒ regen equals the budget delta) ──
+    expect(d.worldPopulation).toBeCloseTo(s1.regions.reduce((a, r) => a + r.population, 0), 6);
+    expect(d.worldGdp).toBeCloseTo(s1.regions.reduce((a, r) => a + r.gdpPerCapita * r.population, 0), 4);
+    expect(d.capitalGain).toBeCloseTo(s1.resources.politicalCapital - s0.resources.politicalCapital, 6);
+    expect(d.moneyGain).toBeCloseTo(s1.resources.money - s0.resources.money, 6);
+
+    // ── Per-region pressure & support drivers ──
+    for (const r1 of s1.regions) {
+      const r0 = s0.regions.find((r) => r.id === r1.id)!;
+      const popGrowthRealized = Math.max(0, r1.population / r0.population - 1);
+      const econGrowth = r1.gdpPerCapita / r0.gdpPerCapita - 1;
+
+      expect(d.waterLossByRegion[r1.id]).toBeCloseTo(
+        P.WATER_TEMP_LOSS * warming + P.POP_PRESSURE * popGrowthRealized, 9);
+      expect(d.landLossByRegion[r1.id]).toBeCloseTo(P.LAND_DEGRADE * warming, 9);
+      expect(d.bioLossByRegion[r1.id]).toBeCloseTo(P.BIO_TEMP_LOSS * warming, 9);
+
+      // Support breakdown uses the pre-turn equity (no model touches it before support).
+      expect(d.supportTempTermByRegion[r1.id]).toBeCloseTo(-P.SUPPORT_TEMP_W * warming, 9);
+      expect(d.supportEconTermByRegion[r1.id]).toBeCloseTo(P.SUPPORT_ECON_W * econGrowth, 9);
+      expect(d.supportEquityTermByRegion[r1.id]).toBeCloseTo(P.SUPPORT_EQUITY_W * (r0.equityIndex - 50), 9);
+      expect(d.equityDriftByRegion[r1.id]).toBeCloseTo(P.INEQUALITY_DRIFT * Math.max(0, econGrowth), 9);
+    }
+  });
+
   it('throws when advancing a game that has already ended', () => {
     let state = createInitialState();
     let guard = 0;

@@ -105,11 +105,19 @@ Everything crossing the boundary is a **plain, JSON-serializable object** (`Worl
 wire — which is what keeps the state save/load-able and the engine portable.
 
 `advanceTurn` also returns a `TurnDiagnostics` alongside the new state: the intermediates the
-pipeline computes but the state discards — `damageFraction` (global), `deltaTemperature`, and
-`growthByRegion` (per-region GDP/capita growth). These are surfaced so the client can show climate
-damage and economic growth *exactly*, without re-deriving the model equations (the web layer
-duplicates no engine logic). The field is additive: existing `{ state, events }` consumers are
-unaffected.
+pipeline computes but the state discards. The sub-models stash these locals into `TurnScratch`
+(see `models/types.ts`) and `advanceTurn` copies them into `TurnDiagnostics`. Surfaced so far:
+`damageFraction` and `deltaTemperature` (global), `growthByRegion` (per-region GDP/capita growth),
+plus a widened set of **calc internals** for the Turn Log's "More" panel covering every sub-model:
+global `co2Ratio`, `equilibriumTemp`, `deltaPpm`, `grossEmissions`, `baseGrowthFactor`,
+`decarbFactor`, `avgSupport`, `worldPopulation`, `worldGdp`, `capitalGain`, `moneyGain`; and
+per-region `scarcityByRegion`, `constraintFactorByRegion`, `outputRatioByRegion`, `popGrowthByRegion`,
+`waterLossByRegion`, `landLossByRegion`, `bioLossByRegion`, the three support-change contributions
+(`supportTempTermByRegion`, `supportEconTermByRegion`, `supportEquityTermByRegion`), and
+`equityDriftByRegion`. These let the client show *why* values moved *exactly*, without re-deriving
+the model equations (the web layer duplicates no engine logic; the lone UI-side derivation is
+`Warming⁺ = max(0, deltaTemperature)`). The field is additive: existing `{ state, events }`
+consumers are unaffected.
 
 **Resolution: web reads engine *source*, not its compiled `dist`.** The engine's
 `package.json` `exports` point at `dist/`, but both `web/vite.config.ts` and
@@ -243,7 +251,9 @@ the dashboard sparkline.
 - **HUD** (`components/`, Mantine DOM overlay): `ResourceBar`, `Dashboard` (+ `Sparkline`
   trend), `RegionPanel` (the selected region), `TurnLog` (a scrollable, newest-first history of
   every per-turn data point — a global "Planet" block plus the selected region's full block, each
-  value carrying a good/bad-colored change chip vs. the prior turn), `PolicyTray` of `PolicyCard`s,
+  value carrying a good/bad-colored change chip vs. the prior turn; each non-baseline entry also has
+  a per-entry **"More"** toggle revealing a `Collapse`d CALC section of the engine's `TurnDiagnostics`
+  calc internals), `PolicyTray` of `PolicyCard`s,
   and `EndingScreen` (shown when `game.ending` is non-null).
 
 ### Events → sound
