@@ -166,7 +166,7 @@ interface SimContext {
 | A | `carbonCycle`  | annual emissions → CO₂ concentration (airborne fraction; net-negative reduces ppm) |
 | B | `climate`      | CO₂ → log forcing → equilibrium temp, approached with thermal lag    |
 | C | `damage`       | temperature → quadratic GDP damage fraction (clamped ≤ 1)            |
-| D | `economy`      | per-region GDP/capita growth, dampened by damage + water/land scarcity |
+| D | `economy`      | per-region GDP/capita growth; damage + water/land scarcity dampen the growth *increment* (toward zero), never reverse it into decay |
 | F | `demography`   | per-region population, fertility, median age, education             |
 | E | `emissions`    | per-region emissions **re-derived** from output × autonomous decarb |
 | G | `constraints`  | per-region water + land availability (warming/population degrade)   |

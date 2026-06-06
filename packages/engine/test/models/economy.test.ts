@@ -26,4 +26,21 @@ describe('economy', () => {
     economy.step(ch); economy.step(cs);
     expect(stressed.regions[0]!.gdpPerCapita).toBeLessThan(healthy.regions[0]!.gdpPerCapita);
   });
+
+  it('still grows GDP per capita under realistic resource constraints (no degrowth)', () => {
+    // Seed-level region (water 70 / land 75) with modest climate damage.
+    // Damage and scarcity must dampen the growth increment, not reverse it into decay.
+    const state = makeState({ regions: [makeRegion({ gdpPerCapita: 50000, waterAvailability: 70, landAvailability: 75 })] });
+    const ctx = makeContext(state, { damageFraction: 0.05 });
+    economy.step(ctx);
+    expect(state.regions[0]!.gdpPerCapita).toBeGreaterThan(50000);
+  });
+
+  it('never decays GDP below its current value, even at maximum stress', () => {
+    // Total scarcity + total damage: the growth increment floors at zero, GDP stays flat.
+    const state = makeState({ regions: [makeRegion({ gdpPerCapita: 50000, waterAvailability: 0, landAvailability: 0 })] });
+    const ctx = makeContext(state, { damageFraction: 1 });
+    economy.step(ctx);
+    expect(state.regions[0]!.gdpPerCapita).toBeGreaterThanOrEqual(50000);
+  });
 });
