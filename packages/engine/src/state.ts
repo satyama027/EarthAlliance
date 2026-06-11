@@ -17,7 +17,7 @@ export function createInitialState(scenario: Scenario = DEFAULT_SCENARIO): World
     },
     regions,
     activeEffects: [],
-    enactedPolicyIds: [],
+    enactments: [],
     log: [],
     rngSeed: scenario.rngSeed,
   };

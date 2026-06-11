@@ -29,6 +29,7 @@ Mockups are self-contained HTML — open them directly in a browser (`file://`).
 
 | Date | Topic | Status | Proposal |
 |------|-------|--------|----------|
+| 2026-06-11 | Per-region policy selection — two-lane drag board (Available/Active, drag to enact, cancellable programs) | **Implemented** | [proposal](./proposals/2026-06-11-per-region-policy-selection/design.md) |
 | 2026-06-06 | Turn Log — "More" calc-internals (per-turn intermediate variables) | **Implemented** | [proposal](./proposals/2026-06-06-turn-log-calc-internals/design.md) |
 | 2026-06-05 | Turn Log panel — per-turn data history (global + selected region) | **Implemented** | [proposal](./proposals/2026-06-05-turn-log-panel/design.md) |
 | 2026-06-04 | World map — 10 divided regions (replaces 3D globe) | **Implemented** | [proposal](./proposals/2026-06-04-world-map-regions/design.md) |

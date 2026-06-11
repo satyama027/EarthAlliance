@@ -3,13 +3,13 @@ import { AppShell, Grid, Box } from '@mantine/core';
 import { WorldMap } from './scene/WorldMap.js';
 import { ResourceBar } from './components/ResourceBar.js';
 import { Dashboard } from './components/Dashboard.js';
-import { PolicyTray } from './components/PolicyTray.js';
+import { PolicyBoard } from './components/PolicyBoard.js';
 import { RegionPanel } from './components/RegionPanel.js';
 import { TurnLog } from './components/TurnLog.js';
 import { EndingScreen } from './components/EndingScreen.js';
 import { useGame } from './game/useGame.js';
 import { useSfx } from './audio/useSfx.js';
-import { validateSelection, type Region } from '@earth-alliance/engine';
+import { type Region } from '@earth-alliance/engine';
 
 export default function App() {
   const game = useGame();
@@ -20,10 +20,6 @@ export default function App() {
   useEffect(() => {
     for (const e of game.lastEvents) sfx.playForEvent(e);
   }, [game.lastEvents, sfx]);
-
-  const affordableIds = game.available
-    .filter((p) => validateSelection(game.state, [...game.selected, p.id]).ok || game.selected.includes(p.id))
-    .map((p) => p.id);
 
   const selectedRegion: Region | null =
     game.state.regions.find((r) => r.id === selectedRegionId) ?? null;
@@ -51,14 +47,20 @@ export default function App() {
             </Box>
           </Grid.Col>
           <Grid.Col span={12}>
-            <PolicyTray
-              policies={game.available}
-              selectedIds={game.selected}
-              affordableIds={affordableIds}
-              onToggle={game.togglePolicy}
+            <PolicyBoard
+              state={game.state}
+              regionId={selectedRegionId}
+              staged={game.staged}
+              cancels={game.cancels}
+              onEnact={game.stage}
+              onUnstage={game.unstage}
+              onToggleCancel={game.toggleCancel}
               onEndTurn={game.endTurn}
               canEndTurn={game.canEndTurn}
               validationReason={game.validationReason}
+              costNow={game.costNow}
+              upkeepNext={game.upkeepNext}
+              stagedTotal={game.staged.length}
             />
           </Grid.Col>
         </Grid>

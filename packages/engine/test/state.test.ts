@@ -25,10 +25,10 @@ describe('createInitialState', () => {
     expect(DEFAULT_SCENARIO.regions[0]!.publicSupport).not.toBe(0);
   });
 
-  it('starts with empty effects, log, and enacted policies', () => {
+  it('starts with empty effects, log, and enactments', () => {
     const s = createInitialState();
     expect(s.activeEffects).toEqual([]);
     expect(s.log).toEqual([]);
-    expect(s.enactedPolicyIds).toEqual([]);
+    expect(s.enactments).toEqual([]);
   });
 });

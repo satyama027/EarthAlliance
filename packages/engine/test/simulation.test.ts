@@ -35,14 +35,15 @@ describe('advanceTurn', () => {
 
   it('spends resources when a policy is enacted', () => {
     const s0 = createInitialState();
-    expect(validateSelection(s0, ['renewable-subsidy']).ok).toBe(true);
-    const { state: s1 } = advanceTurn(s0, ['renewable-subsidy']);
-    expect(s1.enactedPolicyIds).toContain('renewable-subsidy');
+    const sel = [{ policyId: 'renewable-subsidy', regionId: 'north-america' }];
+    expect(validateSelection(s0, sel).ok).toBe(true);
+    const { state: s1 } = advanceTurn(s0, sel);
+    expect(s1.enactments.some((e) => e.policyId === 'renewable-subsidy' && e.regionId === 'north-america')).toBe(true);
   });
 
   it('throws on an invalid selection', () => {
     const s0 = createInitialState();
-    expect(() => advanceTurn(s0, ['does-not-exist'])).toThrow();
+    expect(() => advanceTurn(s0, [{ policyId: 'does-not-exist', regionId: 'north-america' }])).toThrow();
   });
 
   it('sets status to ended and records the ending id at resolution', () => {
@@ -81,6 +82,27 @@ describe('advanceTurn', () => {
         (r1.gdpPerCapita - r0.gdpPerCapita) / r0.gdpPerCapita,
         9,
       );
+    }
+  });
+
+  it('never lets growth — or its support contribution — go negative on a do-nothing run (regression: b90e5d8)', () => {
+    // The pre-fix economy dampened the GDP *stock* (growth * (1-damage) * constraint),
+    // so realistic scarcity/damage shrank gdpPerCapita every turn → negative econGrowth →
+    // a negative "from growth" support term. The fix dampens the growth *increment*, so
+    // growth floors at zero and the econ support term can never turn negative.
+    let state = createInitialState();
+    for (let turn = 0; turn < 6; turn++) {
+      const { state: next, diagnostics: d } = advanceTurn(state, []);
+      for (const r of next.regions) {
+        expect(d.growthByRegion[r.id]).toBeGreaterThanOrEqual(0);
+        expect(d.supportEconTermByRegion[r.id]).toBeGreaterThanOrEqual(0);
+        // On a do-nothing turn (no policy effects) the econ term is exactly W × growth.
+        expect(d.supportEconTermByRegion[r.id]).toBeCloseTo(
+          DEFAULT_PARAMS.SUPPORT_ECON_W * d.growthByRegion[r.id]!,
+          9,
+        );
+      }
+      state = next;
     }
   });
 

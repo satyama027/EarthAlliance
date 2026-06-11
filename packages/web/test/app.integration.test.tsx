@@ -38,5 +38,5 @@ describe('App integration', () => {
     await userEvent.click(screen.getByRole('button', { name: /play again/i }));
     expect(screen.getByText(/Year 2025/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /play again/i })).not.toBeInTheDocument();
-  });
+  }, 20000); // do-nothing collapses at turn 13; 13 full re-renders with a growing TurnLog is slow in jsdom
 });

@@ -16,7 +16,7 @@ describe('public API', () => {
 
   it('supports a full play step through the public API', () => {
     const s0 = createInitialState();
-    const available = getAvailablePolicies(s0);
+    const available = getAvailablePolicies(s0, 'north-america');
     expect(available.length).toBeGreaterThan(0);
     const { state: s1 } = advanceTurn(s0, []);
     expect(s1.turn).toBe(1);

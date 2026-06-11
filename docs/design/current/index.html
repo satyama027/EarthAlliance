@@ -120,6 +120,48 @@
   .btn { display:block; width:100%; padding:10px; border:none; border-radius:var(--radius-sm);
     background:var(--earth-6); color:#fff; font-weight:600; font-size:14px; cursor:pointer; }
 
+  /* Policy board (two lanes: Active / Available; drag to enact, drag/✕ to remove) */
+  .board { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; }
+  .board-head { display:flex; align-items:center; gap:8px; margin:0 0 12px; }
+  .board-head .t { font-size:15px; font-weight:700; color:var(--text-strong); }
+  .board-head .rdot { width:12px; height:12px; border-radius:3px; }
+  .board-head .sub { font-size:12px; color:var(--dimmed); }
+  .lane-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em;
+    color:var(--dimmed); margin:0 0 7px; }
+  .lane-label .hint { font-weight:600; letter-spacing:0; text-transform:none; color:#6b7077; }
+  .lane-drop { border:1.5px dashed transparent; border-radius:var(--radius); padding:8px; }
+  .lane-drop.valid { border-color:var(--earth-5); background:rgba(32,201,151,.05); }
+  .board .card { position:relative; display:flex; flex-direction:column; gap:6px; padding:9px 11px 11px; }
+  .board .card .art { margin:0; }
+  .board .card .name { margin-top:6px; font-size:13.5px; }
+  .fund { font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    padding:2px 7px; border-radius:999px; align-self:flex-start; }
+  .fund-buildout { background:#11342a; color:var(--earth-3); }
+  .fund-recurring { background:var(--teal-light); color:#63e6be; }
+  .fund-onetime { background:#33363c; color:#aeb3ba; }
+  .cap-row { display:flex; justify-content:space-between; font-size:10.5px; }
+  .cap-row .l { color:var(--dimmed); } .cap-row .v { color:var(--text-strong); font-weight:700; }
+  .cbar { height:6px; border-radius:999px; background:#1f2024; overflow:hidden; margin-top:3px; }
+  .cbar > span { display:block; height:100%; border-radius:999px;
+    background:linear-gradient(90deg,var(--earth-7),var(--earth-5) 60%,var(--earth-3)); }
+  .cbar.done > span { background:var(--earth-5); }
+  .cstate { font-size:10.5px; font-weight:700; margin-top:2px; }
+  .cstate.b { color:var(--earth-3); } .cstate.a { color:var(--earth-5); }
+  .board .card .rm { position:absolute; top:5px; right:7px; width:16px; height:16px; border-radius:50%;
+    background:#3a2326; color:var(--red); font-size:11px; display:flex; align-items:center;
+    justify-content:center; font-weight:700; }
+  .board .card .stag { position:absolute; top:6px; left:8px; background:var(--earth-5); color:#06281e;
+    font-size:9px; font-weight:800; padding:1px 6px; border-radius:999px; }
+  .board .card .lockmark { position:absolute; top:6px; right:8px; color:#5b6068; font-size:10px; }
+  .board .card.staged { outline:2px solid var(--earth-5); }
+  .err { display:flex; align-items:center; gap:8px; background:#3a2326; color:var(--red);
+    border:1px solid #5a2a2e; border-radius:var(--radius-sm); padding:8px 12px; font-size:12.5px;
+    font-weight:600; margin:0 0 12px; }
+  .foot { display:flex; align-items:center; gap:18px; margin-top:14px; }
+  .foot .k { font-size:11px; color:var(--dimmed); text-transform:uppercase; letter-spacing:.05em; }
+  .foot .v { font-size:15px; font-weight:700; color:var(--text-strong); }
+  .foot .btn { margin-left:auto; width:auto; padding:11px 26px; }
+
   /* Ending screen mock (boxed, not full-overlay, so it sits in the gallery) */
   .ending-wrap { grid-column:1/-1; }
   .ending { background:rgba(0,0,0,.85); border:1px solid var(--border); border-radius:var(--radius);
@@ -158,7 +200,7 @@
         <span class="strong">Year 2025 · Turn 1</span>
         <span style="display:flex; gap:8px;">
           <span class="badge badge-lg badge-grape-solid">Political Capital: 100</span>
-          <span class="badge badge-lg badge-teal-solid">Money: 500</span>
+          <span class="badge badge-lg badge-teal-solid">Money: 1500</span>
         </span>
       </div>
     </div>
@@ -310,41 +352,87 @@
     </div>
   </div>
 
-  <!-- PolicyTray (full width) -->
+  <!-- PolicyBoard (full width) — region-scoped, two lanes, drag to enact -->
   <div class="col-full">
-    <div class="tray">
-      <div class="card selected">
-        <div class="art" style="background:var(--cat-energy);">⚡</div>
-        <div class="name">Solar Buildout</div>
-        <div class="desc">Subsidize utility-scale solar across sunbelt regions to cut grid emissions.</div>
-        <div class="costs"><span class="badge badge-grape">PC 20</span><span class="badge badge-teal">$ 80</span></div>
+    <div class="board">
+      <div class="board-head">
+        <span class="t">Policies</span>
+        <span class="rdot" style="background:#4dabf7;"></span>
+        <span class="sub">· North America — costs scaled to this region (GDP share ≈ 21%)</span>
       </div>
-      <div class="card">
-        <div class="art" style="background:var(--cat-industry);">🏭</div>
-        <div class="name">Carbon Capture</div>
-        <div class="desc">Mandate CCS retrofits on heavy industry to lower industrial output emissions.</div>
-        <div class="costs"><span class="badge badge-grape">PC 35</span><span class="badge badge-teal">$ 150</span></div>
+
+      <!-- Active lane -->
+      <div class="lane-label">Active · North America · 3 <span class="hint">— drag a card down (or ✕) to remove ↓</span></div>
+      <div class="lane-drop">
+        <div class="tray">
+          <!-- committed building (cancellable) -->
+          <div class="card">
+            <span class="rm">✕</span>
+            <div class="art" style="background:var(--cat-energy);">⚡</div>
+            <div class="name">Renewable Subsidy</div>
+            <span class="fund fund-buildout">Buildout</span>
+            <div class="cap-row"><span class="l">Installed</span><span class="v">40%</span></div>
+            <div class="cbar"><span style="width:40%"></span></div>
+            <div class="cstate b">Building · +10%/turn</div>
+            <div class="costs"><span class="badge badge-grape">PC 10</span><span class="badge badge-teal">$250/turn</span></div>
+          </div>
+          <!-- committed recurring (cancellable) -->
+          <div class="card">
+            <span class="rm">✕</span>
+            <div class="art" style="background:var(--cat-social);">🤝</div>
+            <div class="name">Climate Adaptation</div>
+            <span class="fund fund-recurring">Recurring</span>
+            <div class="cstate a">Funded each turn</div>
+            <div class="costs"><span class="badge badge-grape">PC 8</span><span class="badge badge-teal">$104/turn</span></div>
+          </div>
+          <!-- staged this turn (removable) -->
+          <div class="card staged">
+            <span class="stag">STAGED</span><span class="rm">✕</span>
+            <div class="art" style="background:var(--cat-land);">🌳</div>
+            <div class="name">Reforestation</div>
+            <span class="fund fund-buildout">Buildout</span>
+            <div class="cstate a">Starts this turn</div>
+            <div class="costs"><span class="badge badge-grape">PC 8</span><span class="badge badge-teal">$52/turn</span></div>
+          </div>
+        </div>
       </div>
-      <div class="card">
-        <div class="art" style="background:var(--cat-land);">🌳</div>
-        <div class="name">Reforestation</div>
-        <div class="desc">Large-scale afforestation to restore biodiversity and pull down carbon.</div>
-        <div class="costs"><span class="badge badge-grape">PC 15</span><span class="badge badge-teal">$ 60</span></div>
+
+      <hr style="border:none; border-top:1px solid var(--border); margin:10px 0;" />
+
+      <!-- Available lane -->
+      <div class="lane-label">Available · 3 <span class="hint">— drag a card up to enact in North America ↑</span></div>
+      <div class="lane-drop">
+        <div class="tray">
+          <div class="card">
+            <div class="art" style="background:var(--cat-industry);">🏭</div>
+            <div class="name">Carbon Tax</div>
+            <span class="fund fund-onetime">One-time</span>
+            <div class="desc">Price carbon to cut emissions; unpopular up front.</div>
+            <div class="costs"><span class="badge badge-grape">PC 15</span><span class="badge badge-teal">$10 once</span></div>
+          </div>
+          <div class="card">
+            <div class="art" style="background:var(--cat-energy);">⚡</div>
+            <div class="name">Nuclear Buildout</div>
+            <span class="fund fund-buildout">Buildout</span>
+            <div class="costs"><span class="badge badge-grape">PC 20</span><span class="badge badge-teal">$166/turn</span></div>
+          </div>
+          <div class="card disabled">
+            <div class="art" style="background:var(--cat-frontier);">🚀</div>
+            <div class="name">Off-World Colonies</div>
+            <span class="fund fund-onetime">One-time</span>
+            <div class="desc">🔒 Requires Orbital Infrastructure here</div>
+          </div>
+        </div>
       </div>
-      <div class="card disabled">
-        <div class="art" style="background:var(--cat-social);">🤝</div>
-        <div class="name">Just Transition</div>
-        <div class="desc">Retraining and support for fossil-sector workers to protect equity.</div>
-        <div class="costs"><span class="badge badge-grape">PC 25</span><span class="badge badge-teal">$ 120</span></div>
-      </div>
-      <div class="card">
-        <div class="art" style="background:var(--cat-frontier);">🚀</div>
-        <div class="name">Fusion R&D</div>
-        <div class="desc">Fund frontier fusion research for a long-shot clean-baseload breakthrough.</div>
-        <div class="costs"><span class="badge badge-grape">PC 40</span><span class="badge badge-teal">$ 200</span></div>
+
+      <!-- Footer: global this-turn summary + End Turn -->
+      <div class="foot">
+        <div><div class="k">Staged this turn</div><div class="v">1</div></div>
+        <div><div class="k">Cost now</div><div class="v">PC 8 · $0</div></div>
+        <div><div class="k">Upkeep next turn</div><div class="v">$406 / turn</div></div>
+        <button class="btn">End Turn ▶</button>
       </div>
     </div>
-    <button class="btn" style="margin-top:8px;">End Turn ▶</button>
   </div>
 </div>
 

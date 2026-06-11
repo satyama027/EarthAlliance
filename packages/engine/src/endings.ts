@@ -1,5 +1,6 @@
 import type { Ending, Region, WorldState } from './types.js';
 import { END_YEAR } from './data/scenario.js';
+import { enactedInAnyRegion } from './policies.js';
 
 export const ENDINGS: Readonly<Record<string, Ending>> = Object.freeze({
   'eco-collapse': { id: 'eco-collapse', title: 'Ecological Collapse', kind: 'loss',
@@ -42,7 +43,7 @@ export function evaluateEnding(state: WorldState): Ending | null {
   if (state.year < END_YEAR) return null;
 
   // Resolution at the final turn, in priority order.
-  if (state.enactedPolicyIds.includes('off-world-colonies') && t >= 2.5 && gdp >= 40000 && education >= 75) {
+  if (enactedInAnyRegion(state, 'off-world-colonies') && t >= 2.5 && gdp >= 40000 && education >= 75) {
     return ENDINGS['orbital-exodus']!;
   }
   if (t < 2.0 && biodiversity >= 55 && equity >= 60 && gdp >= 30000) {

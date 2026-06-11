@@ -58,6 +58,8 @@ export interface TurnScratch {
   supportEconTermByRegion: Record<RegionId, number>;  // support Δ contribution from econ growth (set by support)
   supportEquityTermByRegion: Record<RegionId, number>;// support Δ contribution from equity gap (set by support)
   equityDriftByRegion: Record<RegionId, number>;      // equity erosion from growth, ≥0 (set by support)
+  programSpendByRegion: Record<RegionId, number>;     // policy upkeep/buildout money spent this turn (set by programs)
+  capacityByRegionPolicy: Record<string, number>;     // installed capacity 0–1, keyed `policyId:regionId` (set by programs)
 }
 
 export interface SimContext {
@@ -100,5 +102,7 @@ export function createScratch(): TurnScratch {
     supportEconTermByRegion: {},
     supportEquityTermByRegion: {},
     equityDriftByRegion: {},
+    programSpendByRegion: {},
+    capacityByRegionPolicy: {},
   };
 }

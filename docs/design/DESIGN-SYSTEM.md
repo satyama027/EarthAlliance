@@ -125,12 +125,24 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
     pre-clamp drop), and a **Support Δ breakdown** (from warming / growth / equity, plus Equity
     drift). All values come from the widened `TurnDiagnostics`; only `Warming⁺ = max(0, ΔTemp)` is
     derived in the UI.
-- **PolicyCard** — bordered `Card`, 180px wide; category-colored art band (height 36, icon) on top,
-  name (`fw={700}`), 2-line clamped description, PC + Money `Badge`s (`variant="light"`). Hover
-  scales 1.03, tap 0.98 (framer-motion); selected → 2px `earth-5` outline; unaffordable → 0.5
-  opacity + `not-allowed`.
-- **PolicyTray** — horizontal scrolling `Group` of cards (`mah={420}`), validation reason in red,
-  full-width primary "End Turn ▶" button.
+- **PolicyCard** — bordered `Card`, 180px wide, region-scoped. Category-colored art band (height 34,
+  icon), name (`fw={700}`), a **funding pill** (`Buildout`=earth / `Recurring`=teal / `One-time`=gray,
+  `variant="light"`), and PC + Money `Badge`s where Money is the **GDP-scaled** region charge with
+  cadence (`$250/turn`, `$10` once, `$0` when built/frozen, `paid` when permanent). Buildout cards
+  show an **Installed %** label + `Progress` bar (earth; gray when frozen) and a state line
+  (`Building · +10%/turn`, `✓ Built · benefit persists`, `Funded each turn`, `Stopped · N% installed`,
+  `Starts this turn`). Staged → 2px `earth-5` outline + `STAGED` badge + ✕; cancellable committed →
+  ✕ (turns to ↺ when marked to stop, 2px `red-6` outline); locked/unaffordable → 0.5 opacity.
+  Draggable (framer-motion `drag` + `dragSnapToOrigin`); click/Enter/Space are the accessible,
+  testable equivalents. Keeps `role="button"`, `aria-pressed`, `aria-disabled`, `aria-label`.
+- **PolicyBoard** — bordered `Paper`, full width, scoped to the selected region (header shows region
+  name + `REGION_COLORS` dot). Two stacked lanes — **Active** (top, what's running here) and
+  **Available** (bottom, enactable here) — each a horizontal `ScrollArea` of `PolicyCard`s separated
+  by a `Divider`. **Drag a card up** to enact, **down (or ✕)** to remove; a valid drop highlights the
+  Active lane earth-dashed, an unaffordable attempt shows a red **error banner** (`role="alert"`) and
+  the card snaps back. Empty state (no region): dashed box "Select a region on the map to manage its
+  policies." Footer: global this-turn summary (Staged / Cost now / Upkeep next turn) + validation
+  reason in red + primary "End Turn ▶".
 - **EndingScreen** — full-screen `Overlay` (black, 85% opacity), centered; kind `Badge`
   (win=teal / loss=red / ambiguous=yellow), large title, description, "Play again". Fades/slides
   in (framer-motion).

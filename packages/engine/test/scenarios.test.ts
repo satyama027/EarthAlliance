@@ -4,7 +4,8 @@ import { advanceTurn } from '../src/simulation.js';
 import { getAvailablePolicies, validateSelection } from '../src/policies.js';
 import { ENDINGS } from '../src/endings.js';
 
-/** Each turn, greedily enact every available emissions-cutting policy we can afford. */
+/** Each turn, greedily enact every available emissions-cutting policy, in every
+ *  region, that we can still afford. */
 const DECARB = ['nuclear-buildout', 'renewable-subsidy', 'reforestation', 'public-transit', 'carbon-tax', 'degrowth-mandate'];
 
 function playReversal() {
@@ -12,9 +13,16 @@ function playReversal() {
   let sawNetNegative = false;
   let turns = 0;
   while (state.status === 'playing' && turns < 35) {
-    const available = new Set(getAvailablePolicies(state).map((p) => p.id));
-    const pick = DECARB.filter((id) => available.has(id) && validateSelection(state, [id]).ok);
-    state = advanceTurn(state, pick).state;
+    const selections: { policyId: string; regionId: string }[] = [];
+    for (const region of state.regions) {
+      const available = new Set(getAvailablePolicies(state, region.id).map((p) => p.id));
+      for (const policyId of DECARB) {
+        if (!available.has(policyId)) continue;
+        const candidate = [...selections, { policyId, regionId: region.id }];
+        if (validateSelection(state, candidate).ok) selections.push({ policyId, regionId: region.id });
+      }
+    }
+    state = advanceTurn(state, selections).state;
     if (state.climate.annualEmissions < 0) sawNetNegative = true;
     turns++;
   }

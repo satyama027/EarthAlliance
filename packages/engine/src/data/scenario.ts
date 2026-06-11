@@ -44,7 +44,7 @@ export const DEFAULT_SCENARIO: Scenario = {
   startYear: 2025,
   startTemperatureAnomaly: 1.3,
   startCo2: 420,
-  startResources: { politicalCapital: 100, money: 100 },
+  startResources: { politicalCapital: 100, money: 1500 },
   rngSeed: 12345,
   regions: SAMPLE_REGIONS,
 };

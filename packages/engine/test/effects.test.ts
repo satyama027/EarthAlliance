@@ -4,21 +4,47 @@ import { makeRegion, makeState } from './fixtures.js';
 import type { ActiveEffect } from '../src/types.js';
 
 describe('spendAndRegister', () => {
-  it('deducts cost and records the enacted policy', () => {
-    const state = makeState({ resources: { politicalCapital: 100, money: 100 } });
-    spendAndRegister(state, ['renewable-subsidy']);
-    expect(state.resources.politicalCapital).toBe(90); // -10
-    expect(state.resources.money).toBe(80);            // -20
-    expect(state.enactedPolicyIds).toContain('renewable-subsidy');
+  const singleRegion = () => ({
+    regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9 })],
+    resources: { politicalCapital: 100, money: 5000 },
   });
 
-  it('registers ongoing effects and returns immediate ones', () => {
-    const state = makeState({ resources: { politicalCapital: 100, money: 100 } });
-    const immediate = spendAndRegister(state, ['carbon-tax']);
-    expect(state.activeEffects).toHaveLength(1); // ongoing emissions cut
+  it('charges a one-time policy its political capital and GDP-scaled money, and records the enactment', () => {
+    const state = makeState(singleRegion());
+    const immediate = spendAndRegister(state, [{ policyId: 'carbon-tax', regionId: 'r1' }]);
+    expect(state.resources.politicalCapital).toBe(85);     // -15
+    expect(state.resources.money).toBeCloseTo(4950, 5);    // -50 (share 1)
+    expect(state.enactments).toContainEqual(
+      expect.objectContaining({ policyId: 'carbon-tax', regionId: 'r1', complete: true }),
+    );
+    // ongoing emissions cut registered, scoped to the region; immediate support hit returned
+    expect(state.activeEffects).toHaveLength(1);
     expect(state.activeEffects[0]!.effect.target).toBe('regionalEmissions');
-    expect(immediate).toHaveLength(1);           // immediate support hit
+    expect(state.activeEffects[0]!.regionId).toBe('r1');
+    expect(immediate).toHaveLength(1);
     expect(immediate[0]!.effect.target).toBe('publicSupport');
+    expect(immediate[0]!.regionId).toBe('r1');
+  });
+
+  it('does not charge money or register ongoing effects for a buildout policy (programs handles them)', () => {
+    const state = makeState(singleRegion());
+    spendAndRegister(state, [{ policyId: 'renewable-subsidy', regionId: 'r1' }]);
+    expect(state.resources.politicalCapital).toBe(90);  // -10
+    expect(state.resources.money).toBe(5000);           // no money up front
+    expect(state.activeEffects).toHaveLength(0);         // ramped effect owned by programs
+    const e = state.enactments.find((x) => x.policyId === 'renewable-subsidy')!;
+    expect(e.capacity).toBe(0);    // r1 not in baseline map => defaultBaseline 0
+    expect(e.complete).toBe(false);
+  });
+
+  it('registers ongoing effects but charges no up-front money for a recurring policy', () => {
+    const state = makeState(singleRegion());
+    spendAndRegister(state, [{ policyId: 'climate-adaptation', regionId: 'r1' }]);
+    expect(state.resources.politicalCapital).toBe(92); // -8
+    expect(state.resources.money).toBe(5000);          // recurring charged by programs
+    expect(state.activeEffects).toHaveLength(2);        // health + water, flat
+    const e = state.enactments.find((x) => x.policyId === 'climate-adaptation')!;
+    expect(e.complete).toBe(false);
   });
 });
 

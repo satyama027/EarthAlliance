@@ -50,15 +50,15 @@ EarthAlliance/
 │  │     ├─ state.ts         # createInitialState()
 │  │     ├─ simulation.ts    # advanceTurn() / createSimulation() — the orchestrator
 │  │     ├─ effects.ts       # spendAndRegister() + applyEffects() — the policy layer
-│  │     ├─ policies.ts      # POLICY_CATALOG + availability/validation
+│  │     ├─ policies.ts      # POLICY_CATALOG (funding modes) + region availability/validation + regionCharge()
 │  │     ├─ endings.ts       # ENDINGS + evaluateEnding()
 │  │     ├─ rng.ts           # seeded mulberry32 PRNG
 │  │     ├─ math.ts          # clamp() and friends
 │  │     ├─ models/          # the swappable sub-model pipeline (one concern each)
 │  │     │  ├─ types.ts      # SubModel, SimContext, TurnScratch, ModelParams, createScratch()
 │  │     │  ├─ pipeline.ts   # DEFAULT_MODELS — the ordered default pipeline
-│  │     │  └─ *.ts          # carbonCycle, climate, damage, economy, demography,
-│  │     │                   #   emissions, constraints, biodiversity, support, resources
+│  │     │  └─ *.ts          # carbonCycle, climate, damage, economy, demography, emissions,
+│  │     │                   #   constraints, biodiversity, support, resources, programs
 │  │     └─ data/
 │  │        ├─ regions.ts    # SAMPLE_REGIONS (pure data)
 │  │        └─ scenario.ts   # DEFAULT_SCENARIO + DEFAULT_PARAMS (every tunable constant)
@@ -91,14 +91,21 @@ The contract the client uses:
 
 ```ts
 createInitialState(scenario?): WorldState
-getAvailablePolicies(state): Policy[]
-validateSelection(state, policyIds): { ok: boolean; reason?: string }
-advanceTurn(state, policyIds): { state: WorldState; events: GameEvent[]; diagnostics: TurnDiagnostics }
+getAvailablePolicies(state, regionId): Policy[]   // enactable in that region
+getGloballyAvailablePolicies(state): Policy[]      // enactable in ≥1 region (the "apply everywhere" UI)
+validateSelection(state, selections): { ok: boolean; reason?: string }   // selections: { policyId, regionId }[]
+advanceTurn(state, selections, cancellations?): { state, events, diagnostics }   // cancellations stop active programs
 evaluateEnding(state): Ending | null            // (used internally by advanceTurn)
 ENDINGS                                          // id → Ending lookup for the EndingScreen
-getPolicy(id), isRegionScoped(policy)            // helpers for cost preview / guards
+getPolicy(id)                                     // cost preview
+isEnacted(state, policyId, regionId), enactedInAnyRegion(state, policyId)   // enactment queries
+regionCharge(state, policy, regionId)            // GDP-scaled money charged for a region this turn
 createSimulation(models?, params?)               // build a pipeline with swapped stages/constants
 ```
+
+Policies are **region-targeted**: a `PolicySelection` is `{ policyId, regionId }`, and
+`advanceTurn` takes an array of them. The same policy may be enacted independently in
+several regions.
 
 Everything crossing the boundary is a **plain, JSON-serializable object** (`WorldState`,
 `Policy`, `GameEvent`, `Ending`, `TurnDiagnostics`). No class instances, no functions on the
@@ -113,8 +120,10 @@ global `co2Ratio`, `equilibriumTemp`, `deltaPpm`, `grossEmissions`, `baseGrowthF
 `decarbFactor`, `avgSupport`, `worldPopulation`, `worldGdp`, `capitalGain`, `moneyGain`; and
 per-region `scarcityByRegion`, `constraintFactorByRegion`, `outputRatioByRegion`, `popGrowthByRegion`,
 `waterLossByRegion`, `landLossByRegion`, `bioLossByRegion`, the three support-change contributions
-(`supportTempTermByRegion`, `supportEconTermByRegion`, `supportEquityTermByRegion`), and
-`equityDriftByRegion`. These let the client show *why* values moved *exactly*, without re-deriving
+(`supportTempTermByRegion`, `supportEconTermByRegion`, `supportEquityTermByRegion`),
+`equityDriftByRegion`, and the policy-program fields `programSpendByRegion` (upkeep/buildout
+money spent per region this turn) + `capacityByRegionPolicy` (installed capacity 0–1, keyed
+`policyId:regionId`). These let the client show *why* values moved *exactly*, without re-deriving
 the model equations (the web layer duplicates no engine logic; the lone UI-side derivation is
 `Warming⁺ = max(0, deltaTemperature)`). The field is additive: existing `{ state, events }`
 consumers are unaffected.
@@ -133,7 +142,9 @@ type-resolution and for any external consumer, but it is no longer on the web ru
 `WorldState` is the whole game in one object: `turn`/`year`/`status`/`endingId`,
 `resources` (politicalCapital + money), `climate` (temperatureAnomaly, co2Concentration,
 annualEmissions), `regions[]`, `activeEffects[]` (ongoing policy effects still ticking),
-`enactedPolicyIds[]`, `log[]`, and `rngSeed`.
+`enactments[]` (active `{ policyId, regionId, capacity, complete }` records — the single source
+of truth for what is enacted where, and how far each buildout has progressed), `log[]`, and
+`rngSeed`.
 
 ---
 
@@ -173,6 +184,10 @@ interface SimContext {
 | G | `biodiversity` | per-region ecosystem health                                          |
 | H | `support`      | per-region public support + equity drift                            |
 | I | `resources`    | global political-capital + money regeneration (closes the dual-resource loop) |
+| J | `programs`     | charge recurring/buildout policy upkeep (GDP-scaled), advance buildout capacity, apply ramped buildout effects |
+
+`programs` runs **last** so this turn's regenerated tax income (from `resources`) is available
+to fund policy upkeep before the turn closes. See §4.2 for the policy funding model.
 
 **Swapping fidelity:** `createSimulation(models?, params?)` assembles a pipeline from any
 ordered `SubModel[]` and any `ModelParams`. Replace one entry (e.g. a multi-gas carbon
@@ -190,6 +205,37 @@ output every turn. If policy cuts were applied inside the pipeline, that re-deri
 would overwrite them. By layering ongoing emission cuts on top afterward, they persist —
 which is what makes the multi-decade decarbonization (the "redemption arc") possible.
 
+(Buildout policies are the one exception to the `applyEffects` seam: their ramped ongoing
+effects are applied by the `programs` sub-model — also after stage E — because the magnitude
+depends on per-region installed capacity. `spendAndRegister` deliberately does *not* register
+a buildout's ongoing effects into `activeEffects`, so they are never double-applied.)
+
+### 4.2 Policy funding model
+
+Each policy declares a `funding` mode and a single `cost.money` that is a **global reference**
+(1 money = $1B over a 5-year turn). The money actually charged in a region is scaled by that
+region's share of world GDP (`regionCharge`); summed over all regions it recovers the global
+reference. `cost.politicalCapital` is charged once per enactment, unscaled.
+
+| funding | when money is charged | effect | examples |
+|---|---|---|---|
+| `one-time`  | once at enactment (`spendAndRegister`) | permanent | carbon-tax, degrowth, orbital, off-world |
+| `recurring` | every turn while active (`programs`), never completes | flat | climate-adaptation |
+| `buildout`  | every turn until installed capacity reaches 100%, then stops | ramps with capacity (`delta × capacity`), persists at full after completion | renewable-subsidy, nuclear, reforestation, transit, education |
+
+A `buildout` policy carries a `BuildoutSpec` (`ratePerTurn`, per-region `baselineByRegion`,
+`defaultBaseline`). Each `Enactment` tracks `capacity` (0–1) advancing by `ratePerTurn` while
+funded; an underfunded turn idles (no charge, no advance) but already-installed capacity keeps
+delivering its benefit. The starting budget (`startResources.money`) and these costs are tuned
+so money is a lasting, region-by-region constraint rather than only mattering on turn 1.
+
+**Cancelling an active program** (`applyCancellations`, run at the top of `advanceTurn` from its
+`cancellations` argument): a `buildout` is *frozen* — flagged `cancelled` so `programs` stops
+charging upkeep and advancing capacity, while the installed capacity keeps delivering its benefit
+(the enactment is kept, never deleted). A `recurring` fund is *ended* — its enactment and ongoing
+`ActiveEffect`s are removed (upkeep and benefit both stop). A `one-time` policy is permanent and
+cannot be cancelled.
+
 ---
 
 ## 5. Data flow: `advanceTurn` → `useGame` → components/scene
@@ -197,18 +243,20 @@ which is what makes the multi-decade decarbonization (the "redemption arc") poss
 ### Inside one turn (`simulation.ts`)
 
 ```
-advanceTurn(state, policyIds):
+advanceTurn(state, selections, cancellations):       // selections/cancellations: { policyId, regionId }[]
   0. guard: throw if state.status === 'ended'
-  1. validateSelection — throw if unaffordable / unavailable / region-scoped
+  1. validateSelection — throw if unaffordable / unavailable / already enacted in region
   2. draft = structuredClone(state)                  // never mutate the input
-  3. spendAndRegister(draft, policyIds)              // deduct cost, record enacted,
-     →  queue ONGOING effects into activeEffects, return this turn's IMMEDIATE effects
-  4. run DEFAULT_MODELS over a fresh SimContext       // the natural pipeline (§4)
-  5. applyEffects(draft, immediate)                   // layer policy deltas on top; tick/expire ongoing
+  2b. applyCancellations(draft, cancellations)        // freeze cancelled buildouts / end recurring funds
+  3. spendAndRegister(draft, selections)             // charge PC + one-time money, push Enactments,
+     →  queue NON-buildout ONGOING effects into activeEffects, return this turn's IMMEDIATE effects
+  4. run DEFAULT_MODELS over a fresh SimContext       // the natural pipeline (§4); `programs` (last)
+     →  charges recurring/buildout upkeep, advances capacity, applies ramped buildout effects
+  5. applyEffects(draft, immediate)                   // layer non-buildout policy deltas on top; tick/expire ongoing
   6. draft.climate.annualEmissions = Σ regionalEmissions   // always re-derived, never a settable target
   7. draft.rngSeed = rng.seed; turn += 1; year += TURN_YEARS; push 'turn-advanced' event
   8. evaluateEnding(draft) — set status='ended' + endingId if it fires
-  return { state: draft, events }
+  return { state: draft, events, diagnostics }
 ```
 
 ### Across turns (`web/src/game/useGame.ts`)
@@ -220,16 +268,24 @@ calls the engine:
 useState: state (WorldState), selected (policy ids), lastEvents,
          history (climate points), turnLog (full per-turn snapshots + diagnostics)
 
-togglePolicy(id)  → add/remove from `selected`
-selectionCost     → derived sum via getPolicy (live cost preview)
-validation        → validateSelection(state, selected); canEndTurn = playing && ok
-endTurn()         → advanceTurn(state, selected)
-                    → setState(next); setLastEvents(events)
-                    → append snapshot to history; append {state,diagnostics} to turnLog
-                    → clear selection
-ending            → ENDINGS[state.endingId] when status === 'ended'
-reset()           → createInitialState() + clear everything
+useState also: staged ({policyId,regionId}[]), cancels ({policyId,regionId}[])
+
+stage / unstage(id, region)     → add/remove a region-targeted enactment for this turn
+toggleCancel(id, region)        → mark/unmark a committed program in a region to stop
+costNow / upkeepNext            → live previews (stagedCostNow / upkeepNextTurn in game/policyView.ts)
+validation                      → validateSelection(state, staged); canEndTurn = playing && ok
+endTurn()                       → advanceTurn(state, staged, cancels)
+                                  → setState(next); setLastEvents(events)
+                                  → append snapshot to history; append {state,diagnostics} to turnLog
+                                  → clear staged + cancels
+ending                          → ENDINGS[state.endingId] when status === 'ended'
+reset()                         → createInitialState() + clear everything
 ```
+
+The `PolicyBoard` (driven by `App`'s `selectedRegionId`) derives its two lanes from
+`regionPolicyView(state, regionId, staged, cancels)` (`game/policyView.ts`, a pure, unit-tested
+selector) and calls `stage` / `unstage` / `toggleCancel`. Drag, click, and keyboard all funnel to
+the same actions; an unaffordable enact is blocked with an inline error rather than a state change.
 
 `history` (a per-turn `{ year, temperature, co2 }` series) is accumulated by the hook, not
 the engine — the engine is stateless across calls, so the client keeps the trend data for
@@ -271,7 +327,7 @@ later tuning.
 
 These hold across the engine and are guarded by the test suite. Treat them as load-bearing.
 
-1. **Determinism.** Same `WorldState` + same `policyIds` ⇒ byte-identical result. No I/O,
+1. **Determinism.** Same `WorldState` + same `selections` ⇒ byte-identical result. No I/O,
    no globals, no wall-clock or `Math.random()` in logic. All randomness flows through the
    seeded `mulberry32` RNG (`rng.ts`), whose state lives in `WorldState.rngSeed` and is
    persisted back after each turn. A golden-trajectory snapshot + a determinism test lock
@@ -298,22 +354,27 @@ These hold across the engine and are guarded by the test suite. Treat them as lo
    field — a known, tracked gap.)
 
 6. **Validation precedes mutation.** `spendAndRegister` assumes the selection is already
-   valid — `advanceTurn` calls `validateSelection` first. Validation rejects duplicates,
-   unknown/already-enacted ids, unmet prerequisites, unaffordable selections, and (loudly)
-   region-scoped policies, which are **not yet supported**.
+   valid — `advanceTurn` calls `validateSelection` first. Validation rejects duplicate
+   `(policy, region)` pairs, unknown policy/region ids, a policy already enacted in that
+   region, prerequisites not enacted in that region, and selections whose one-time spend
+   exceeds the budget. (Recurring/buildout upkeep is not pre-validated: the `programs`
+   sub-model self-guards, idling a program in a region it cannot fund this turn.)
 
 ---
 
 ## 7. Known seams (where the next change lands)
 
-- **Region-scoped policies.** `Policy.scope` and the `activeEffect.regionId` plumbing exist,
-  but `spendAndRegister` currently hard-targets `regions[0]` and `validateSelection` rejects
-  any `scope: 'region'` policy. Supporting them means extending the selection API to carry a
-  target region. All shipped policies are `'global'`.
+- **Drag accessibility.** The `PolicyBoard`'s drag-between-lanes is a framer-motion enhancement;
+  click + Enter/Space are the canonical, tested actions. Keyboard-only *drag* reordering and a
+  reduced-motion path are not yet implemented.
+- **Resuming a frozen buildout.** A cancelled buildout stays in the Active lane frozen at its
+  installed %, but there is no "resume" action to restart its rollout — it would need a small
+  engine + UI affordance.
 - **Balance.** `data/scenario.ts` is the single tuning surface (every constant in
-  `DEFAULT_PARAMS` + the starting `DEFAULT_SCENARIO`). With conservative defaults the
-  do-nothing baseline currently ends in an economic-ruin loss before mid-century; tuning is
-  deferred to playtesting with the client.
+  `DEFAULT_PARAMS` + the starting `DEFAULT_SCENARIO`), alongside the policy costs/funding in
+  `policies.ts`. Do-nothing still ends in an eco-collapse loss around 2090; the region-scaled
+  policy economy (build/upkeep, buildout rates, baselines, starting budget) is tuned for
+  meaningful tradeoffs but remains a playtesting surface.
 - **Disaster/random events.** The RNG is threaded through every turn but only a
   `turn-advanced` event is emitted today; seeded disaster/milestone events are reserved.
 - **Art & audio.** Card art is referenced by asset *key* and SFX are synthesized in-browser;

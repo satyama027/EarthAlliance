@@ -57,7 +57,22 @@ export interface PolicyEffect {
 }
 
 export type PolicyCategory = 'energy' | 'industry' | 'land' | 'social' | 'frontier';
-export type PolicyScope = 'global' | 'region';
+
+/**
+ * How a policy's money cost is charged:
+ * - `one-time`: charged once at enactment; effect permanent.
+ * - `recurring`: charged every turn while active; never completes (e.g. a fund).
+ * - `buildout`: charged every turn until installed capacity reaches 100%, then
+ *   stops; ongoing effects ramp with capacity.
+ */
+export type PolicyFunding = 'one-time' | 'recurring' | 'buildout';
+
+/** Per-region capacity rollout for a `buildout` policy. */
+export interface BuildoutSpec {
+  ratePerTurn: number;                          // capacity added per turn (0–1), e.g. 0.10
+  baselineByRegion?: Record<RegionId, number>;  // starting capacity 0–1 per region
+  defaultBaseline?: number;                     // fallback starting capacity (default 0)
+}
 
 export interface Policy {
   id: string;
@@ -65,10 +80,26 @@ export interface Policy {
   category: PolicyCategory;
   description: string;
   art: string;               // asset key (placeholder)
-  cost: Resources;
-  scope: PolicyScope;        // 'global' applies to every region
-  prerequisites?: string[];  // policy ids that must already be enacted
+  cost: Resources;           // money is the GLOBAL reference; per-region charge is scaled by GDP share
+  funding: PolicyFunding;
+  buildout?: BuildoutSpec;   // required when funding === 'buildout'
+  prerequisites?: string[];  // policy ids that must already be enacted IN THE SAME region
   effects: PolicyEffect[];
+}
+
+/** A request to enact one policy in one region this turn. */
+export interface PolicySelection {
+  policyId: string;
+  regionId: RegionId;
+}
+
+/** An active (policy, region) enactment tracked on world state. */
+export interface Enactment {
+  policyId: string;
+  regionId: RegionId;
+  capacity: number;   // 0–1 installed capacity (1 immediately for non-buildout)
+  complete: boolean;  // buildout: capacity >= 1; one-time: true; recurring: false
+  cancelled?: boolean; // buildout frozen by the player: stops upkeep + advance, keeps the installed benefit
 }
 
 export interface ActiveEffect {
@@ -94,7 +125,7 @@ export interface WorldState {
   climate: Climate;
   regions: Region[];
   activeEffects: ActiveEffect[];
-  enactedPolicyIds: string[];
+  enactments: Enactment[];
   log: GameEvent[];
   rngSeed: number;
 }
@@ -142,4 +173,6 @@ export interface TurnDiagnostics {
   supportEconTermByRegion: Record<RegionId, number>;  // support Δ from economic growth
   supportEquityTermByRegion: Record<RegionId, number>;// support Δ from the equity gap vs. 50
   equityDriftByRegion: Record<RegionId, number>;      // equity erosion from growth (≥ 0)
+  programSpendByRegion: Record<RegionId, number>;     // policy upkeep/buildout money spent this turn
+  capacityByRegionPolicy: Record<string, number>;     // installed capacity 0–1, keyed `policyId:regionId`
 }

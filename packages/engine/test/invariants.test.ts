@@ -28,17 +28,23 @@ function assertSane(state: WorldState): void {
 describe('invariants', () => {
   it('keeps all state finite and in-range over random affordable playthroughs', () => {
     fc.assert(
-      fc.property(fc.array(fc.nat({ max: 9 }), { maxLength: 35 }), (turnPicks) => {
-        let state = createInitialState();
-        for (const pickIdx of turnPicks) {
-          if (state.status === 'ended') break;
-          const available = getAvailablePolicies(state);
-          const candidate = available[pickIdx % Math.max(available.length, 1)];
-          const ids = candidate && validateSelection(state, [candidate.id]).ok ? [candidate.id] : [];
-          state = advanceTurn(state, ids).state;
-          assertSane(state);
-        }
-      }),
+      fc.property(
+        fc.array(fc.record({ region: fc.nat({ max: 9 }), pick: fc.nat({ max: 9 }) }), { maxLength: 35 }),
+        (turnPicks) => {
+          let state = createInitialState();
+          for (const { region, pick } of turnPicks) {
+            if (state.status === 'ended') break;
+            const regionId = state.regions[region % state.regions.length]!.id;
+            const available = getAvailablePolicies(state, regionId);
+            const candidate = available[pick % Math.max(available.length, 1)];
+            const sel = candidate && validateSelection(state, [{ policyId: candidate.id, regionId }]).ok
+              ? [{ policyId: candidate.id, regionId }]
+              : [];
+            state = advanceTurn(state, sel).state;
+            assertSane(state);
+          }
+        },
+      ),
       { numRuns: 200 },
     );
   });

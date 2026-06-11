@@ -1,10 +1,10 @@
-import type { GameEvent, TurnDiagnostics, WorldState } from './types.js';
+import type { GameEvent, PolicySelection, TurnDiagnostics, WorldState } from './types.js';
 import type { ModelParams, SubModel } from './models/types.js';
 import { createScratch } from './models/types.js';
 import { DEFAULT_MODELS } from './models/pipeline.js';
 import { DEFAULT_PARAMS } from './data/scenario.js';
 import { createRng } from './rng.js';
-import { spendAndRegister, applyEffects } from './effects.js';
+import { spendAndRegister, applyEffects, applyCancellations } from './effects.js';
 import { validateSelection } from './policies.js';
 import { evaluateEnding } from './endings.js';
 
@@ -15,7 +15,7 @@ export interface AdvanceResult {
 }
 
 export interface Simulation {
-  advanceTurn(state: WorldState, policyIds: string[]): AdvanceResult;
+  advanceTurn(state: WorldState, selections: PolicySelection[], cancellations?: PolicySelection[]): AdvanceResult;
 }
 
 export function createSimulation(
@@ -23,19 +23,20 @@ export function createSimulation(
   params: ModelParams = DEFAULT_PARAMS,
 ): Simulation {
   return {
-    advanceTurn(state, policyIds) {
+    advanceTurn(state, selections, cancellations = []) {
       if (state.status === 'ended') {
         throw new Error('Cannot advance a game that has already ended');
       }
 
-      const validation = validateSelection(state, policyIds);
+      const validation = validateSelection(state, selections);
       if (!validation.ok) throw new Error(validation.reason ?? 'Invalid policy selection');
 
       const draft: WorldState = structuredClone(state);
       const events: GameEvent[] = [];
 
-      // 1–2: spend + register effects (immediate applied after the natural models).
-      const immediate = spendAndRegister(draft, policyIds);
+      // 1–2: stop cancelled programs, then spend + register new effects (immediate applied after the natural models).
+      applyCancellations(draft, cancellations);
+      const immediate = spendAndRegister(draft, selections);
 
       // 3–12: run the swappable world-model pipeline.
       const rng = createRng(draft.rngSeed);
@@ -100,6 +101,8 @@ export function createSimulation(
         supportEconTermByRegion: { ...scratch.supportEconTermByRegion },
         supportEquityTermByRegion: { ...scratch.supportEquityTermByRegion },
         equityDriftByRegion: { ...scratch.equityDriftByRegion },
+        programSpendByRegion: { ...scratch.programSpendByRegion },
+        capacityByRegionPolicy: { ...scratch.capacityByRegionPolicy },
       };
 
       return { state: draft, events, diagnostics };
@@ -109,6 +112,8 @@ export function createSimulation(
 
 const defaultSimulation = createSimulation();
 
-export function advanceTurn(state: WorldState, policyIds: string[]): AdvanceResult {
-  return defaultSimulation.advanceTurn(state, policyIds);
+export function advanceTurn(
+  state: WorldState, selections: PolicySelection[], cancellations: PolicySelection[] = [],
+): AdvanceResult {
+  return defaultSimulation.advanceTurn(state, selections, cancellations);
 }

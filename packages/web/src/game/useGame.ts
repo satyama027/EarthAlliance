@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
-  createInitialState, getAvailablePolicies, validateSelection, advanceTurn,
-  getPolicy, ENDINGS,
-  type WorldState, type Policy, type GameEvent, type Ending, type TurnDiagnostics,
+  createInitialState, validateSelection, advanceTurn, ENDINGS,
+  type WorldState, type GameEvent, type Ending, type TurnDiagnostics, type PolicySelection,
 } from '@earth-alliance/engine';
+import { stagedCostNow, upkeepNextTurn } from './policyView.js';
 
 export interface ClimatePoint {
   year: number;
@@ -13,8 +13,7 @@ export interface ClimatePoint {
 
 /**
  * A full snapshot of one turn for the Turn Log. `diagnostics` is null for the
- * initial baseline (turn 0), which has no prior turn to compare against. Retaining
- * past `state` objects is safe: the engine never mutates a state it has returned.
+ * initial baseline (turn 0), which has no prior turn to compare against.
  */
 export interface TurnRecord {
   turn: number;
@@ -25,11 +24,15 @@ export interface TurnRecord {
 
 export interface GameController {
   state: WorldState;
-  available: Policy[];
-  selected: string[];
-  isSelected(id: string): boolean;
-  togglePolicy(id: string): void;
-  selectionCost: { politicalCapital: number; money: number };
+  /** Policies staged to enact this turn (across all regions). */
+  staged: PolicySelection[];
+  /** Committed policies marked to stop this turn (across all regions). */
+  cancels: PolicySelection[];
+  stage(policyId: string, regionId: string): void;
+  unstage(policyId: string, regionId: string): void;
+  toggleCancel(policyId: string, regionId: string): void;
+  costNow: { politicalCapital: number; money: number };
+  upkeepNext: number;
   validationReason: string | null;
   canEndTurn: boolean;
   endTurn(): void;
@@ -40,69 +43,66 @@ export interface GameController {
   reset(): void;
 }
 
-function snapshot(state: WorldState): ClimatePoint {
-  return { year: state.year, temperature: state.climate.temperatureAnomaly, co2: state.climate.co2Concentration };
-}
-
-function baselineRecord(state: WorldState): TurnRecord {
-  return { turn: state.turn, year: state.year, state, diagnostics: null };
-}
+const snapshot = (s: WorldState): ClimatePoint =>
+  ({ year: s.year, temperature: s.climate.temperatureAnomaly, co2: s.climate.co2Concentration });
+const baselineRecord = (s: WorldState): TurnRecord => ({ turn: s.turn, year: s.year, state: s, diagnostics: null });
+const same = (a: PolicySelection, policyId: string, regionId: string) =>
+  a.policyId === policyId && a.regionId === regionId;
 
 export function useGame(): GameController {
   const [state, setState] = useState<WorldState>(() => createInitialState());
-  const [selected, setSelected] = useState<string[]>([]);
+  const [staged, setStaged] = useState<PolicySelection[]>([]);
+  const [cancels, setCancels] = useState<PolicySelection[]>([]);
   const [lastEvents, setLastEvents] = useState<GameEvent[]>([]);
   const [history, setHistory] = useState<ClimatePoint[]>(() => [snapshot(state)]);
   const [turnLog, setTurnLog] = useState<TurnRecord[]>(() => [baselineRecord(state)]);
 
-  const available = useMemo(() => getAvailablePolicies(state), [state]);
-
-  const isSelected = useCallback((id: string) => selected.includes(id), [selected]);
-
-  const togglePolicy = useCallback((id: string) => {
-    setSelected((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  const stage = useCallback((policyId: string, regionId: string) => {
+    setStaged((cur) => (cur.some((s) => same(s, policyId, regionId)) ? cur : [...cur, { policyId, regionId }]));
+  }, []);
+  const unstage = useCallback((policyId: string, regionId: string) => {
+    setStaged((cur) => cur.filter((s) => !same(s, policyId, regionId)));
+  }, []);
+  const toggleCancel = useCallback((policyId: string, regionId: string) => {
+    setCancels((cur) => (cur.some((s) => same(s, policyId, regionId))
+      ? cur.filter((s) => !same(s, policyId, regionId))
+      : [...cur, { policyId, regionId }]));
   }, []);
 
-  const selectionCost = useMemo(() => {
-    return selected.reduce(
-      (acc, id) => {
-        const p = getPolicy(id);
-        if (p) { acc.politicalCapital += p.cost.politicalCapital; acc.money += p.cost.money; }
-        return acc;
-      },
-      { politicalCapital: 0, money: 0 },
-    );
-  }, [selected]);
+  const costNow = useMemo(() => stagedCostNow(state, staged), [state, staged]);
+  const upkeepNext = useMemo(() => upkeepNextTurn(state, staged, cancels), [state, staged, cancels]);
 
-  const validation = useMemo(() => validateSelection(state, selected), [state, selected]);
+  const validation = useMemo(() => validateSelection(state, staged), [state, staged]);
   const canEndTurn = state.status === 'playing' && validation.ok;
   const validationReason = validation.ok ? null : (validation.reason ?? 'Invalid selection');
 
   const endTurn = useCallback(() => {
-    if (state.status === 'ended') return;              // mirror engine guard; never throw
-    const check = validateSelection(state, selected);
-    if (!check.ok) return;
-    const { state: next, events, diagnostics } = advanceTurn(state, selected);
+    if (state.status === 'ended') return;                 // mirror engine guard; never throw
+    if (!validateSelection(state, staged).ok) return;
+    const { state: next, events, diagnostics } = advanceTurn(state, staged, cancels);
     setState(next);
     setLastEvents(events);
     setHistory((h) => [...h, snapshot(next)]);
     setTurnLog((log) => [...log, { turn: next.turn, year: next.year, state: next, diagnostics }]);
-    setSelected([]);
-  }, [state, selected]);
+    setStaged([]);
+    setCancels([]);
+  }, [state, staged, cancels]);
 
   const ending = state.status === 'ended' && state.endingId ? ENDINGS[state.endingId] ?? null : null;
 
   const reset = useCallback(() => {
     const fresh = createInitialState();
     setState(fresh);
-    setSelected([]);
+    setStaged([]);
+    setCancels([]);
     setLastEvents([]);
     setHistory([snapshot(fresh)]);
     setTurnLog([baselineRecord(fresh)]);
   }, []);
 
   return {
-    state, available, selected, isSelected, togglePolicy, selectionCost,
-    validationReason, canEndTurn, endTurn, lastEvents, history, turnLog, ending, reset,
+    state, staged, cancels, stage, unstage, toggleCancel,
+    costNow, upkeepNext, validationReason, canEndTurn, endTurn,
+    lastEvents, history, turnLog, ending, reset,
   };
 }

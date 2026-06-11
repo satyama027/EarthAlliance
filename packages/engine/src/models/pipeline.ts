@@ -9,9 +9,12 @@ import { constraints } from './constraints.js';
 import { biodiversity } from './biodiversity.js';
 import { support } from './support.js';
 import { resources } from './resources.js';
+import { programs } from './programs.js';
 
 /** The default world-model pipeline, run in order each turn. Swap entries to change fidelity. */
+// `programs` runs last so this turn's regenerated tax income (from `resources`) is
+// available to fund policy upkeep before the turn closes.
 export const DEFAULT_MODELS: readonly SubModel[] = [
   carbonCycle, climate, damage, economy, demography,
-  emissions, constraints, biodiversity, support, resources,
+  emissions, constraints, biodiversity, support, resources, programs,
 ];

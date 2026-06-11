@@ -9,8 +9,12 @@ export { SAMPLE_REGIONS } from './data/regions.js';
 
 export { createInitialState } from './state.js';
 export { createRng } from './rng.js';
-export { POLICY_CATALOG, getAvailablePolicies, validateSelection, getPolicy, isRegionScoped } from './policies.js';
+export {
+  POLICY_CATALOG, getAvailablePolicies, getGloballyAvailablePolicies, validateSelection,
+  getPolicy, isEnacted, enactedInAnyRegion, regionCharge,
+} from './policies.js';
 export type { ValidationResult } from './policies.js';
+export { applyCancellations } from './effects.js';
 export { ENDINGS, evaluateEnding } from './endings.js';
 export { advanceTurn, createSimulation } from './simulation.js';
 export type { AdvanceResult, Simulation } from './simulation.js';

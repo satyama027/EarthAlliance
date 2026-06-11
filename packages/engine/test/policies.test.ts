@@ -1,6 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { POLICY_CATALOG, getAvailablePolicies, validateSelection, getPolicy, isRegionScoped } from '../src/policies.js';
+import {
+  POLICY_CATALOG, getAvailablePolicies, getGloballyAvailablePolicies,
+  validateSelection, getPolicy, isEnacted, enactedInAnyRegion,
+} from '../src/policies.js';
+import type { Enactment } from '../src/types.js';
 import { makeState } from './fixtures.js';
+
+const REGION = 'north-america';
+
+function enacted(policyId: string, regionId: string): Enactment {
+  return { policyId, regionId, capacity: 1, complete: true };
+}
 
 describe('policy catalog', () => {
   it('has unique ids and non-negative costs', () => {
@@ -11,55 +21,131 @@ describe('policy catalog', () => {
       expect(p.cost.money).toBeGreaterThanOrEqual(0);
     }
   });
+
+  it('gives every buildout policy a positive ratePerTurn', () => {
+    for (const p of POLICY_CATALOG) {
+      if (p.funding === 'buildout') {
+        expect(p.buildout?.ratePerTurn).toBeGreaterThan(0);
+      }
+    }
+  });
 });
 
 describe('getAvailablePolicies', () => {
-  it('hides policies whose prerequisites are not yet enacted', () => {
+  it('hides a policy whose prerequisite is not enacted in that region', () => {
     const state = makeState();
-    const ids = getAvailablePolicies(state).map((p) => p.id);
+    const ids = getAvailablePolicies(state, REGION).map((p) => p.id);
     expect(ids).toContain('orbital-infrastructure');
-    expect(ids).not.toContain('off-world-colonies'); // needs orbital-infrastructure
+    expect(ids).not.toContain('off-world-colonies');
   });
 
-  it('reveals a policy once its prerequisite is enacted', () => {
-    const state = makeState({ enactedPolicyIds: ['orbital-infrastructure'] });
-    const ids = getAvailablePolicies(state).map((p) => p.id);
+  it('reveals a policy once its prerequisite is enacted in the same region', () => {
+    const state = makeState({ enactments: [enacted('orbital-infrastructure', REGION)] });
+    const ids = getAvailablePolicies(state, REGION).map((p) => p.id);
     expect(ids).toContain('off-world-colonies');
+  });
+
+  it('does not reveal a policy when its prerequisite is enacted in a different region', () => {
+    const state = makeState({ enactments: [enacted('orbital-infrastructure', 'europe')] });
+    const ids = getAvailablePolicies(state, REGION).map((p) => p.id);
+    expect(ids).not.toContain('off-world-colonies');
+  });
+
+  it('hides a policy already enacted in that region', () => {
+    const state = makeState({ enactments: [enacted('renewable-subsidy', REGION)] });
+    const ids = getAvailablePolicies(state, REGION).map((p) => p.id);
+    expect(ids).not.toContain('renewable-subsidy');
   });
 });
 
 describe('validateSelection', () => {
   it('rejects unknown policy ids', () => {
     const state = makeState();
-    expect(validateSelection(state, ['nope']).ok).toBe(false);
+    expect(validateSelection(state, [{ policyId: 'nope', regionId: REGION }]).ok).toBe(false);
   });
 
-  it('rejects selections that exceed resources', () => {
-    const state = makeState({ resources: { politicalCapital: 5, money: 5 } });
-    const result = validateSelection(state, ['nuclear-buildout']);
+  it('rejects unknown region ids', () => {
+    const state = makeState();
+    expect(validateSelection(state, [{ policyId: 'reforestation', regionId: 'atlantis' }]).ok).toBe(false);
+  });
+
+  it('rejects selections that exceed political capital', () => {
+    const state = makeState({ resources: { politicalCapital: 5, money: 100000 } });
+    const result = validateSelection(state, [{ policyId: 'nuclear-buildout', regionId: REGION }]);
     expect(result.ok).toBe(false);
-    expect(result.reason).toMatch(/afford|capital|money/i);
+    expect(result.reason).toMatch(/capital/i);
+  });
+
+  it('rejects when one-time money exceeds the budget', () => {
+    const state = makeState({ resources: { politicalCapital: 100, money: 1 } });
+    // off-world-colonies is one-time (ref 2000); but needs orbital first — enact it.
+    const withOrbital = makeState({
+      resources: { politicalCapital: 100, money: 1 },
+      enactments: [enacted('orbital-infrastructure', REGION)],
+    });
+    void state;
+    const result = validateSelection(withOrbital, [{ policyId: 'off-world-colonies', regionId: REGION }]);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toMatch(/money/i);
   });
 
   it('accepts an affordable, available selection', () => {
-    const state = makeState({ resources: { politicalCapital: 100, money: 100 } });
-    expect(validateSelection(state, ['reforestation']).ok).toBe(true);
+    const state = makeState({ resources: { politicalCapital: 100, money: 5000 } });
+    expect(validateSelection(state, [{ policyId: 'reforestation', regionId: REGION }]).ok).toBe(true);
   });
 
-  it('rejects a policy whose prerequisite is missing', () => {
-    const state = makeState({ resources: { politicalCapital: 100, money: 100 } });
-    expect(validateSelection(state, ['off-world-colonies']).ok).toBe(false);
+  it('rejects enacting the same policy twice in the same region', () => {
+    const state = makeState({ enactments: [enacted('reforestation', REGION)] });
+    expect(validateSelection(state, [{ policyId: 'reforestation', regionId: REGION }]).ok).toBe(false);
   });
 
-  it('rejects a selection containing duplicate ids', () => {
-    const state = makeState({ resources: { politicalCapital: 100, money: 100 } });
-    expect(validateSelection(state, ['reforestation', 'reforestation']).ok).toBe(false);
+  it('allows the same policy in two different regions', () => {
+    const state = makeState({ resources: { politicalCapital: 100, money: 5000 } });
+    const result = validateSelection(state, [
+      { policyId: 'renewable-subsidy', regionId: 'north-america' },
+      { policyId: 'renewable-subsidy', regionId: 'europe' },
+    ]);
+    expect(result.ok).toBe(true);
   });
 
-  it('flags region-scoped policies as unsupported for now', () => {
-    const globalPolicy = getPolicy('renewable-subsidy')!;
-    expect(isRegionScoped(globalPolicy)).toBe(false);
-    const regionScoped = { ...globalPolicy, scope: 'region' as const };
-    expect(isRegionScoped(regionScoped)).toBe(true);
+  it('rejects a duplicate (policy, region) pair in one selection', () => {
+    const state = makeState({ resources: { politicalCapital: 100, money: 5000 } });
+    const result = validateSelection(state, [
+      { policyId: 'reforestation', regionId: REGION },
+      { policyId: 'reforestation', regionId: REGION },
+    ]);
+    expect(result.ok).toBe(false);
+  });
+
+  it('rejects a policy whose prerequisite is missing in that region', () => {
+    const state = makeState({ resources: { politicalCapital: 100, money: 5000 } });
+    expect(validateSelection(state, [{ policyId: 'off-world-colonies', regionId: REGION }]).ok).toBe(false);
+  });
+});
+
+describe('enactment helpers', () => {
+  it('isEnacted is region-specific', () => {
+    const state = makeState({ enactments: [enacted('renewable-subsidy', 'europe')] });
+    expect(isEnacted(state, 'renewable-subsidy', 'europe')).toBe(true);
+    expect(isEnacted(state, 'renewable-subsidy', REGION)).toBe(false);
+  });
+
+  it('enactedInAnyRegion is region-agnostic', () => {
+    const state = makeState({ enactments: [enacted('off-world-colonies', 'europe')] });
+    expect(enactedInAnyRegion(state, 'off-world-colonies')).toBe(true);
+    expect(enactedInAnyRegion(state, 'renewable-subsidy')).toBe(false);
+  });
+
+  it('getGloballyAvailablePolicies returns policies enactable somewhere', () => {
+    const state = makeState();
+    const ids = getGloballyAvailablePolicies(state).map((p) => p.id);
+    expect(ids).toContain('renewable-subsidy');
+    expect(ids).not.toContain('off-world-colonies'); // prereq nowhere
+  });
+});
+
+describe('getPolicy', () => {
+  it('returns a policy by id', () => {
+    expect(getPolicy('renewable-subsidy')?.name).toBe('Renewable Subsidy');
   });
 });

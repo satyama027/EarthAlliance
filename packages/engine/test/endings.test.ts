@@ -35,16 +35,17 @@ describe('evaluateEnding', () => {
   });
 
   it('awards orbital-exodus only when off-world-colonies was enacted on a degrading rich world', () => {
+    const enacted = (policyId: string) => ({ policyId, regionId: 'test-region', capacity: 1, complete: true });
     const base = {
       year: 2200,
-      enactedPolicyIds: ['orbital-infrastructure', 'off-world-colonies'],
+      enactments: [enacted('orbital-infrastructure'), enacted('off-world-colonies')],
       regions: regionsWith({ gdpPerCapita: 45000, educationIndex: 80, biodiversityIndex: 30 }),
     };
     const exodus = makeState(base);
     exodus.climate.temperatureAnomaly = 2.7;
     expect(evaluateEnding(exodus)?.id).toBe('orbital-exodus');
 
-    const noColony = makeState({ ...base, enactedPolicyIds: ['orbital-infrastructure'] });
+    const noColony = makeState({ ...base, enactments: [enacted('orbital-infrastructure')] });
     noColony.climate.temperatureAnomaly = 2.7;
     expect(evaluateEnding(noColony)?.id).not.toBe('orbital-exodus');
   });
