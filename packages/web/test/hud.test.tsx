@@ -10,33 +10,27 @@ function wrap(ui: ReactNode) {
 }
 
 describe('ResourceBar', () => {
-  it('shows the year, political capital, and money', () => {
-    wrap(<ResourceBar year={2030} turn={1} politicalCapital={123} money={45} />);
+  it('shows the year and money', () => {
+    wrap(<ResourceBar year={2030} turn={1} money={45} />);
     expect(screen.getByText(/2030/)).toBeInTheDocument();
-    expect(screen.getByText(/123/)).toBeInTheDocument();
-    expect(screen.getByText(/45/)).toBeInTheDocument();
+    expect(screen.getByText(/Money:\s*45/)).toBeInTheDocument();
   });
 
   it('shows the full balance when nothing is staged (zero cost)', () => {
-    wrap(<ResourceBar year={2030} turn={1} politicalCapital={100} money={1500}
-      costNow={{ politicalCapital: 0, money: 0 }} />);
-    expect(screen.getByText(/Political Capital:\s*100/)).toBeInTheDocument();
+    wrap(<ResourceBar year={2030} turn={1} money={1500} costNow={{ money: 0 }} />);
     expect(screen.getByText(/Money:\s*1,500/)).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('subtracts the staged cost so the bar shows what is REMAINING to spend', () => {
-    wrap(<ResourceBar year={2030} turn={1} politicalCapital={100} money={1500}
-      costNow={{ politicalCapital: 30, money: 250 }} />);
-    expect(screen.getByText(/Political Capital:\s*70(?!\d)/)).toBeInTheDocument(); // 100 − 30
+    wrap(<ResourceBar year={2030} turn={1} money={1500} costNow={{ money: 250 }} />);
     expect(screen.getByText(/Money:\s*1,250/)).toBeInTheDocument();               // 1500 − 250
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('flags an over-budget selection when remaining goes negative', () => {
-    wrap(<ResourceBar year={2030} turn={1} politicalCapital={10} money={100}
-      costNow={{ politicalCapital: 25, money: 0 }} />);
-    expect(screen.getByText(/Political Capital:\s*-15(?!\d)/)).toBeInTheDocument(); // 10 − 25
+    wrap(<ResourceBar year={2030} turn={1} money={100} costNow={{ money: 250 }} />);
+    expect(screen.getByText(/Money:\s*-150(?!\d)/)).toBeInTheDocument(); // 100 − 250
     expect(screen.getByRole('alert')).toHaveTextContent(/over budget/i);
   });
 });

@@ -108,7 +108,6 @@ function PlanetCalcBlock({ d }: { d: TurnDiagnostics }) {
         <Cell label="World pop" value={formatPop(d.worldPopulation)} />
         <Cell label="World GDP" value={`$${(d.worldGdp / 1e12).toFixed(1)}T`} />
         <Cell label="Avg support" value={d.avgSupport.toFixed(1)} />
-        <Cell label="PC regen" value={signed(d.capitalGain, 1)} />
         <Cell label="Money regen" value={signed(d.moneyGain, 1)} />
       </SimpleGrid>
     </>

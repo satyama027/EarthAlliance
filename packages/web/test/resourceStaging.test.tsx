@@ -15,8 +15,7 @@ function Harness() {
   return (
     <>
       <ResourceBar year={game.state.year} turn={game.state.turn}
-        politicalCapital={game.state.resources.politicalCapital} money={game.state.resources.money}
-        costNow={game.costNow} />
+        money={game.state.resources.money} costNow={game.costNow} />
       <PolicyBoard
         state={game.state} regionId={REGION}
         staged={game.staged} cancels={game.cancels}
@@ -28,22 +27,11 @@ function Harness() {
   );
 }
 
-function pcBadge(): HTMLElement {
-  return screen.getByText(/Political Capital:/i);
-}
 function moneyBadge(): HTMLElement {
   return screen.getByText(/Money:/i);
 }
 
 describe('ResourceBar reflects staged cost', () => {
-  it('drops remaining Political Capital when a policy is staged', async () => {
-    wrap(<Harness />);
-    expect(pcBadge()).toHaveTextContent('Political Capital: 100');
-    await userEvent.click(screen.getByRole('button', { name: /enact renewable subsidy/i }));
-    // renewable-subsidy costs PC 10 → remaining 100 - 10 = 90
-    expect(pcBadge()).toHaveTextContent('Political Capital: 90');
-  });
-
   it('drops remaining Money when a one-time policy is staged', async () => {
     wrap(<Harness />);
     expect(moneyBadge()).toHaveTextContent('Money: 1,500');

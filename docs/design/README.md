@@ -29,6 +29,7 @@ Mockups are self-contained HTML — open them directly in a browser (`file://`).
 
 | Date | Topic | Status | Proposal |
 |------|-------|--------|----------|
+| 2026-06-12 | Single-currency resource header — remove Political Capital; emphasized solo **Money** pill (Variant A) | **Implemented** | [proposal](./proposals/2026-06-12-single-currency-header/design.md) |
 | 2026-06-12 | Balanced layout (map fills its column, whole world shown, no dead space) + drag policies into **Active drop slots** (floating overlay, pointer hit-test, card stays) | **Implemented** | [proposal](./proposals/2026-06-12-policy-drag-slots-balanced-layout/design.md) |
 | 2026-06-12 | Policy selection — sticky resource header shows **remaining** PC/Money + reorder (policy board raised, Turn Log to bottom) so you set policies & End Turn without scrolling | **Implemented** | [proposal](./proposals/2026-06-12-policy-selection-no-scroll/design.md) |
 | 2026-06-11 | Per-region policy selection — two-lane drag board (Available/Active, drag to enact, cancellable programs) | **Implemented** | [proposal](./proposals/2026-06-11-per-region-policy-selection/design.md) |

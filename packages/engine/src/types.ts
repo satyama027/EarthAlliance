@@ -2,7 +2,6 @@ export type RegionId = string;
 export type GameStatus = 'playing' | 'ended';
 
 export interface Resources {
-  politicalCapital: number;
   money: number;
 }
 
@@ -159,7 +158,6 @@ export interface TurnDiagnostics {
   avgSupport: number;        // population-weighted mean public support across all regions
   worldPopulation: number;   // global population sum
   worldGdp: number;          // global GDP sum (Σ gdpPerCapita × population)
-  capitalGain: number;       // political capital regenerated this turn (before policy spend)
   moneyGain: number;         // money regenerated this turn (before policy spend)
   scarcityByRegion: Record<RegionId, number>;         // min(water,land)/100 (0–1)
   constraintFactorByRegion: Record<RegionId, number>; // 0.5–1.0 growth dampener from scarcity

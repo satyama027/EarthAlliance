@@ -31,8 +31,7 @@ export default function App() {
             REMAINING to spend (balance − this turn's staged cost). */}
         <Box style={{ position: 'sticky', top: 0, zIndex: 200, background: 'var(--mantine-color-body)', paddingBottom: 8 }}>
           <ResourceBar year={game.state.year} turn={game.state.turn}
-            politicalCapital={game.state.resources.politicalCapital} money={game.state.resources.money}
-            costNow={game.costNow} />
+            money={game.state.resources.money} costNow={game.costNow} />
         </Box>
         <Grid gutter="md" align="stretch">
           <Grid.Col span={{ base: 12, md: 7 }}>

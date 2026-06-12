@@ -18,7 +18,7 @@ describe('useGame', () => {
     const { result } = renderHook(() => useGame());
     act(() => result.current.stage(buildout, REGION));
     expect(result.current.staged).toContainEqual({ policyId: buildout, regionId: REGION });
-    expect(result.current.costNow.politicalCapital).toBeGreaterThan(0);
+    expect(result.current.costNow.money).toBeGreaterThan(0);
     act(() => result.current.unstage(buildout, REGION));
     expect(result.current.staged).toEqual([]);
   });
@@ -62,7 +62,7 @@ describe('useGame', () => {
 
   it('blocks ending the turn when the staged selection is unaffordable', () => {
     const { result } = renderHook(() => useGame());
-    // Stage every one-time/buildout policy in every region to blow past the PC budget.
+    // Stage every one-time/buildout policy in every region to blow past the money budget.
     act(() => {
       for (const r of result.current.state.regions) {
         for (const p of POLICY_CATALOG) result.current.stage(p.id, r.id);

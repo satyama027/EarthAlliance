@@ -11,7 +11,7 @@ describe('programs submodel', () => {
   it('advances a buildout enactment capacity by its ratePerTurn', () => {
     const state = makeState({
       regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9 })],
-      resources: { politicalCapital: 100, money: 5000 },
+      resources: { money: 5000 },
       enactments: [enact({ capacity: 0.15 })],
     });
     programs.step(makeContext(state));
@@ -25,7 +25,7 @@ describe('programs submodel', () => {
         makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9 }), // gdp 2e13
         makeRegion({ id: 'r2', gdpPerCapita: 10000, population: 1e9 }), // gdp 1e13
       ],
-      resources: { politicalCapital: 100, money: 5000 },
+      resources: { money: 5000 },
       enactments: [enact({ regionId: 'r1', capacity: 0 })],
     });
     programs.step(makeContext(state));
@@ -36,7 +36,7 @@ describe('programs submodel', () => {
   it('ramps a buildout ongoing effect by current capacity', () => {
     const state = makeState({
       regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, regionalEmissions: 10 })],
-      resources: { politicalCapital: 100, money: 5000 },
+      resources: { money: 5000 },
       enactments: [enact({ capacity: 0.5, complete: true })], // complete => no advance, capacity fixed
     });
     programs.step(makeContext(state));
@@ -47,7 +47,7 @@ describe('programs submodel', () => {
   it('stops charging once a buildout reaches 100% but keeps delivering the benefit', () => {
     const state = makeState({
       regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, regionalEmissions: 10 })],
-      resources: { politicalCapital: 100, money: 5000 },
+      resources: { money: 5000 },
       enactments: [enact({ capacity: 0.95 })],
     });
     const ctx = makeContext(state);
@@ -64,7 +64,7 @@ describe('programs submodel', () => {
   it('idles when underfunded: no charge, no advance, existing capacity still delivers', () => {
     const state = makeState({
       regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, regionalEmissions: 10 })],
-      resources: { politicalCapital: 100, money: 10 }, // charge 1200 > 10
+      resources: { money: 10 }, // charge 1200 > 10
       enactments: [enact({ capacity: 0.2 })],
     });
     programs.step(makeContext(state));
@@ -76,7 +76,7 @@ describe('programs submodel', () => {
   it('charges a recurring policy a flat amount every turn (no capacity, no completion)', () => {
     const state = makeState({
       regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9 })],
-      resources: { politicalCapital: 100, money: 5000 },
+      resources: { money: 5000 },
       enactments: [enact({ policyId: 'climate-adaptation', capacity: 1, complete: false })],
     });
     programs.step(makeContext(state));
@@ -87,7 +87,7 @@ describe('programs submodel', () => {
   it('ignores one-time policies (they are charged once at enactment)', () => {
     const state = makeState({
       regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9 })],
-      resources: { politicalCapital: 100, money: 5000 },
+      resources: { money: 5000 },
       enactments: [enact({ policyId: 'carbon-tax', capacity: 1, complete: true })],
     });
     programs.step(makeContext(state));

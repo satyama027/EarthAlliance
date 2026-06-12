@@ -154,7 +154,6 @@ describe('advanceTurn', () => {
     // ── Global resource aggregates (do-nothing turn ⇒ regen equals the budget delta) ──
     expect(d.worldPopulation).toBeCloseTo(s1.regions.reduce((a, r) => a + r.population, 0), 6);
     expect(d.worldGdp).toBeCloseTo(s1.regions.reduce((a, r) => a + r.gdpPerCapita * r.population, 0), 4);
-    expect(d.capitalGain).toBeCloseTo(s1.resources.politicalCapital - s0.resources.politicalCapital, 6);
     expect(d.moneyGain).toBeCloseTo(s1.resources.money - s0.resources.money, 6);
 
     // ── Per-region pressure & support drivers ──

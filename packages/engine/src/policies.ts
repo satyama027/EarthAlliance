@@ -13,7 +13,7 @@ export const POLICY_CATALOG: readonly Policy[] = [
   {
     id: 'carbon-tax', name: 'Carbon Tax', category: 'industry',
     description: 'Price carbon to cut emissions; unpopular up front.',
-    art: 'carbon-tax', cost: { politicalCapital: 15, money: 50 }, funding: 'one-time',
+    art: 'carbon-tax', cost: { money: 50 }, funding: 'one-time',
     effects: [
       { target: 'regionalEmissions', delta: -0.4, duration: 'ongoing' },
       { target: 'publicSupport', delta: -3, duration: 'immediate' },
@@ -22,21 +22,21 @@ export const POLICY_CATALOG: readonly Policy[] = [
   {
     id: 'renewable-subsidy', name: 'Renewable Subsidy', category: 'energy',
     description: 'Fund wind and solar deployment until the grid is built out.',
-    art: 'renewable-subsidy', cost: { politicalCapital: 10, money: 1200 }, funding: 'buildout',
+    art: 'renewable-subsidy', cost: { money: 1200 }, funding: 'buildout',
     buildout: { ratePerTurn: 0.10, baselineByRegion: RENEWABLE_BASELINE, defaultBaseline: 0 },
     effects: [{ target: 'regionalEmissions', delta: -0.6, duration: 'ongoing' }],
   },
   {
     id: 'nuclear-buildout', name: 'Nuclear Buildout', category: 'energy',
     description: 'Large baseload decarbonization; reactors come online over years.',
-    art: 'nuclear-buildout', cost: { politicalCapital: 20, money: 800 }, funding: 'buildout',
+    art: 'nuclear-buildout', cost: { money: 800 }, funding: 'buildout',
     buildout: { ratePerTurn: 0.08, defaultBaseline: 0 },
     effects: [{ target: 'regionalEmissions', delta: -1.0, duration: 'ongoing' }],
   },
   {
     id: 'reforestation', name: 'Reforestation', category: 'land',
     description: 'Restore forests as a carbon sink and habitat.',
-    art: 'reforestation', cost: { politicalCapital: 8, money: 250 }, funding: 'buildout',
+    art: 'reforestation', cost: { money: 250 }, funding: 'buildout',
     buildout: { ratePerTurn: 0.10, defaultBaseline: 0 },
     effects: [
       { target: 'regionalEmissions', delta: -0.3, duration: 'ongoing' },
@@ -46,7 +46,7 @@ export const POLICY_CATALOG: readonly Policy[] = [
   {
     id: 'public-transit', name: 'Public Transit', category: 'industry',
     description: 'Shift travel off private cars; systems built over years.',
-    art: 'public-transit', cost: { politicalCapital: 10, money: 500 }, funding: 'buildout',
+    art: 'public-transit', cost: { money: 500 }, funding: 'buildout',
     buildout: { ratePerTurn: 0.10, defaultBaseline: 0 },
     effects: [
       { target: 'regionalEmissions', delta: -0.3, duration: 'ongoing' },
@@ -56,7 +56,7 @@ export const POLICY_CATALOG: readonly Policy[] = [
   {
     id: 'climate-adaptation', name: 'Climate Adaptation Fund', category: 'social',
     description: 'Buffer communities against climate shocks; funded continuously.',
-    art: 'climate-adaptation', cost: { politicalCapital: 8, money: 500 }, funding: 'recurring',
+    art: 'climate-adaptation', cost: { money: 500 }, funding: 'recurring',
     effects: [
       { target: 'healthIndex', delta: 2, duration: 'ongoing' },
       { target: 'waterAvailability', delta: 1, duration: 'ongoing' },
@@ -65,7 +65,7 @@ export const POLICY_CATALOG: readonly Policy[] = [
   {
     id: 'universal-education', name: 'Universal Education', category: 'social',
     description: 'Compounding investment in people; raised until attainment completes.',
-    art: 'universal-education', cost: { politicalCapital: 12, money: 500 }, funding: 'buildout',
+    art: 'universal-education', cost: { money: 500 }, funding: 'buildout',
     buildout: { ratePerTurn: 0.08, defaultBaseline: 0 },
     effects: [
       { target: 'educationIndex', delta: 1.5, duration: 'ongoing' },
@@ -75,7 +75,7 @@ export const POLICY_CATALOG: readonly Policy[] = [
   {
     id: 'degrowth-mandate', name: 'Degrowth Mandate', category: 'social',
     description: 'Slash emissions by curbing output; politically costly.',
-    art: 'degrowth-mandate', cost: { politicalCapital: 30, money: 0 }, funding: 'one-time',
+    art: 'degrowth-mandate', cost: { money: 1500 }, funding: 'one-time',
     effects: [
       { target: 'regionalEmissions', delta: -1.5, duration: 'ongoing' },
       { target: 'gdpPerCapita', delta: -2000, duration: 'immediate' },
@@ -85,13 +85,13 @@ export const POLICY_CATALOG: readonly Policy[] = [
   {
     id: 'orbital-infrastructure', name: 'Orbital Infrastructure', category: 'frontier',
     description: 'Build the launch and orbital base for off-world expansion.',
-    art: 'orbital-infrastructure', cost: { politicalCapital: 25, money: 350 }, funding: 'one-time',
+    art: 'orbital-infrastructure', cost: { money: 350 }, funding: 'one-time',
     effects: [{ target: 'educationIndex', delta: 1, duration: 'ongoing' }],
   },
   {
     id: 'off-world-colonies', name: 'Off-World Colonies', category: 'frontier',
     description: 'Settle beyond Earth — a refuge for those who can leave.',
-    art: 'off-world-colonies', cost: { politicalCapital: 30, money: 2000 }, funding: 'one-time',
+    art: 'off-world-colonies', cost: { money: 2000 }, funding: 'one-time',
     prerequisites: ['orbital-infrastructure'],
     effects: [{ target: 'gdpPerCapita', delta: 3000, duration: 'ongoing' }],
   },
@@ -152,7 +152,6 @@ export function regionCharge(state: WorldState, policy: Policy, regionId: string
 
 export function validateSelection(state: WorldState, selections: PolicySelection[]): ValidationResult {
   const seen = new Set<string>();
-  let totalPc = 0;
   let moneyNow = 0;
   for (const { policyId, regionId } of selections) {
     const key = `${policyId}:${regionId}`;
@@ -172,13 +171,9 @@ export function validateSelection(state: WorldState, selections: PolicySelection
         return { ok: false, reason: `${policy.name} requires ${req} in ${regionId}` };
       }
     }
-    totalPc += policy.cost.politicalCapital;
     // Every funding mode spends money on the enactment turn (one-time at enactment; recurring/buildout
     // as their first upkeep, charged this turn by `programs`), so all count toward this turn's budget.
     moneyNow += regionCharge(state, policy, regionId);
-  }
-  if (totalPc > state.resources.politicalCapital) {
-    return { ok: false, reason: 'Not enough political capital' };
   }
   if (moneyNow > state.resources.money) {
     return { ok: false, reason: 'Not enough money' };

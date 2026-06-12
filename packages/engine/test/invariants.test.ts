@@ -10,7 +10,6 @@ function assertSane(state: WorldState): void {
   expect(finite(state.climate.temperatureAnomaly)).toBe(true);
   expect(finite(state.climate.co2Concentration)).toBe(true);
   expect(finite(state.climate.annualEmissions)).toBe(true);
-  expect(finite(state.resources.politicalCapital)).toBe(true);
   expect(finite(state.resources.money)).toBe(true);
   for (const r of state.regions) {
     expect(r.population).toBeGreaterThanOrEqual(0);

@@ -79,7 +79,7 @@ describe('programs — cancelled buildout', () => {
   it('charges nothing and stops advancing, but the installed capacity still delivers its benefit', () => {
     const state = makeState({
       regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, regionalEmissions: 10 })],
-      resources: { politicalCapital: 100, money: 5000 },
+      resources: { money: 5000 },
       enactments: [enact({ capacity: 0.4, cancelled: true })],
     });
     programs.step(makeContext(state));

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Earth Alliance — Single-currency ResourceBar (approved: Variant A)</title>
+<style>
+  /* ── Design tokens (mirror of packages/web/src/theme.ts + docs/design/current) ── */
+  :root {
+    --earth-3:#63e6be; --earth-7:#0ca678;
+    --bg:#1a1b1e; --surface:#25262b; --border:#373a40;
+    --text:#c1c2c5; --text-strong:#f1f3f5; --dimmed:#909296;
+    --red:#ff6b6b; --radius:8px;
+    font-family: system-ui, sans-serif;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); padding:28px 18px 60px;
+         -webkit-font-smoothing:antialiased; }
+  h1 { color:var(--text-strong); font-size:20px; margin:0 0 4px; }
+  .lead { color:var(--dimmed); font-size:13px; max-width:760px; margin:0 0 26px; }
+  .wrap { max-width:880px; margin:0 auto; }
+  .state-lbl { color:var(--dimmed); font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+    margin:14px 2px 6px; }
+
+  /* sticky header look = Paper, withBorder, p="sm" */
+  .bar { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:10px 12px; }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .yt { color:var(--text-strong); font-weight:700; font-size:14px; }
+  .right { display:flex; align-items:center; gap:10px; }
+
+  .badge { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:999px;
+    font-size:13px; font-weight:600; line-height:1; }
+  .badge-teal-solid { background:var(--earth-7); color:#fff; }
+  .badge-red-solid  { background:#c92a2a; color:#fff; }
+  .coin { font-size:13px; }
+
+  .alert { color:var(--red); font-size:12px; font-weight:600; text-align:right; margin:6px 2px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Single-currency resource header — Variant A (approved)</h1>
+  <p class="lead">Political Capital is removed; only <strong style="color:var(--earth-3)">Money</strong>
+  remains. The existing teal Money pill stays on the right with a small 💰 coin mark for weight — the
+  smallest departure from today's bar (just the PC pill removed). The header still shows what is
+  <strong>remaining</strong> to spend this turn (balance − staged cost) and turns red with an
+  <span style="color:var(--red)">⚠ over budget</span> <code>role="alert"</code> line when a staged
+  selection exceeds the budget.</p>
+
+  <div class="state-lbl">Normal (1 policy staged → −120)</div>
+  <div class="bar">
+    <div class="row">
+      <span class="yt">Year 2025 · Turn 1</span>
+      <span class="right">
+        <span class="badge badge-teal-solid"><span class="coin">💰</span>Money: 1,380</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="state-lbl">Over budget</div>
+  <div class="bar">
+    <div class="row">
+      <span class="yt">Year 2025 · Turn 1</span>
+      <span class="right">
+        <span class="badge badge-red-solid"><span class="coin">💰</span>Money: -85</span>
+      </span>
+    </div>
+    <div class="alert">⚠ over budget — remove a policy to End Turn</div>
+  </div>
+</div>
+</body>
+</html>

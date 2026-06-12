@@ -26,8 +26,7 @@ A teal→green tuple. `primaryColor: 'earth'`. Buttons, selection outlines, and 
 
 | Meaning | Mantine color |
 |---------|---------------|
-| Political Capital | `grape` |
-| Money | `teal` |
+| Money (the only spendable resource) | `teal` |
 | Warning / ambiguous ending | `yellow` |
 | Error / validation / loss ending | `red` |
 | Win ending | `teal` |
@@ -102,16 +101,17 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   partition lines. Realistic ocean (gradient + graticule). Click a region to select it (others dim
   to 0.32; hover brightens). India follows the Government-of-India depiction (J&K incl. Azad
   Kashmir, Gilgit-Baltistan, Shaksgam, Aksai Chin). Replaces the former 3D R3F globe.
-- **ResourceBar** — bordered `Paper`, year/turn on the left (`fw={700}`), PC (`grape`) and Money
-  (`teal`) `Badge`s (`size="lg"`) on the right. The badges show what is **REMAINING** to spend this
-  turn — balance minus the staged `costNow` (PC and money) — not the raw balance, so staging a policy
-  immediately drops the numbers. `costNow` money counts **every** staged policy's first-turn GDP-scaled
-  charge (one-time enactment *and* recurring/buildout first upkeep, which is charged on the enactment
-  turn), so committing any policy with a money cost visibly moves the Money badge — not just one-time
-  policies. When a staged selection exceeds the budget the relevant badge turns
-  **red** and an `⚠ over budget` `role="alert"` line appears (mirrors `validateSelection` / the disabled
-  End Turn). Rendered as a **sticky header** at the top of `AppShell.Main` (`position: sticky; top: 0`,
-  body-colored background) so it stays visible while the player works the policy board.
+- **ResourceBar** — bordered `Paper`, year/turn on the left (`fw={700}`), and a single **Money**
+  (`teal`) `Badge` (`size="lg"`, `leftSection="💰"`) on the right (the game's only spendable
+  resource). The badge shows what is **REMAINING** to spend this turn — balance minus the staged
+  `costNow.money` — not the raw balance, so staging a policy immediately drops the number. `costNow`
+  counts **every** staged policy's first-turn GDP-scaled charge (one-time enactment *and*
+  recurring/buildout first upkeep, which is charged on the enactment turn), so committing any policy
+  with a money cost visibly moves the badge — not just one-time policies. When a staged selection
+  exceeds the budget the badge turns **red** and an `⚠ over budget` `role="alert"` line appears
+  (mirrors `validateSelection` / the disabled End Turn). Rendered as a **sticky header** at the top of
+  `AppShell.Main` (`position: sticky; top: 0`, body-colored background) so it stays visible while the
+  player works the policy board.
 - **Dashboard** — bordered `Paper`, title "Planet", warming/CO₂/emissions rows, temperature value
   colored by `temperatureColor`, trailed by a `Sparkline` (240×40) of temperature history.
 - **RegionPanel** — bordered `Paper`; per-metric rows with a `Progress` bar colored by
@@ -135,14 +135,14 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
     others). CALC labels are earth-tinted (`earth-7`) to mark *derived internals* apart from headline
     state. Global groups: **Calc · Climate** (ΔTemp, Warming⁺, Eq. temp, CO₂ ratio, ΔCO₂, Gross emis),
     **Calc · Economy** (Damage, Base growth ×, Decarb ×), and **Calc · Resources** (World pop, World
-    GDP, Avg support, PC regen, Money regen). When a region is selected it adds **growth** (Econ
+    GDP, Avg support, Money regen). When a region is selected it adds **growth** (Econ
     growth, Scarcity, Constraint ×, Output ratio, Pop growth), **Pressures** (Water/Land/Bio loss —
     pre-clamp drop), and a **Support Δ breakdown** (from warming / growth / equity, plus Equity
     drift). All values come from the widened `TurnDiagnostics`; only `Warming⁺ = max(0, ΔTemp)` is
     derived in the UI.
 - **PolicyCard** — bordered `Card`, 180px wide, region-scoped. Category-colored art band (height 34,
   icon), name (`fw={700}`), a **funding pill** (`Buildout`=earth / `Recurring`=teal / `One-time`=gray,
-  `variant="light"`), and PC + Money `Badge`s where Money is the **GDP-scaled** region charge with
+  `variant="light"`), and a Money `Badge` — the **GDP-scaled** region charge with
   cadence (`$250/turn`, `$10` once, `$0` when built/frozen, `paid` when permanent). Buildout cards
   show an **Installed %** label + `Progress` bar (earth; gray when frozen) and a state line
   (`Building · +10%/turn`, `✓ Built · benefit persists`, `Funded each turn`, `Stopped · N% installed`,

@@ -31,7 +31,7 @@ export interface GameController {
   stage(policyId: string, regionId: string): void;
   unstage(policyId: string, regionId: string): void;
   toggleCancel(policyId: string, regionId: string): void;
-  costNow: { politicalCapital: number; money: number };
+  costNow: { money: number };
   upkeepNext: number;
   validationReason: string | null;
   canEndTurn: boolean;

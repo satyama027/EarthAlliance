@@ -17,7 +17,6 @@ describe('policy catalog', () => {
     const ids = new Set(POLICY_CATALOG.map((p) => p.id));
     expect(ids.size).toBe(POLICY_CATALOG.length);
     for (const p of POLICY_CATALOG) {
-      expect(p.cost.politicalCapital).toBeGreaterThanOrEqual(0);
       expect(p.cost.money).toBeGreaterThanOrEqual(0);
     }
   });
@@ -69,18 +68,19 @@ describe('validateSelection', () => {
     expect(validateSelection(state, [{ policyId: 'reforestation', regionId: 'atlantis' }]).ok).toBe(false);
   });
 
-  it('rejects selections that exceed political capital', () => {
-    const state = makeState({ resources: { politicalCapital: 5, money: 100000 } });
-    const result = validateSelection(state, [{ policyId: 'nuclear-buildout', regionId: REGION }]);
+  it('rejects degrowth-mandate when money is insufficient (it is no longer free)', () => {
+    // degrowth-mandate was PC-only and is now money-gated; staging it without money fails.
+    const state = makeState({ resources: { money: 1 } });
+    const result = validateSelection(state, [{ policyId: 'degrowth-mandate', regionId: REGION }]);
     expect(result.ok).toBe(false);
-    expect(result.reason).toMatch(/capital/i);
+    expect(result.reason).toMatch(/money/i);
   });
 
   it('rejects when one-time money exceeds the budget', () => {
-    const state = makeState({ resources: { politicalCapital: 100, money: 1 } });
+    const state = makeState({ resources: { money: 1 } });
     // off-world-colonies is one-time (ref 2000); but needs orbital first — enact it.
     const withOrbital = makeState({
-      resources: { politicalCapital: 100, money: 1 },
+      resources: { money: 1 },
       enactments: [enacted('orbital-infrastructure', REGION)],
     });
     void state;
@@ -90,7 +90,7 @@ describe('validateSelection', () => {
   });
 
   it('accepts an affordable, available selection', () => {
-    const state = makeState({ resources: { politicalCapital: 100, money: 5000 } });
+    const state = makeState({ resources: { money: 5000 } });
     expect(validateSelection(state, [{ policyId: 'reforestation', regionId: REGION }]).ok).toBe(true);
   });
 
@@ -100,7 +100,7 @@ describe('validateSelection', () => {
   });
 
   it('allows the same policy in two different regions', () => {
-    const state = makeState({ resources: { politicalCapital: 100, money: 5000 } });
+    const state = makeState({ resources: { money: 5000 } });
     const result = validateSelection(state, [
       { policyId: 'renewable-subsidy', regionId: 'north-america' },
       { policyId: 'renewable-subsidy', regionId: 'europe' },
@@ -109,7 +109,7 @@ describe('validateSelection', () => {
   });
 
   it('rejects a duplicate (policy, region) pair in one selection', () => {
-    const state = makeState({ resources: { politicalCapital: 100, money: 5000 } });
+    const state = makeState({ resources: { money: 5000 } });
     const result = validateSelection(state, [
       { policyId: 'reforestation', regionId: REGION },
       { policyId: 'reforestation', regionId: REGION },
@@ -118,26 +118,26 @@ describe('validateSelection', () => {
   });
 
   it('rejects a policy whose prerequisite is missing in that region', () => {
-    const state = makeState({ resources: { politicalCapital: 100, money: 5000 } });
+    const state = makeState({ resources: { money: 5000 } });
     expect(validateSelection(state, [{ policyId: 'off-world-colonies', regionId: REGION }]).ok).toBe(false);
   });
 
   it('counts a buildout policy\'s first-turn (setup) money against the budget', () => {
     // renewable-subsidy is charged its GDP-scaled upkeep on the enactment turn (by `programs`),
     // so its first-turn cost must be afforded up front like any other spend.
-    const state = makeState({ resources: { politicalCapital: 100, money: 1 } });
+    const state = makeState({ resources: { money: 1 } });
     const result = validateSelection(state, [{ policyId: 'renewable-subsidy', regionId: REGION }]);
     expect(result.ok).toBe(false);
     expect(result.reason).toMatch(/money/i);
   });
 
   it('counts a recurring policy\'s first-turn (setup) money against the budget', () => {
-    const state = makeState({ resources: { politicalCapital: 100, money: 1 } });
+    const state = makeState({ resources: { money: 1 } });
     expect(validateSelection(state, [{ policyId: 'climate-adaptation', regionId: REGION }]).ok).toBe(false);
   });
 
   it('accepts a buildout policy when its first-turn money is affordable', () => {
-    const state = makeState({ resources: { politicalCapital: 100, money: 5000 } });
+    const state = makeState({ resources: { money: 5000 } });
     expect(validateSelection(state, [{ policyId: 'renewable-subsidy', regionId: REGION }]).ok).toBe(true);
   });
 });

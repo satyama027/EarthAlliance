@@ -6,13 +6,12 @@ import type { ActiveEffect } from '../src/types.js';
 describe('spendAndRegister', () => {
   const singleRegion = () => ({
     regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9 })],
-    resources: { politicalCapital: 100, money: 5000 },
+    resources: { money: 5000 },
   });
 
-  it('charges a one-time policy its political capital and GDP-scaled money, and records the enactment', () => {
+  it('charges a one-time policy its GDP-scaled money, and records the enactment', () => {
     const state = makeState(singleRegion());
     const immediate = spendAndRegister(state, [{ policyId: 'carbon-tax', regionId: 'r1' }]);
-    expect(state.resources.politicalCapital).toBe(85);     // -15
     expect(state.resources.money).toBeCloseTo(4950, 5);    // -50 (share 1)
     expect(state.enactments).toContainEqual(
       expect.objectContaining({ policyId: 'carbon-tax', regionId: 'r1', complete: true }),
@@ -29,7 +28,6 @@ describe('spendAndRegister', () => {
   it('does not charge money or register ongoing effects for a buildout policy (programs handles them)', () => {
     const state = makeState(singleRegion());
     spendAndRegister(state, [{ policyId: 'renewable-subsidy', regionId: 'r1' }]);
-    expect(state.resources.politicalCapital).toBe(90);  // -10
     expect(state.resources.money).toBe(5000);           // no money up front
     expect(state.activeEffects).toHaveLength(0);         // ramped effect owned by programs
     const e = state.enactments.find((x) => x.policyId === 'renewable-subsidy')!;
@@ -37,10 +35,15 @@ describe('spendAndRegister', () => {
     expect(e.complete).toBe(false);
   });
 
+  it('charges degrowth-mandate its GDP-scaled money up front (no longer free)', () => {
+    const state = makeState(singleRegion());
+    spendAndRegister(state, [{ policyId: 'degrowth-mandate', regionId: 'r1' }]);
+    expect(state.resources.money).toBeCloseTo(3500, 5); // 5000 - 1500 (share 1)
+  });
+
   it('registers ongoing effects but charges no up-front money for a recurring policy', () => {
     const state = makeState(singleRegion());
     spendAndRegister(state, [{ policyId: 'climate-adaptation', regionId: 'r1' }]);
-    expect(state.resources.politicalCapital).toBe(92); // -8
     expect(state.resources.money).toBe(5000);          // recurring charged by programs
     expect(state.activeEffects).toHaveLength(2);        // health + water, flat
     const e = state.enactments.find((x) => x.policyId === 'climate-adaptation')!;

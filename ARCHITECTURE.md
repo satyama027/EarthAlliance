@@ -117,7 +117,7 @@ pipeline computes but the state discards. The sub-models stash these locals into
 `damageFraction` and `deltaTemperature` (global), `growthByRegion` (per-region GDP/capita growth),
 plus a widened set of **calc internals** for the Turn Log's "More" panel covering every sub-model:
 global `co2Ratio`, `equilibriumTemp`, `deltaPpm`, `grossEmissions`, `baseGrowthFactor`,
-`decarbFactor`, `avgSupport`, `worldPopulation`, `worldGdp`, `capitalGain`, `moneyGain`; and
+`decarbFactor`, `avgSupport`, `worldPopulation`, `worldGdp`, `moneyGain`; and
 per-region `scarcityByRegion`, `constraintFactorByRegion`, `outputRatioByRegion`, `popGrowthByRegion`,
 `waterLossByRegion`, `landLossByRegion`, `bioLossByRegion`, the three support-change contributions
 (`supportTempTermByRegion`, `supportEconTermByRegion`, `supportEquityTermByRegion`),
@@ -140,7 +140,7 @@ client.) The engine's `dist` is still built (`tsc -p tsconfig.build.json`) for `
 type-resolution and for any external consumer, but it is no longer on the web runtime path.
 
 `WorldState` is the whole game in one object: `turn`/`year`/`status`/`endingId`,
-`resources` (politicalCapital + money), `climate` (temperatureAnomaly, co2Concentration,
+`resources` (money), `climate` (temperatureAnomaly, co2Concentration,
 annualEmissions), `regions[]`, `activeEffects[]` (ongoing policy effects still ticking),
 `enactments[]` (active `{ policyId, regionId, capacity, complete }` records — the single source
 of truth for what is enacted where, and how far each buildout has progressed), `log[]`, and
@@ -183,7 +183,7 @@ interface SimContext {
 | G | `constraints`  | per-region water + land availability (warming/population degrade)   |
 | G | `biodiversity` | per-region ecosystem health                                          |
 | H | `support`      | per-region public support + equity drift                            |
-| I | `resources`    | global political-capital + money regeneration (closes the dual-resource loop) |
+| I | `resources`    | global money regeneration from taxed GDP (the single spendable resource) |
 | J | `programs`     | charge recurring/buildout policy upkeep (GDP-scaled), advance buildout capacity, apply ramped buildout effects |
 
 `programs` runs **last** so this turn's regenerated tax income (from `resources`) is available
@@ -215,7 +215,7 @@ a buildout's ongoing effects into `activeEffects`, so they are never double-appl
 Each policy declares a `funding` mode and a single `cost.money` that is a **global reference**
 (1 money = $1B over a 5-year turn). The money actually charged in a region is scaled by that
 region's share of world GDP (`regionCharge`); summed over all regions it recovers the global
-reference. `cost.politicalCapital` is charged once per enactment, unscaled.
+reference. Money is the **only** spendable resource — there is no second currency.
 
 | funding | when money is charged | effect | examples |
 |---|---|---|---|
@@ -254,7 +254,7 @@ advanceTurn(state, selections, cancellations):       // selections/cancellations
   1. validateSelection — throw if unaffordable / unavailable / already enacted in region
   2. draft = structuredClone(state)                  // never mutate the input
   2b. applyCancellations(draft, cancellations)        // freeze cancelled buildouts / end recurring funds
-  3. spendAndRegister(draft, selections)             // charge PC + one-time money, push Enactments,
+  3. spendAndRegister(draft, selections)             // charge one-time money, push Enactments,
      →  queue NON-buildout ONGOING effects into activeEffects, return this turn's IMMEDIATE effects
   4. run DEFAULT_MODELS over a fresh SimContext       // the natural pipeline (§4); `programs` (last)
      →  charges recurring/buildout upkeep, advances capacity, applies ramped buildout effects

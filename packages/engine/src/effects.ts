@@ -41,10 +41,10 @@ function buildoutBaseline(state: WorldState, policy: ReturnType<typeof getPolicy
 }
 
 /**
- * Enact each selection in its region: deduct political capital (flat) and, for
- * one-time policies, the GDP-scaled money now. Seed an `Enactment`, apply/queue
- * effects, and return this turn's immediate effects. Recurring/buildout money and
- * buildout ramped effects are handled by the `programs` submodel.
+ * Enact each selection in its region: for one-time policies, deduct the GDP-scaled
+ * money now. Seed an `Enactment`, apply/queue effects, and return this turn's immediate
+ * effects. Recurring/buildout money and buildout ramped effects are handled by the
+ * `programs` submodel.
  */
 export function spendAndRegister(state: WorldState, selections: PolicySelection[]): ActiveEffect[] {
   const immediate: ActiveEffect[] = [];
@@ -52,7 +52,6 @@ export function spendAndRegister(state: WorldState, selections: PolicySelection[
     const policy = getPolicy(policyId);
     if (!policy) continue; // precondition: advanceTurn validates the selection first
 
-    state.resources.politicalCapital -= policy.cost.politicalCapital;
     if (policy.funding === 'one-time') {
       state.resources.money -= regionCharge(state, policy, regionId);
     }

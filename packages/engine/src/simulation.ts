@@ -88,7 +88,6 @@ export function createSimulation(
         avgSupport: scratch.avgSupport,
         worldPopulation: scratch.worldPopulation,
         worldGdp: scratch.worldGdp,
-        capitalGain: scratch.capitalGain,
         moneyGain: scratch.moneyGain,
         scarcityByRegion: { ...scratch.scarcityByRegion },
         constraintFactorByRegion: { ...scratch.constraintFactorByRegion },

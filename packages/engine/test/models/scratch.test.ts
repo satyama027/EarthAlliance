@@ -21,7 +21,6 @@ describe('createScratch', () => {
     expect(s.avgSupport).toBe(0);
     expect(s.worldPopulation).toBe(0);
     expect(s.worldGdp).toBe(0);
-    expect(s.capitalGain).toBe(0);
     expect(s.moneyGain).toBe(0);
     expect(s.scarcityByRegion).toEqual({});
     expect(s.constraintFactorByRegion).toEqual({});

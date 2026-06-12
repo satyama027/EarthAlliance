@@ -20,7 +20,7 @@ function board(over: Partial<React.ComponentProps<typeof PolicyBoard>> = {}) {
     cancels: [] as PolicySelection[],
     canEndTurn: true,
     validationReason: null,
-    costNow: { politicalCapital: 0, money: 0 },
+    costNow: { money: 0 },
     upkeepNext: 0,
     stagedTotal: 0,
     ...handlers,
@@ -55,7 +55,7 @@ describe('PolicyBoard', () => {
   });
 
   it('shows an error and does not enact when an unaffordable card is clicked', async () => {
-    const broke: WorldState = { ...createInitialState(), resources: { politicalCapital: 0, money: 0 } };
+    const broke: WorldState = { ...createInitialState(), resources: { money: 0 } };
     const h = board({ state: broke });
     await userEvent.click(screen.getByRole('button', { name: /enact renewable subsidy/i }));
     expect(h.onEnact).not.toHaveBeenCalled();

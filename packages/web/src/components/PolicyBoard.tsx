@@ -17,7 +17,7 @@ interface PolicyBoardProps {
   onEndTurn(): void;
   canEndTurn: boolean;
   validationReason: string | null;
-  costNow: { politicalCapital: number; money: number };
+  costNow: { money: number };
   upkeepNext: number;
   stagedTotal: number;
 }
@@ -150,7 +150,7 @@ export function PolicyBoard(props: PolicyBoardProps) {
       {/* Footer: global this-turn summary + End Turn */}
       <Group mt="md" gap="lg" align="center">
         <SummaryCol k="Staged this turn" v={`${props.stagedTotal}${props.cancels.length ? ` · ${props.cancels.length} stopping` : ''}`} />
-        <SummaryCol k="Cost now" v={`PC ${props.costNow.politicalCapital} · $${Math.round(props.costNow.money)}`} />
+        <SummaryCol k="Cost now" v={`$${Math.round(props.costNow.money)}`} />
         <SummaryCol k="Upkeep next turn" v={`$${Math.round(props.upkeepNext)} / turn`} />
         <Box style={{ marginLeft: 'auto', textAlign: 'right' }}>
           {props.validationReason && <Text c="red" size="xs" mb={4}>{props.validationReason}</Text>}

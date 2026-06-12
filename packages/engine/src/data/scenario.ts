@@ -6,7 +6,7 @@ export interface Scenario {
   startYear: number;
   startTemperatureAnomaly: number; // °C, already-warmed world
   startCo2: number;                // ppm
-  startResources: { politicalCapital: number; money: number };
+  startResources: { money: number };
   rngSeed: number;
   regions: readonly Region[];
 }
@@ -34,8 +34,6 @@ export const DEFAULT_PARAMS: ModelParams = Object.freeze({
   SUPPORT_ECON_W: 20,
   SUPPORT_EQUITY_W: 0.1,
   INEQUALITY_DRIFT: 5,
-  CAPITAL_BASE: 10,
-  CAPITAL_PER_SUPPORT: 0.5,
   TAX_RATE: 0.02,
   MONEY_SCALE: 1e9,
 });
@@ -44,7 +42,7 @@ export const DEFAULT_SCENARIO: Scenario = {
   startYear: 2025,
   startTemperatureAnomaly: 1.3,
   startCo2: 420,
-  startResources: { politicalCapital: 100, money: 1500 },
+  startResources: { money: 1500 },
   rngSeed: 12345,
   regions: SAMPLE_REGIONS,
 };

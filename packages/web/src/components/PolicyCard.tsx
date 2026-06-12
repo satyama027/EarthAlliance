@@ -127,9 +127,6 @@ export function CardFace({ vm, floating = false }: { vm: CardVM; floating?: bool
       )}
 
       <Group mt="xs" gap={6}>
-        {vm.state !== 'permanent' && vm.state !== 'built' && vm.state !== 'frozen' && (
-          <Badge color="grape" variant="light">PC {policy.cost.politicalCapital}</Badge>
-        )}
         <Badge color="teal" variant="light"
           style={(vm.state === 'built' || vm.state === 'frozen' || vm.state === 'permanent') ? { opacity: 0.6 } : undefined}>
           {moneyLabel(vm)}

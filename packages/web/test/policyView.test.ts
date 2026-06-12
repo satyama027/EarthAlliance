@@ -55,7 +55,7 @@ describe('regionPolicyView', () => {
   });
 
   it('marks available cards unaffordable when the budget is exhausted', () => {
-    const broke = withEnactments([], { resources: { politicalCapital: 0, money: 0 } });
+    const broke = withEnactments([], { resources: { money: 0 } });
     const card = find(regionPolicyView(broke, REGION, [], []).available, 'renewable-subsidy')!;
     expect(card.affordable).toBe(false);
   });
@@ -64,7 +64,6 @@ describe('regionPolicyView', () => {
 describe('stagedCostNow', () => {
   it('charges the first-turn (setup) money for a buildout policy, not just one-time', () => {
     const cost = stagedCostNow(createInitialState(), [{ policyId: 'renewable-subsidy', regionId: REGION }]);
-    expect(cost.politicalCapital).toBe(10);
     expect(cost.money).toBeGreaterThan(0); // renewable-subsidy is buildout — its first upkeep counts now
   });
 

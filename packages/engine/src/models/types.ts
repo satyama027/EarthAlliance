@@ -23,8 +23,6 @@ export interface ModelParams {
   SUPPORT_ECON_W: number;
   SUPPORT_EQUITY_W: number;
   INEQUALITY_DRIFT: number;
-  CAPITAL_BASE: number;
-  CAPITAL_PER_SUPPORT: number;
   TAX_RATE: number;
   MONEY_SCALE: number;
 }
@@ -45,7 +43,6 @@ export interface TurnScratch {
   avgSupport: number;      // population-weighted mean public support (set by resources)
   worldPopulation: number; // global population sum (set by resources)
   worldGdp: number;        // global GDP sum, gdpPerCapita×population (set by resources)
-  capitalGain: number;     // political capital regenerated this turn (set by resources)
   moneyGain: number;       // money regenerated this turn (set by resources)
   scarcityByRegion: Record<RegionId, number>;         // min(water,land)/100 (set by economy)
   constraintFactorByRegion: Record<RegionId, number>; // 0.5–1.0 growth dampener (set by economy)
@@ -89,7 +86,6 @@ export function createScratch(): TurnScratch {
     avgSupport: 0,
     worldPopulation: 0,
     worldGdp: 0,
-    capitalGain: 0,
     moneyGain: 0,
     scarcityByRegion: {},
     constraintFactorByRegion: {},

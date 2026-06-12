@@ -191,17 +191,16 @@
     <div class="row">
       <span class="strong">Year 2025 · Turn 1</span>
       <span style="display:flex; gap:8px; align-items:center;">
-        <span class="badge badge-lg badge-grape-solid">Political Capital: 92</span>
-        <span class="badge badge-lg badge-teal-solid">Money: 1,500</span>
+        <span class="badge badge-lg badge-teal-solid">💰 Money: 1,448</span>
       </span>
     </div>
   </div>
   <div class="xs dimmed" style="margin:6px 2px 0;">
-    Sticky header. Badges show what is <strong>remaining</strong> to spend this turn
-    (balance − staged cost; the 1 staged policy below = −PC&nbsp;8, so 100 → 92).
-    Over budget → badge turns red with an <span style="color:var(--red)">⚠ over budget</span> alert and
-    End&nbsp;Turn is disabled, e.g.:
-    <span class="badge badge-red" style="margin-left:4px;">Political Capital: -3</span>
+    Sticky header. The single <strong>Money</strong> badge shows what is <strong>remaining</strong> to
+    spend this turn (balance − staged cost; the 1 staged policy below = −$52, so 1,500 → 1,448).
+    Money is the game's only spendable resource. Over budget → badge turns red with an
+    <span style="color:var(--red)">⚠ over budget</span> alert and End&nbsp;Turn is disabled, e.g.:
+    <span class="badge badge-red" style="margin-left:4px;">💰 Money: -85</span>
   </div>
 </div>
 
@@ -309,7 +308,6 @@
             <div class="tcell"><span class="lbl">World pop</span><span class="val">8.10B</span></div>
             <div class="tcell"><span class="lbl">World GDP</span><span class="val">$118.4T</span></div>
             <div class="tcell"><span class="lbl">Avg support</span><span class="val">58.3</span></div>
-            <div class="tcell"><span class="lbl">PC regen</span><span class="val">+39.2</span></div>
             <div class="tcell"><span class="lbl">Money regen</span><span class="val">+2.4</span></div>
           </div>
           <div class="tcalc-lbl">Calc · <span class="reg">North America</span> growth</div>
@@ -388,7 +386,7 @@
             <div class="cap-row"><span class="l">Installed</span><span class="v">40%</span></div>
             <div class="cbar"><span style="width:40%"></span></div>
             <div class="cstate b">Building · +10%/turn</div>
-            <div class="costs"><span class="badge badge-grape">PC 10</span><span class="badge badge-teal">$250/turn</span></div>
+            <div class="costs"><span class="badge badge-teal">$250/turn</span></div>
           </div>
           <!-- committed recurring (cancellable) -->
           <div class="card">
@@ -397,7 +395,7 @@
             <div class="name">Climate Adaptation</div>
             <span class="fund fund-recurring">Recurring</span>
             <div class="cstate a">Funded each turn</div>
-            <div class="costs"><span class="badge badge-grape">PC 8</span><span class="badge badge-teal">$104/turn</span></div>
+            <div class="costs"><span class="badge badge-teal">$104/turn</span></div>
           </div>
           <!-- staged this turn (removable) -->
           <div class="card staged">
@@ -406,7 +404,7 @@
             <div class="name">Reforestation</div>
             <span class="fund fund-buildout">Buildout</span>
             <div class="cstate a">Starts this turn</div>
-            <div class="costs"><span class="badge badge-grape">PC 8</span><span class="badge badge-teal">$52/turn</span></div>
+            <div class="costs"><span class="badge badge-teal">$52/turn</span></div>
           </div>
           <!-- empty drop slots -->
           <div class="slot"><span class="plus">＋</span><span class="lbl">drop a policy here</span></div>
@@ -425,13 +423,13 @@
             <div class="name">Carbon Tax</div>
             <span class="fund fund-onetime">One-time</span>
             <div class="desc">Price carbon to cut emissions; unpopular up front.</div>
-            <div class="costs"><span class="badge badge-grape">PC 15</span><span class="badge badge-teal">$10 once</span></div>
+            <div class="costs"><span class="badge badge-teal">$10 once</span></div>
           </div>
           <div class="card">
             <div class="art" style="background:var(--cat-energy);">⚡</div>
             <div class="name">Nuclear Buildout</div>
             <span class="fund fund-buildout">Buildout</span>
-            <div class="costs"><span class="badge badge-grape">PC 20</span><span class="badge badge-teal">$166/turn</span></div>
+            <div class="costs"><span class="badge badge-teal">$166/turn</span></div>
           </div>
           <div class="card disabled">
             <div class="art" style="background:var(--cat-frontier);">🚀</div>
@@ -445,7 +443,7 @@
       <!-- Footer: global this-turn summary + End Turn -->
       <div class="foot">
         <div><div class="k">Staged this turn</div><div class="v">1</div></div>
-        <div><div class="k">Cost now</div><div class="v">PC 8 · $0</div></div>
+        <div><div class="k">Cost now</div><div class="v">$52</div></div>
         <div><div class="k">Upkeep next turn</div><div class="v">$406 / turn</div></div>
         <button class="btn">End Turn ▶</button>
       </div>
