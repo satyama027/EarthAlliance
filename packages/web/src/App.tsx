@@ -34,9 +34,11 @@ export default function App() {
             politicalCapital={game.state.resources.politicalCapital} money={game.state.resources.money}
             costNow={game.costNow} />
         </Box>
-        <Grid gutter="md">
+        <Grid gutter="md" align="stretch">
           <Grid.Col span={{ base: 12, md: 7 }}>
-            <Box style={{ height: 'clamp(220px, 38vh, 340px)', minHeight: 220, borderRadius: 8, overflow: 'hidden', background: '#05080f' }}>
+            {/* Map fills its grid row so it is as tall as the info column — no dead space beneath it.
+                The inline SVG (preserveAspectRatio "meet") always shows the whole world, centered. */}
+            <Box style={{ height: '100%', minHeight: 440, borderRadius: 8, overflow: 'hidden', background: '#05080f' }}>
               <WorldMap
                 selectedRegionId={selectedRegionId}
                 onSelectRegion={setSelectedRegionId}

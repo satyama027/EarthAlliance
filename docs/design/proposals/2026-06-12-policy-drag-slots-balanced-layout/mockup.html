@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Earth Alliance — Balanced layout + policy drag-into-slots (proposal)</title>
+<style>
+  /* ── Design tokens (mirror of packages/web/src/theme.ts, Mantine dark scheme) ── */
+  :root {
+    --earth-3:#63e6be; --earth-5:#20c997; --earth-6:#12b886; --earth-7:#0ca678;
+    --grape:#cc5de8; --grape-light:#3b2540; --teal:#20c997; --teal-light:#163a33;
+    --red:#ff6b6b; --yellow:#ffd43b; --orange:#ffa94d;
+    --bg:#1a1b1e; --surface:#25262b; --surface-2:#2c2e33; --border:#373a40;
+    --text:#c1c2c5; --text-strong:#f1f3f5; --dimmed:#909296;
+    --scene-bg:#05080f;
+    --cat-energy:#f59f00; --cat-industry:#868e96; --cat-land:#2f9e44;
+    --cat-social:#1971c2; --cat-frontier:#9c36b5;
+    --radius:8px; --radius-sm:4px;
+    font-family: system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); padding:16px;
+         -webkit-font-smoothing:antialiased; }
+
+  .note { max-width:1100px; margin:0 auto 14px; padding:11px 15px;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    font-size:13px; color:var(--dimmed); line-height:1.5; }
+  .note strong { color:var(--text-strong); }
+  .note .try { color:var(--earth-3); font-weight:600; }
+  .toolbar { max-width:1100px; margin:0 auto 14px; display:flex; gap:8px; align-items:center; }
+  .toggle { font:inherit; font-size:12px; font-weight:600; padding:7px 13px; border-radius:var(--radius-sm);
+    border:1px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer; }
+  .toggle.on { background:var(--earth-7); border-color:var(--earth-6); color:#fff; }
+  .toolbar .hint { font-size:12px; color:var(--dimmed); }
+
+  /* App frame: 7/5 grid. align-items:stretch so the map column FILLS the row height (no dead space). */
+  .app { max-width:1100px; margin:0 auto; display:grid; gap:16px;
+         grid-template-columns: 7fr 5fr; align-items:stretch; }
+  .col-scene { grid-column:1; grid-row:1; }
+  .col-info  { grid-column:2; grid-row:1; display:flex; flex-direction:column; gap:12px; }
+  .col-full  { grid-column:1 / -1; }
+  @media (max-width:820px){ .app{ grid-template-columns:1fr; } .col-scene,.col-info,.col-full{ grid-column:1; grid-row:auto; } }
+
+  .paper { background:var(--surface); border:1px solid var(--border);
+           border-radius:var(--radius); padding:12px; }
+  .col-info .paper:last-child { flex:1; } /* RegionPanel grows to fill, no awkward gap */
+
+  /* Scene viewport — NEW: fills its grid cell (height:100%) with a comfortable medium minimum,
+     so it is as tall as the info column and leaves no blank space beneath it. */
+  .scene { height:100%; min-height:440px; border-radius:var(--radius); overflow:hidden;
+    background: radial-gradient(circle at 50% 45%, #0b1830 0%, var(--scene-bg) 70%);
+    position:relative; display:flex; align-items:center; justify-content:center; }
+  /* contain = whole world always visible; the panel's ocean gradient fills the slim top/bottom bands. */
+  .worldmap { width:100%; height:100%; object-fit:contain; object-position:center; display:block; }
+  .scene-caption { position:absolute; bottom:10px; left:12px; font-size:11px; color:#5b6b86;
+    background:rgba(5,8,15,.55); padding:2px 7px; border-radius:4px; }
+
+  /* OLD (broken) demo: fixed-short map + top-aligned row → tall blank gap beneath the small map. */
+  .app.old { align-items:start; }
+  .app.old .scene { height:300px; min-height:300px; }
+  .app.old .col-scene::after { content:"↑ small map · ↓ this blank space is the bug"; display:block;
+    margin-top:8px; padding:10px; border:1px dashed #5a4a2a; border-radius:var(--radius); color:var(--yellow);
+    font-size:11px; text-align:center; background:repeating-linear-gradient(45deg,#221d12,#221d12 8px,#1e1a10 8px,#1e1a10 16px); }
+  .app.old .col-scene{ display:flex; flex-direction:column; }
+
+  /* Generic bits */
+  .row { display:flex; justify-content:space-between; align-items:center; }
+  .badge { display:inline-flex; align-items:center; padding:3px 10px; border-radius:999px;
+    font-size:12px; font-weight:600; }
+  .badge-lg { padding:5px 12px; font-size:13px; }
+  .badge-grape  { background:var(--grape-light); color:#e599f7; }
+  .badge-teal   { background:var(--teal-light); color:#63e6be; }
+  .badge-grape-solid{ background:#9c36b5; color:#fff; }
+  .badge-teal-solid { background:var(--earth-7); color:#fff; }
+  .title { color:var(--text-strong); font-weight:700; }
+  .h4 { font-size:15px; font-weight:700; color:var(--text-strong); margin:0 0 4px; }
+  .dimmed { color:var(--dimmed); }
+  .strong { color:var(--text-strong); font-weight:700; }
+  .sm { font-size:13px; } .xs { font-size:11px; }
+  .spark { width:100%; height:40px; }
+  .prog { height:8px; border-radius:999px; background:var(--surface-2); overflow:hidden; }
+  .prog > span { display:block; height:100%; border-radius:999px; }
+
+  /* Sticky resource header */
+  .sticky-wrap { max-width:1100px; margin:0 auto 16px; }
+
+  /* Policy board */
+  .board { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px;
+    position:relative; }
+  .board-head { display:flex; align-items:center; gap:8px; margin:0 0 12px; }
+  .board-head .t { font-size:15px; font-weight:700; color:var(--text-strong); }
+  .board-head .rdot { width:12px; height:12px; border-radius:3px; }
+  .board-head .sub { font-size:12px; color:var(--dimmed); }
+  .lane-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em;
+    color:var(--dimmed); margin:0 0 7px; }
+  .lane-label .hint { font-weight:600; letter-spacing:0; text-transform:none; color:#6b7077; }
+
+  /* A lane is a horizontal strip; NEW: it is NOT clipped during drag (overflow visible) so a lifted
+     card can float above it. Horizontal scrolling is handled by the inner .tray only. */
+  .lane { border:1.5px dashed transparent; border-radius:var(--radius); padding:8px; transition:border-color .12s, background .12s; }
+  .lane.active-lane.drop-armed { border-color:var(--earth-5); background:rgba(32,201,151,.05); }
+  .tray { display:flex; gap:12px; overflow-x:auto; overflow-y:visible; padding-bottom:6px; min-height:150px; align-items:stretch; }
+
+  /* Cards */
+  .card { width:170px; flex:0 0 170px; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:9px 11px 11px; position:relative; display:flex; flex-direction:column; gap:6px;
+    user-select:none; touch-action:none; }
+  .card.draggable { cursor:grab; }
+  .card.draggable:hover { transform:translateY(-2px); transition:transform .1s; border-color:#4a4d55; }
+  .card.disabled { opacity:.5; cursor:default; }
+  .card.dragging-source { opacity:.28; }
+  .art { height:34px; border-radius:var(--radius-sm); display:flex; align-items:center;
+    justify-content:center; font-size:20px; }
+  .card .name { font-weight:700; color:var(--text-strong); margin-top:4px; font-size:13.5px; line-height:1.2; }
+  .card .desc { font-size:11px; color:var(--dimmed); line-height:1.35;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .card .costs { display:flex; gap:6px; margin-top:2px; }
+  .fund { font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    padding:2px 7px; border-radius:999px; align-self:flex-start; }
+  .fund-buildout { background:#11342a; color:var(--earth-3); }
+  .fund-recurring { background:var(--teal-light); color:#63e6be; }
+  .fund-onetime { background:#33363c; color:#aeb3ba; }
+  .cstate { font-size:10.5px; font-weight:700; }
+  .cstate.b { color:var(--earth-3); } .cstate.a { color:var(--earth-5); }
+  .cap-row { display:flex; justify-content:space-between; font-size:10.5px; }
+  .cap-row .l { color:var(--dimmed); } .cap-row .v { color:var(--text-strong); font-weight:700; }
+  .cbar { height:6px; border-radius:999px; background:#1f2024; overflow:hidden; }
+  .cbar > span { display:block; height:100%; border-radius:999px;
+    background:linear-gradient(90deg,var(--earth-7),var(--earth-5) 60%,var(--earth-3)); }
+  .card .rm { position:absolute; top:5px; right:7px; width:17px; height:17px; border-radius:50%;
+    background:#3a2326; color:var(--red); font-size:11px; display:flex; align-items:center;
+    justify-content:center; font-weight:700; cursor:pointer; }
+  .card .stag { position:absolute; top:6px; left:8px; background:var(--earth-5); color:#06281e;
+    font-size:9px; font-weight:800; padding:1px 6px; border-radius:999px; }
+  .card .lockmark { position:absolute; top:6px; right:8px; color:#5b6068; font-size:10px; }
+  .card.staged { outline:2px solid var(--earth-5); outline-offset:-1px; }
+
+  /* NEW: empty drop SLOTS in the Active lane — ghost outlines that say where a card can go. */
+  .slot { width:170px; flex:0 0 170px; border:1.6px dashed #3d4350; border-radius:var(--radius);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    color:#5b6068; min-height:150px; text-align:center; padding:10px; transition:border-color .12s, background .12s, color .12s; }
+  .slot .plus { font-size:22px; line-height:1; }
+  .slot .lbl { font-size:11px; font-weight:600; }
+  .slot.hot { border-color:var(--earth-5); background:rgba(32,201,151,.08); color:var(--earth-3); }
+  .slot.hot .plus { color:var(--earth-5); }
+
+  /* Floating drag ghost — lives on <body>, fixed, above EVERYTHING; never clipped by a lane. */
+  .drag-ghost { position:fixed; z-index:9999; width:170px; pointer-events:none;
+    transform-origin:center; filter:drop-shadow(0 14px 24px rgba(0,0,0,.55));
+    transform:rotate(-3deg) scale(1.05); }
+  .drag-ghost .card { cursor:grabbing; }
+
+  .err { display:flex; align-items:center; gap:8px; background:#3a2326; color:var(--red);
+    border:1px solid #5a2a2e; border-radius:var(--radius-sm); padding:8px 12px; font-size:12.5px;
+    font-weight:600; margin:0 0 12px; }
+  .foot { display:flex; align-items:center; gap:18px; margin-top:14px; }
+  .foot .k { font-size:11px; color:var(--dimmed); text-transform:uppercase; letter-spacing:.05em; }
+  .foot .v { font-size:15px; font-weight:700; color:var(--text-strong); }
+  .btn { display:block; padding:11px 26px; border:none; border-radius:var(--radius-sm);
+    background:var(--earth-6); color:#fff; font-weight:600; font-size:14px; cursor:pointer; }
+  .foot .btn { margin-left:auto; }
+
+  hr.div { border:none; border-top:1px solid var(--border); margin:10px 0; }
+  h2.section { max-width:1100px; margin:26px auto 8px; color:var(--text-strong);
+    font-size:13px; text-transform:uppercase; letter-spacing:.08em; }
+</style>
+</head>
+<body>
+
+<div class="note">
+  <strong>Proposal — balanced layout + drag policies into slots.</strong> Two fixes in one screen:
+  <strong>(1)</strong> the world map now <strong>fills its column</strong> so there is no blank space
+  between it and the policy board, and it is back to a comfortable medium size; <strong>(2)</strong>
+  the policy board's <strong>Active</strong> lane shows <strong>empty drop slots</strong>, and a card
+  you drag <em>lifts above the lanes and settles into a slot</em> instead of sliding under and snapping
+  back. <span class="try">Try it: drag a card from “Available” up into an empty slot in “Active”.</span>
+  Click the red ✕ on a staged card to send it back.
+</div>
+
+<div class="toolbar">
+  <button class="toggle" id="gapToggle">Show the old dead-space bug</button>
+  <span class="hint" id="gapHint">Toggle to compare: small map + blank gap (before) vs. filled medium map (after).</span>
+</div>
+
+<!-- Sticky resource header -->
+<div class="sticky-wrap">
+  <div class="paper">
+    <div class="row">
+      <span class="strong">Year 2025 · Turn 1</span>
+      <span style="display:flex; gap:8px; align-items:center;">
+        <span class="badge badge-lg badge-grape-solid">Political Capital: 92</span>
+        <span class="badge badge-lg badge-teal-solid">Money: 1,500</span>
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- Main app layout -->
+<div class="app" id="app">
+  <!-- Scene (map) — fills the row, no gap below -->
+  <div class="col-scene">
+    <div class="scene">
+      <img class="worldmap" src="../../../../packages/web/src/assets/world-map.svg" alt="World map of the 10 regions" />
+      <div class="scene-caption">WorldMap — whole world shown, fills the column · click a region to select</div>
+    </div>
+  </div>
+
+  <!-- Info column -->
+  <div class="col-info">
+    <div class="paper">
+      <div class="h4">Planet</div>
+      <div class="row sm"><span>Warming</span><span style="color:var(--yellow)" class="strong">+1.20 °C</span></div>
+      <div class="row sm" style="margin-top:4px;"><span>CO₂</span><span class="strong">421 ppm</span></div>
+      <div class="row sm" style="margin-top:4px;"><span>Emissions</span><span class="strong">40.2 Gt/yr</span></div>
+      <svg class="spark" viewBox="0 0 240 40" preserveAspectRatio="none">
+        <polyline fill="none" stroke="var(--earth-5)" stroke-width="2"
+          points="0,30 40,28 80,25 120,22 160,18 200,15 240,12" />
+      </svg>
+    </div>
+    <div class="paper">
+      <div class="h4">North America</div>
+      <div class="xs dimmed" style="margin-bottom:6px;">GDP/capita $58,000 · pop 370M</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div><div class="row sm"><span>Public support</span><span class="strong">62</span></div>
+          <div class="prog"><span style="width:62%; background:var(--earth-5);"></span></div></div>
+        <div><div class="row sm"><span>Equity</span><span class="strong">55</span></div>
+          <div class="prog"><span style="width:55%; background:var(--earth-5);"></span></div></div>
+        <div><div class="row sm"><span>Biodiversity</span><span class="strong">48</span></div>
+          <div class="prog"><span style="width:48%; background:var(--yellow);"></span></div></div>
+        <div><div class="row sm"><span>Water</span><span class="strong">71</span></div>
+          <div class="prog"><span style="width:71%; background:var(--earth-5);"></span></div></div>
+        <div><div class="row sm"><span>Land</span><span class="strong">66</span></div>
+          <div class="prog"><span style="width:66%; background:var(--earth-5);"></span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PolicyBoard (full width) — region-scoped, two lanes, drag into slots -->
+  <div class="col-full">
+    <div class="board" id="board">
+      <div class="board-head">
+        <span class="t">Policies</span>
+        <span class="rdot" style="background:#4dabf7;"></span>
+        <span class="sub">· North America — costs scaled to this region (GDP share ≈ 21%)</span>
+      </div>
+
+      <div class="err" id="err" style="display:none;"></div>
+
+      <!-- Active lane (top) -->
+      <div class="lane-label">Active · North America · <span id="activeCount">2</span>
+        <span class="hint">— drag a card here to enact, or ✕ to remove</span></div>
+      <div class="lane active-lane" id="activeLane">
+        <div class="tray" id="activeTray">
+          <!-- committed building (cancellable) -->
+          <div class="card">
+            <span class="rm" title="stop">✕</span>
+            <div class="art" style="background:var(--cat-energy);">⚡</div>
+            <div class="name">Renewable Subsidy</div>
+            <span class="fund fund-buildout">Buildout</span>
+            <div class="cap-row"><span class="l">Installed</span><span class="v">40%</span></div>
+            <div class="cbar"><span style="width:40%"></span></div>
+            <div class="cstate b">Building · +10%/turn</div>
+            <div class="costs"><span class="badge badge-grape">PC 10</span><span class="badge badge-teal">$250/turn</span></div>
+          </div>
+          <!-- committed recurring (cancellable) -->
+          <div class="card">
+            <span class="rm" title="stop">✕</span>
+            <div class="art" style="background:var(--cat-social);">🤝</div>
+            <div class="name">Climate Adaptation</div>
+            <span class="fund fund-recurring">Recurring</span>
+            <div class="cstate a">Funded each turn</div>
+            <div class="costs"><span class="badge badge-grape">PC 8</span><span class="badge badge-teal">$104/turn</span></div>
+          </div>
+          <!-- empty drop slots -->
+          <div class="slot"><span class="plus">＋</span><span class="lbl">drop a policy here</span></div>
+          <div class="slot"><span class="plus">＋</span><span class="lbl">drop a policy here</span></div>
+        </div>
+      </div>
+
+      <hr class="div" />
+
+      <!-- Available lane (bottom) -->
+      <div class="lane-label">Available · <span id="availCount">3</span>
+        <span class="hint">— drag a card up to enact in North America ↑</span></div>
+      <div class="lane" id="availLane">
+        <div class="tray" id="availTray">
+          <div class="card draggable" data-name="Carbon Tax" data-cat="industry" data-icon="🏭"
+               data-fund="onetime" data-fundlabel="One-time" data-pc="15" data-money="$10 once" data-state="Starts this turn">
+            <div class="art" style="background:var(--cat-industry);">🏭</div>
+            <div class="name">Carbon Tax</div>
+            <span class="fund fund-onetime">One-time</span>
+            <div class="desc">Price carbon to cut emissions; unpopular up front.</div>
+            <div class="costs"><span class="badge badge-grape">PC 15</span><span class="badge badge-teal">$10 once</span></div>
+          </div>
+          <div class="card draggable" data-name="Nuclear Buildout" data-cat="energy" data-icon="⚡"
+               data-fund="buildout" data-fundlabel="Buildout" data-pc="20" data-money="$166/turn" data-state="Starts this turn">
+            <div class="art" style="background:var(--cat-energy);">⚡</div>
+            <div class="name">Nuclear Buildout</div>
+            <span class="fund fund-buildout">Buildout</span>
+            <div class="desc">Firm, low-carbon power; slow to build, lasting payoff.</div>
+            <div class="costs"><span class="badge badge-grape">PC 20</span><span class="badge badge-teal">$166/turn</span></div>
+          </div>
+          <div class="card draggable" data-name="Transit Expansion" data-cat="industry" data-icon="🏭"
+               data-fund="buildout" data-fundlabel="Buildout" data-pc="9" data-money="$70/turn" data-state="Starts this turn">
+            <div class="art" style="background:var(--cat-industry);">🏭</div>
+            <div class="name">Transit Expansion</div>
+            <span class="fund fund-buildout">Buildout</span>
+            <div class="desc">Mass transit cuts transport emissions over time.</div>
+            <div class="costs"><span class="badge badge-grape">PC 9</span><span class="badge badge-teal">$70/turn</span></div>
+          </div>
+          <div class="card disabled">
+            <div class="art" style="background:var(--cat-frontier);">🚀</div>
+            <div class="name">Off-World Colonies</div>
+            <span class="fund fund-onetime">One-time</span>
+            <div class="desc" style="color:#5b6068;">🔒 Requires Orbital Infrastructure here</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="foot">
+        <div><div class="k">Staged this turn</div><div class="v" id="stagedN">0</div></div>
+        <div><div class="k">Cost now</div><div class="v" id="costNow">PC 0 · $0</div></div>
+        <div><div class="k">Upkeep next turn</div><div class="v">$354 / turn</div></div>
+        <button class="btn">End Turn ▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="section">What changes vs. today</h2>
+<div class="note" style="margin-top:0;">
+  <strong>Layout:</strong> map cell uses <code>height:100%</code> with <code>min-height:440px</code> inside a
+  stretched grid row, so it equals the info column — the blank band beneath the small map is gone, and the
+  map is comfortably medium again. The image uses <code>object-fit:contain</code> so the
+  <strong>entire world is always visible</strong>; the panel's ocean gradient fills the slim top/bottom bands.<br/>
+  <strong>Drag:</strong> the dragged card is rendered in a <strong>floating layer on top of the page</strong>
+  (so it can never be clipped “under” a lane), the Active lane shows <strong>persistent empty slots</strong>
+  as obvious drop targets, and a drop that lands on a slot <strong>stages the card there</strong> (it stays,
+  outlined + “STAGED”). Click/keyboard still work as the accessible equivalents.
+</div>
+
+<script>
+  // ── Old-gap comparison toggle ─────────────────────────────────────────────
+  const app = document.getElementById('app');
+  const gapToggle = document.getElementById('gapToggle');
+  gapToggle.addEventListener('click', () => {
+    const on = app.classList.toggle('old');
+    gapToggle.classList.toggle('on', on);
+    gapToggle.textContent = on ? 'Showing OLD (broken) — click for fixed' : 'Show the old dead-space bug';
+  });
+
+  // ── Mock drag: lift an Available card into an Active slot ──────────────────
+  const activeTray = document.getElementById('activeTray');
+  const availTray  = document.getElementById('availTray');
+  const activeLane = document.getElementById('activeLane');
+
+  function refreshCounts() {
+    document.getElementById('availCount').textContent = availTray.querySelectorAll('.card.draggable, .card.disabled').length;
+    const staged = activeTray.querySelectorAll('.card.staged').length;
+    const committed = activeTray.querySelectorAll('.card:not(.staged)').length;
+    document.getElementById('activeCount').textContent = committed + staged;
+    document.getElementById('stagedN').textContent = staged;
+    // crude cost preview from staged PC badges
+    let pc = 0;
+    activeTray.querySelectorAll('.card.staged .badge-grape').forEach(b => {
+      const m = b.textContent.match(/\d+/); if (m) pc += +m[0];
+    });
+    document.getElementById('costNow').textContent = `PC ${pc} · $0`;
+  }
+
+  function stagedCardHTML(d) {
+    const fundClass = { onetime:'fund-onetime', buildout:'fund-buildout', recurring:'fund-recurring' }[d.fund] || 'fund-onetime';
+    return `
+      <span class="stag">STAGED</span><span class="rm" title="remove">✕</span>
+      <div class="art" style="background:var(--cat-${d.cat});">${d.icon}</div>
+      <div class="name">${d.name}</div>
+      <span class="fund ${fundClass}">${d.fundlabel}</span>
+      <div class="cstate a">${d.state}</div>
+      <div class="costs"><span class="badge badge-grape">PC ${d.pc}</span><span class="badge badge-teal">${d.money}</span></div>`;
+  }
+
+  function makeStaged(d) {
+    const el = document.createElement('div');
+    el.className = 'card staged';
+    el.innerHTML = stagedCardHTML(d);
+    el.querySelector('.rm').addEventListener('click', () => unstage(el, d));
+    return el;
+  }
+
+  function unstage(stagedEl, d) {
+    // turn the slot back into an empty slot
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.innerHTML = `<span class="plus">＋</span><span class="lbl">drop a policy here</span>`;
+    stagedEl.replaceWith(slot);
+    // restore an Available card
+    const card = document.createElement('div');
+    card.className = 'card draggable';
+    Object.entries(d).forEach(([k, v]) => card.dataset[k] = v);
+    card.innerHTML = `
+      <div class="art" style="background:var(--cat-${d.cat});">${d.icon}</div>
+      <div class="name">${d.name}</div>
+      <span class="fund ${ {onetime:'fund-onetime',buildout:'fund-buildout',recurring:'fund-recurring'}[d.fund] }">${d.fundlabel}</span>
+      <div class="costs"><span class="badge badge-grape">PC ${d.pc}</span><span class="badge badge-teal">${d.money}</span></div>`;
+    attachDrag(card);
+    availTray.appendChild(card);
+    refreshCounts();
+  }
+
+  let drag = null; // { ghost, source, data, offsetX, offsetY }
+
+  function attachDrag(card) {
+    card.addEventListener('pointerdown', (e) => {
+      if (!card.classList.contains('draggable')) return;
+      e.preventDefault();
+      const r = card.getBoundingClientRect();
+      const data = { ...card.dataset };
+      const ghost = document.createElement('div');
+      ghost.className = 'drag-ghost';
+      const inner = document.createElement('div');
+      inner.className = 'card';
+      inner.style.width = '170px';
+      inner.innerHTML = card.innerHTML;
+      ghost.appendChild(inner);
+      document.body.appendChild(ghost);
+      card.classList.add('dragging-source');
+      drag = { ghost, source: card, data, offsetX: e.clientX - r.left, offsetY: e.clientY - r.top };
+      moveGhost(e.clientX, e.clientY);
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    });
+  }
+
+  function moveGhost(x, y) {
+    drag.ghost.style.left = (x - drag.offsetX) + 'px';
+    drag.ghost.style.top  = (y - drag.offsetY) + 'px';
+  }
+
+  function slotUnder(x, y) {
+    const el = document.elementFromPoint(x, y);
+    return el ? el.closest('.slot') : null;
+  }
+
+  function onMove(e) {
+    moveGhost(e.clientX, e.clientY);
+    // arm the active lane + highlight the slot we're over
+    const overLane = !!(document.elementFromPoint(e.clientX, e.clientY)?.closest('#activeLane'));
+    activeLane.classList.toggle('drop-armed', overLane);
+    document.querySelectorAll('.slot.hot').forEach(s => s.classList.remove('hot'));
+    const slot = slotUnder(e.clientX, e.clientY);
+    if (slot) slot.classList.add('hot');
+  }
+
+  function onUp(e) {
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    const slot = slotUnder(e.clientX, e.clientY);
+    activeLane.classList.remove('drop-armed');
+    document.querySelectorAll('.slot.hot').forEach(s => s.classList.remove('hot'));
+
+    if (slot) {
+      // settle into the slot: replace it with the staged card; remove the source from Available
+      const staged = makeStaged(drag.data);
+      slot.replaceWith(staged);
+      drag.source.remove();
+      // keep at least one trailing empty slot so there is always a visible target
+      if (activeTray.querySelectorAll('.slot').length === 0) {
+        const s = document.createElement('div');
+        s.className = 'slot';
+        s.innerHTML = `<span class="plus">＋</span><span class="lbl">drop a policy here</span>`;
+        activeTray.appendChild(s);
+      }
+      drag.ghost.remove();
+      drag.source.classList.remove('dragging-source');
+      drag = null;
+      refreshCounts();
+    } else {
+      // not over a slot: animate the ghost back to the source, then discard
+      const r = drag.source.getBoundingClientRect();
+      drag.ghost.style.transition = 'left .18s ease, top .18s ease, transform .18s ease';
+      drag.ghost.style.transform = 'rotate(0deg) scale(1)';
+      drag.ghost.style.left = r.left + 'px';
+      drag.ghost.style.top = r.top + 'px';
+      const g = drag.ghost, src = drag.source;
+      setTimeout(() => { g.remove(); src.classList.remove('dragging-source'); }, 190);
+      drag = null;
+    }
+  }
+
+  // wire existing staged-card ✕ (none initially) + all available cards
+  document.querySelectorAll('#availTray .card.draggable').forEach(attachDrag);
+  // wire committed-card ✕ to just toggle a "will stop" affordance (visual only here)
+  activeTray.querySelectorAll('.card:not(.staged) .rm').forEach(rm => {
+    rm.addEventListener('click', () => {
+      const card = rm.closest('.card');
+      card.style.outline = card.style.outline ? '' : '2px solid var(--red)';
+      rm.textContent = rm.textContent === '✕' ? '↺' : '✕';
+    });
+  });
+  refreshCounts();
+</script>
+</body>
+</html>

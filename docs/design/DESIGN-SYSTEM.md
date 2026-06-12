@@ -82,11 +82,14 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
 - App frame: `AppShell` with `padding="md"`. A **sticky ResourceBar header** sits at the top of
   `AppShell.Main` (`position: sticky; top: 0; zIndex: 200`), above the grid.
 - Main layout (top→bottom, so the action sits above the fold): sticky resource header → 2-column
-  `Grid` (scene `span md=7`, info column `span md=5` holding **Dashboard + RegionPanel**) → full-width
-  **PolicyBoard** (`span 12`) → full-width **TurnLog** (`span 12`, demoted to bottom as
-  reference/history). Stacks to single column on `base` (mobile).
-- Scene viewport: `height: clamp(220px, 38vh, 340px)`, `minHeight: 220` — shortened from the old
-  `70vh` so the policy board is reachable without scrolling.
+  `Grid` (`align="stretch"`; scene `span md=7`, info column `span md=5` holding **Dashboard +
+  RegionPanel**) → full-width **PolicyBoard** (`span 12`) → full-width **TurnLog** (`span 12`, demoted
+  to bottom as reference/history). Stacks to single column on `base` (mobile).
+- Scene viewport: `height: 100%`, `minHeight: 440` — the map **fills its grid row** so it is as tall as
+  the info column, leaving **no dead space** beneath it (a stretched `Grid` row sizes both columns to
+  the taller one). The inline `world-map.svg` uses `preserveAspectRatio="xMidYMid meet"`, so the **whole
+  world is always shown**, centered; the slim top/bottom bands fall back to the scene's `#05080f` ocean.
+  (Replaces the earlier `clamp(220px, 38vh, 340px)`, which under-filled the column and looked tiny.)
 - Right info column gap: `12px`.
 
 ---
@@ -102,7 +105,10 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
 - **ResourceBar** — bordered `Paper`, year/turn on the left (`fw={700}`), PC (`grape`) and Money
   (`teal`) `Badge`s (`size="lg"`) on the right. The badges show what is **REMAINING** to spend this
   turn — balance minus the staged `costNow` (PC and money) — not the raw balance, so staging a policy
-  immediately drops the numbers. When a staged selection exceeds the budget the relevant badge turns
+  immediately drops the numbers. `costNow` money counts **every** staged policy's first-turn GDP-scaled
+  charge (one-time enactment *and* recurring/buildout first upkeep, which is charged on the enactment
+  turn), so committing any policy with a money cost visibly moves the Money badge — not just one-time
+  policies. When a staged selection exceeds the budget the relevant badge turns
   **red** and an `⚠ over budget` `role="alert"` line appears (mirrors `validateSelection` / the disabled
   End Turn). Rendered as a **sticky header** at the top of `AppShell.Main` (`position: sticky; top: 0`,
   body-colored background) so it stays visible while the player works the policy board.
@@ -142,16 +148,24 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   (`Building · +10%/turn`, `✓ Built · benefit persists`, `Funded each turn`, `Stopped · N% installed`,
   `Starts this turn`). Staged → 2px `earth-5` outline + `STAGED` badge + ✕; cancellable committed →
   ✕ (turns to ↺ when marked to stop, 2px `red-6` outline); locked/unaffordable → 0.5 opacity.
-  Draggable (framer-motion `drag` + `dragSnapToOrigin`); click/Enter/Space are the accessible,
-  testable equivalents. Keeps `role="button"`, `aria-pressed`, `aria-disabled`, `aria-label`.
+  The visual surface is the reusable `CardFace`; the interactive wrapper drives a **pointer drag**
+  (`onPointerDown` → board) — while dragging, the source dims to 0.3 and a `CardFace` clone is lifted in
+  a floating overlay (see PolicyBoard). Click/tap and Enter/Space are the accessible, testable
+  equivalents. Keeps `role="button"`, `aria-pressed`, `aria-disabled`, `aria-label`.
 - **PolicyBoard** — bordered `Paper`, full width, scoped to the selected region (header shows region
   name + `REGION_COLORS` dot). Two stacked lanes — **Active** (top, what's running here) and
   **Available** (bottom, enactable here) — each a horizontal `ScrollArea` of `PolicyCard`s separated
-  by a `Divider`. **Drag a card up** to enact, **down (or ✕)** to remove; a valid drop highlights the
-  Active lane earth-dashed, an unaffordable attempt shows a red **error banner** (`role="alert"`) and
-  the card snaps back. Empty state (no region): dashed box "Select a region on the map to manage its
-  policies." Footer: global this-turn summary (Staged / Cost now / Upkeep next turn) + validation
-  reason in red + primary "End Turn ▶".
+  by a `Divider`; each lane carries a `data-droplane` attribute for drop hit-testing. The Active lane
+  shows **empty drop slots** (dashed `dark-4` ghost cards, "＋ drop a policy here", 2 when policies can
+  be added) so the drop target is always visible. **Drag a card up** to enact, or **✕** to remove: the
+  dragged card is rendered in a **floating overlay** (`createPortal` to `document.body`, `position:
+  fixed`, `z-index 9999`, rotate -3°/scale 1.05 + drop shadow) so it floats **above both lanes** and is
+  never clipped; the drop lane is found with `document.elementFromPoint` (scroll-correct). Hovering the
+  Active lane while dragging arms it + its slots earth-dashed (`earth-5`). A valid drop into the Active
+  lane stages the policy (it stays); a tap/click/Enter is the equivalent; an unaffordable attempt shows
+  a red **error banner** (`role="alert"`) and does nothing. Empty state (no region): dashed box "Select
+  a region on the map to manage its policies." Footer: global this-turn summary (Staged / Cost now /
+  Upkeep next turn) + validation reason in red + primary "End Turn ▶".
 - **EndingScreen** — full-screen `Overlay` (black, 85% opacity), centered; kind `Badge`
   (win=teal / loss=red / ambiguous=yellow), large title, description, "Play again". Fades/slides
   in (framer-motion).
@@ -160,8 +174,9 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
 
 ## Motion
 
-- `framer-motion` is the animation library.
-- Interactive cards: `whileHover` scale 1.03, `whileTap` scale 0.98 (disabled when not actionable).
+- `framer-motion` is the animation library (overlays / `EndingScreen`).
+- Policy cards use a **custom pointer drag**: the lifted clone floats in a portal overlay (rotate -3°,
+  scale 1.05, drop shadow); the source dims to 0.3. A press under the `DRAG_THRESHOLD` (5px) is a tap.
 - Overlays: fade + 20px rise, ~0.6s.
 
 ---

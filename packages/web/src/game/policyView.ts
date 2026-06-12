@@ -93,7 +93,12 @@ export function regionPolicyView(
   return { available, active };
 }
 
-/** Money/PC the player commits *this turn* across all regions (one-time charges + first upkeep is post-income). */
+/**
+ * Money/PC the player commits *this turn* across all regions. Every funding mode spends money on its
+ * enactment turn — one-time at enactment, recurring/buildout as their first upkeep (the `programs`
+ * submodel charges it the same turn) — so all staged policies' GDP-scaled `regionCharge` counts here.
+ * Mirrors the engine's `validateSelection` money gate so the ResourceBar and End-Turn stay consistent.
+ */
 export function stagedCostNow(state: WorldState, staged: PolicySelection[]): { politicalCapital: number; money: number } {
   let politicalCapital = 0;
   let money = 0;
@@ -101,7 +106,7 @@ export function stagedCostNow(state: WorldState, staged: PolicySelection[]): { p
     const policy = POLICY_CATALOG.find((p) => p.id === policyId);
     if (!policy) continue;
     politicalCapital += policy.cost.politicalCapital;
-    if (policy.funding === 'one-time') money += regionCharge(state, policy, regionId);
+    money += regionCharge(state, policy, regionId);
   }
   return { politicalCapital, money };
 }

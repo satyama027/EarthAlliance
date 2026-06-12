@@ -121,6 +121,25 @@ describe('validateSelection', () => {
     const state = makeState({ resources: { politicalCapital: 100, money: 5000 } });
     expect(validateSelection(state, [{ policyId: 'off-world-colonies', regionId: REGION }]).ok).toBe(false);
   });
+
+  it('counts a buildout policy\'s first-turn (setup) money against the budget', () => {
+    // renewable-subsidy is charged its GDP-scaled upkeep on the enactment turn (by `programs`),
+    // so its first-turn cost must be afforded up front like any other spend.
+    const state = makeState({ resources: { politicalCapital: 100, money: 1 } });
+    const result = validateSelection(state, [{ policyId: 'renewable-subsidy', regionId: REGION }]);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toMatch(/money/i);
+  });
+
+  it('counts a recurring policy\'s first-turn (setup) money against the budget', () => {
+    const state = makeState({ resources: { politicalCapital: 100, money: 1 } });
+    expect(validateSelection(state, [{ policyId: 'climate-adaptation', regionId: REGION }]).ok).toBe(false);
+  });
+
+  it('accepts a buildout policy when its first-turn money is affordable', () => {
+    const state = makeState({ resources: { politicalCapital: 100, money: 5000 } });
+    expect(validateSelection(state, [{ policyId: 'renewable-subsidy', regionId: REGION }]).ok).toBe(true);
+  });
 });
 
 describe('enactment helpers', () => {

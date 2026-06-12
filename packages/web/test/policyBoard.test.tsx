@@ -81,4 +81,16 @@ describe('PolicyBoard', () => {
     expect(screen.getByRole('button', { name: /end turn/i })).toBeDisabled();
     expect(screen.getByText(/not enough political capital/i)).toBeInTheDocument();
   });
+
+  it('shows empty drop slots in the Active lane as visible drop targets', () => {
+    board(); // region selected, has available policies, nothing active yet
+    const slots = screen.getAllByTestId('drop-slot');
+    expect(slots.length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/drop a policy here/i).length).toBeGreaterThan(0);
+  });
+
+  it('does not show drop slots when no region is selected', () => {
+    board({ regionId: null });
+    expect(screen.queryAllByTestId('drop-slot')).toHaveLength(0);
+  });
 });

@@ -1,5 +1,5 @@
 import { createInitialState, type WorldState, type Enactment } from '@earth-alliance/engine';
-import { regionPolicyView, type CardVM } from '../src/game/policyView.js';
+import { regionPolicyView, stagedCostNow, type CardVM } from '../src/game/policyView.js';
 
 const REGION = 'north-america';
 
@@ -58,5 +58,23 @@ describe('regionPolicyView', () => {
     const broke = withEnactments([], { resources: { politicalCapital: 0, money: 0 } });
     const card = find(regionPolicyView(broke, REGION, [], []).available, 'renewable-subsidy')!;
     expect(card.affordable).toBe(false);
+  });
+});
+
+describe('stagedCostNow', () => {
+  it('charges the first-turn (setup) money for a buildout policy, not just one-time', () => {
+    const cost = stagedCostNow(createInitialState(), [{ policyId: 'renewable-subsidy', regionId: REGION }]);
+    expect(cost.politicalCapital).toBe(10);
+    expect(cost.money).toBeGreaterThan(0); // renewable-subsidy is buildout — its first upkeep counts now
+  });
+
+  it('charges the first-turn money for a recurring policy', () => {
+    const cost = stagedCostNow(createInitialState(), [{ policyId: 'climate-adaptation', regionId: REGION }]);
+    expect(cost.money).toBeGreaterThan(0);
+  });
+
+  it('still charges one-time money', () => {
+    const cost = stagedCostNow(createInitialState(), [{ policyId: 'carbon-tax', regionId: REGION }]);
+    expect(cost.money).toBeGreaterThan(0);
   });
 });

@@ -1,9 +1,10 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Paper, Group, Text, Button, ScrollArea, Box, Divider, Stack } from '@mantine/core';
 import { validateSelection, type WorldState, type PolicySelection } from '@earth-alliance/engine';
 import { REGION_COLORS } from '../theme.js';
 import { regionPolicyView, type CardVM } from '../game/policyView.js';
-import { PolicyCard } from './PolicyCard.js';
+import { PolicyCard, CardFace } from './PolicyCard.js';
 
 interface PolicyBoardProps {
   state: WorldState;
@@ -21,14 +22,18 @@ interface PolicyBoardProps {
   stagedTotal: number;
 }
 
-type DropHint = 'none' | 'valid' | 'reject';
+/** Empty drop slots shown in the Active lane so the drop target is always visible. */
+const ACTIVE_SLOTS = 2;
+/** How far the pointer must travel before a press becomes a drag (vs. a tap). */
+const DRAG_THRESHOLD = 5;
+
+type Lane = 'active' | 'available';
+interface DragState { vm: CardVM; x: number; y: number; over: Lane | null }
 
 export function PolicyBoard(props: PolicyBoardProps) {
   const { state, regionId, staged, cancels } = props;
   const [error, setError] = useState<string | null>(null);
-  const [activeHint, setActiveHint] = useState<DropHint>('none');
-  const activeRef = useRef<HTMLDivElement>(null);
-  const availableRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
 
   const region = regionId ? state.regions.find((r) => r.id === regionId) ?? null : null;
   const regionColor = regionId ? REGION_COLORS[regionId] ?? '#909296' : null;
@@ -38,8 +43,8 @@ export function PolicyBoard(props: PolicyBoardProps) {
     [state, regionId, staged, cancels],
   );
 
-  // The canonical action for a card: enact / unstage / toggle-cancel. Click, keyboard, and a valid
-  // cross-lane drag all funnel here. Returns true if it moved.
+  // The canonical action for a card: enact / unstage / toggle-cancel. A tap, Enter/Space, and a valid
+  // cross-lane drop all funnel here. Returns true if it moved.
   function performPrimary(vm: CardVM): boolean {
     if (!regionId) return false;
     if (vm.lane === 'available') {
@@ -54,29 +59,48 @@ export function PolicyBoard(props: PolicyBoardProps) {
     return false;
   }
 
-  function laneAt(point: { x: number; y: number }): 'active' | 'available' | null {
-    const hit = (el: HTMLDivElement | null) => {
-      const r = el?.getBoundingClientRect();
-      return !!r && point.x >= r.left && point.x <= r.right && point.y >= r.top && point.y <= r.bottom;
+  // Which lane is under this viewport point? Uses the real hit-test, so it is correct regardless of
+  // page scroll (the old getBoundingClientRect math broke once the page scrolled).
+  function laneAtPoint(x: number, y: number): Lane | null {
+    const lane = document.elementFromPoint(x, y)?.closest('[data-droplane]');
+    const v = lane?.getAttribute('data-droplane');
+    return v === 'active' || v === 'available' ? v : null;
+  }
+
+  // Pointer-driven drag/tap. The lifted card is rendered in a fixed overlay (see below) so it floats
+  // ABOVE both lanes and can never be clipped "under" the Active lane's scroll container.
+  function startDrag(vm: CardVM, e: React.PointerEvent) {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const ox = e.clientX - r.left;
+    const oy = e.clientY - r.top;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let moved = false;
+
+    const move = (ev: PointerEvent) => {
+      if (!moved && Math.hypot(ev.clientX - startX, ev.clientY - startY) < DRAG_THRESHOLD) return;
+      moved = true;
+      setDrag({ vm, x: ev.clientX - ox, y: ev.clientY - oy, over: laneAtPoint(ev.clientX, ev.clientY) });
     };
-    if (hit(activeRef.current)) return 'active';
-    if (hit(availableRef.current)) return 'available';
-    return null;
+    const up = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      setDrag(null);
+      if (!moved) { performPrimary(vm); return; }                 // a tap — same as a click
+      const target = laneAtPoint(ev.clientX, ev.clientY);
+      if (target && target !== vm.lane) performPrimary(vm);        // dropped in the other lane
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
   }
 
-  function handleDragStart(vm: CardVM) {
-    if (vm.lane === 'available') setActiveHint(vm.affordable ? 'valid' : 'reject');
-  }
-  function handleDragEnd(vm: CardVM, point: { x: number; y: number }) {
-    setActiveHint('none');
-    const target = laneAt(point);
-    if (target && target !== vm.lane) performPrimary(vm);
-  }
+  const draggingId = drag ? `${drag.vm.policy.id}:${drag.vm.lane}` : null;
+  const activeArmed = drag?.over === 'active' && drag.vm.lane === 'available';
+  const enactable = !!view?.available.some((c) => c.state === 'available');
+  const activeSlots = enactable ? ACTIVE_SLOTS : 0;
 
-  const laneBorder = (hint: DropHint) =>
-    hint === 'valid' ? '1.5px dashed var(--mantine-color-earth-5)'
-      : hint === 'reject' ? '1.5px dashed var(--mantine-color-red-6)'
-        : '1.5px dashed transparent';
+  const armedBorder = (armed: boolean) =>
+    armed ? '1.5px dashed var(--mantine-color-earth-5)' : '1.5px dashed transparent';
 
   return (
     <Paper withBorder p="sm">
@@ -97,26 +121,28 @@ export function PolicyBoard(props: PolicyBoardProps) {
       ) : (
         <Stack gap={6}>
           {/* Active lane */}
-          <div ref={activeRef} style={{ borderRadius: 8, border: laneBorder(activeHint),
-            background: activeHint !== 'none' ? 'rgba(32,201,151,.04)' : 'transparent', padding: 8 }}>
+          <div data-droplane="active" style={{ borderRadius: 8, border: armedBorder(activeArmed),
+            background: activeArmed ? 'rgba(32,201,151,.04)' : 'transparent', padding: 8 }}>
             <Text size="xs" fw={700} c="dimmed" tt="uppercase" mb={6} style={{ letterSpacing: '.06em' }}>
               Active · {region.name} · {view.active.length}
-              <Text span size="xs" c="dimmed" tt="none" fw={500} style={{ letterSpacing: 0 }}> — drag a card down (or ✕) to remove ↓</Text>
+              <Text span size="xs" c="dimmed" tt="none" fw={500} style={{ letterSpacing: 0 }}> — drag a card here to enact (or ✕ to remove)</Text>
             </Text>
-            <LaneStrip cards={view.active} emptyText="Nothing active here yet."
-              onActivate={performPrimary} onDragStart={handleDragStart} onDragEnd={handleDragEnd} />
+            <LaneStrip cards={view.active} emptyText="Nothing active here yet." slots={activeSlots}
+              armed={activeArmed} draggingId={draggingId}
+              onActivate={performPrimary} onDragStart={startDrag} />
           </div>
 
           <Divider />
 
           {/* Available lane */}
-          <div ref={availableRef} style={{ borderRadius: 8, padding: 8 }}>
+          <div data-droplane="available" style={{ borderRadius: 8, padding: 8 }}>
             <Text size="xs" fw={700} c="dimmed" tt="uppercase" mb={6} style={{ letterSpacing: '.06em' }}>
               Available · {view.available.length}
               <Text span size="xs" c="dimmed" tt="none" fw={500} style={{ letterSpacing: 0 }}> — drag a card up to enact in {region.name} ↑</Text>
             </Text>
-            <LaneStrip cards={view.available} emptyText="No more policies available here."
-              onActivate={performPrimary} onDragStart={handleDragStart} onDragEnd={handleDragEnd} />
+            <LaneStrip cards={view.available} emptyText="No more policies available here." slots={0}
+              armed={false} draggingId={draggingId}
+              onActivate={performPrimary} onDragStart={startDrag} />
           </div>
         </Stack>
       )}
@@ -131,18 +157,29 @@ export function PolicyBoard(props: PolicyBoardProps) {
           <Button size="md" disabled={!props.canEndTurn} onClick={props.onEndTurn}>End Turn ▶</Button>
         </Box>
       </Group>
+
+      {/* Floating drag overlay — lives on <body>, above everything, never clipped by a lane. */}
+      {drag && createPortal(
+        <div style={{ position: 'fixed', left: drag.x, top: drag.y, width: 180, zIndex: 9999,
+          pointerEvents: 'none', transform: 'rotate(-3deg) scale(1.05)', transformOrigin: 'center' }}>
+          <CardFace vm={drag.vm} floating />
+        </div>,
+        document.body,
+      )}
     </Paper>
   );
 }
 
-function LaneStrip({ cards, emptyText, onActivate, onDragStart, onDragEnd }: {
+function LaneStrip({ cards, emptyText, slots, armed, draggingId, onActivate, onDragStart }: {
   cards: CardVM[];
   emptyText: string;
+  slots: number;
+  armed: boolean;
+  draggingId: string | null;
   onActivate(vm: CardVM): void;
-  onDragStart(vm: CardVM): void;
-  onDragEnd(vm: CardVM, point: { x: number; y: number }): void;
+  onDragStart(vm: CardVM, e: React.PointerEvent): void;
 }) {
-  if (cards.length === 0) {
+  if (cards.length === 0 && slots === 0) {
     return <Text size="xs" c="dimmed" fs="italic" py={18}>{emptyText}</Text>;
   }
   return (
@@ -150,10 +187,28 @@ function LaneStrip({ cards, emptyText, onActivate, onDragStart, onDragEnd }: {
       <Group align="stretch" gap={12} wrap="nowrap" py={2}>
         {cards.map((vm) => (
           <PolicyCard key={`${vm.policy.id}:${vm.lane}`} vm={vm}
-            onActivate={onActivate} onDragStart={onDragStart} onDragEnd={onDragEnd} />
+            dragging={draggingId === `${vm.policy.id}:${vm.lane}`}
+            onActivate={onActivate} onDragStart={onDragStart} />
         ))}
+        {Array.from({ length: slots }).map((_, i) => <DropSlot key={`slot-${i}`} armed={armed} />)}
       </Group>
     </ScrollArea.Autosize>
+  );
+}
+
+/** An empty "ghost" slot in the Active lane signalling where a dragged policy can land. */
+function DropSlot({ armed }: { armed: boolean }) {
+  return (
+    <Box data-testid="drop-slot" style={{
+      width: 180, flex: '0 0 180px', minHeight: 150, borderRadius: 8,
+      border: armed ? '1.6px dashed var(--mantine-color-earth-5)' : '1.6px dashed var(--mantine-color-dark-4)',
+      background: armed ? 'rgba(32,201,151,.08)' : 'transparent',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
+      textAlign: 'center', padding: 10,
+    }}>
+      <Text style={{ fontSize: 22, lineHeight: 1 }} c={armed ? 'earth.5' : 'dark.2'}>＋</Text>
+      <Text size="xs" fw={600} c={armed ? 'earth.3' : 'dark.2'}>drop a policy here</Text>
+    </Box>
   );
 }
 

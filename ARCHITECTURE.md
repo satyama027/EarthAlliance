@@ -223,6 +223,12 @@ reference. `cost.politicalCapital` is charged once per enactment, unscaled.
 | `recurring` | every turn while active (`programs`), never completes | flat | climate-adaptation |
 | `buildout`  | every turn until installed capacity reaches 100%, then stops | ramps with capacity (`delta × capacity`), persists at full after completion | renewable-subsidy, nuclear, reforestation, transit, education |
 
+For `recurring`/`buildout`, the **first** per-turn charge lands on the *enactment* turn (`programs`
+runs over the just-added enactment), so a program's "setup cost" equals one upkeep payment. The UI
+reflects this: `stagedCostNow` and the `validateSelection` money gate both count that first-turn
+charge for every funding mode (see §6 invariant 6), so staging a program immediately drops the
+remaining-money readout and is blocked if unaffordable.
+
 A `buildout` policy carries a `BuildoutSpec` (`ratePerTurn`, per-region `baselineByRegion`,
 `defaultBaseline`). Each `Enactment` tracks `capacity` (0–1) advancing by `ratePerTurn` while
 funded; an underfunded turn idles (no charge, no advance) but already-installed capacity keeps
@@ -284,8 +290,13 @@ reset()                         → createInitialState() + clear everything
 
 The `PolicyBoard` (driven by `App`'s `selectedRegionId`) derives its two lanes from
 `regionPolicyView(state, regionId, staged, cancels)` (`game/policyView.ts`, a pure, unit-tested
-selector) and calls `stage` / `unstage` / `toggleCancel`. Drag, click, and keyboard all funnel to
-the same actions; an unaffordable enact is blocked with an inline error rather than a state change.
+selector) and calls `stage` / `unstage` / `toggleCancel`. Drag, tap/click, and keyboard all funnel to
+the same `performPrimary`; an unaffordable enact is blocked with an inline error rather than a state
+change. The Active lane shows empty **drop slots** as targets. Dragging is a custom pointer gesture:
+the lifted card is rendered as a `CardFace` clone in a **portal overlay on `document.body`** (so it
+floats above both lanes and is never clipped by a lane's `ScrollArea`), and the drop lane is resolved
+with `document.elementFromPoint` against each lane's `data-droplane` attribute — scroll-correct, unlike
+the prior `getBoundingClientRect` math. A press under a 5px threshold is treated as a tap (= click).
 
 `history` (a per-turn `{ year, temperature, co2 }` series) is accumulated by the hook, not
 the engine — the engine is stateless across calls, so the client keeps the trend data for
@@ -305,8 +316,10 @@ the dashboard sparkline.
   painted on top. The geometry is baked offline by `scripts/generate-map.mjs` — **no D3/TopoJSON
   ships at runtime** (the former R3F globe and `three` are gone).
   The page is laid out top→bottom so the action sits above the fold: a **sticky `ResourceBar`
-  header** (`position: sticky; top: 0`) → map (`span md=7`, height `clamp(220px, 38vh, 340px)`) +
-  info column (`span md=5`: `Dashboard` + `RegionPanel`) → full-width `PolicyBoard` → full-width
+  header** (`position: sticky; top: 0`) → map (`span md=7`, `height: 100%` / `minHeight: 440` in a
+  stretched `Grid` row, so it **fills the row and leaves no dead space** beside the taller info
+  column; the inline SVG's `preserveAspectRatio="meet"` keeps the whole world centered) + info
+  column (`span md=5`: `Dashboard` + `RegionPanel`) → full-width `PolicyBoard` → full-width
   `TurnLog` (demoted to bottom as reference/history).
 - **HUD** (`components/`, Mantine DOM overlay): `ResourceBar` (shows what is **remaining** to spend
   this turn — `resources − costNow` — going red with an `⚠ over budget` `role="alert"` when a staged
@@ -362,17 +375,21 @@ These hold across the engine and are guarded by the test suite. Treat them as lo
 6. **Validation precedes mutation.** `spendAndRegister` assumes the selection is already
    valid — `advanceTurn` calls `validateSelection` first. Validation rejects duplicate
    `(policy, region)` pairs, unknown policy/region ids, a policy already enacted in that
-   region, prerequisites not enacted in that region, and selections whose one-time spend
-   exceeds the budget. (Recurring/buildout upkeep is not pre-validated: the `programs`
-   sub-model self-guards, idling a program in a region it cannot fund this turn.)
+   region, prerequisites not enacted in that region, and selections whose **this-turn money**
+   exceeds the budget. "This-turn money" is each selection's `regionCharge` for **every** funding
+   mode — one-time at enactment, plus recurring/buildout **first upkeep** (which `programs` charges
+   on the enactment turn), so the setup cost of a program must be affordable up front. (Only
+   *subsequent*-turn upkeep stays unvalidated: the `programs` sub-model self-guards, idling a
+   committed program in a region it cannot fund that later turn.)
 
 ---
 
 ## 7. Known seams (where the next change lands)
 
-- **Drag accessibility.** The `PolicyBoard`'s drag-between-lanes is a framer-motion enhancement;
-  click + Enter/Space are the canonical, tested actions. Keyboard-only *drag* reordering and a
-  reduced-motion path are not yet implemented.
+- **Drag accessibility.** The `PolicyBoard`'s drag-between-lanes is a custom pointer-gesture
+  enhancement (floating portal overlay + `elementFromPoint` drop); tap/click + Enter/Space are the
+  canonical, tested actions (jsdom can't exercise the pixel-level drag, so the drag itself is verified
+  manually). Keyboard-only *drag* reordering and a reduced-motion path are not yet implemented.
 - **Resuming a frozen buildout.** A cancelled buildout stays in the Active lane frozen at its
   installed %, but there is no "resume" action to restart its rollout — it would need a small
   engine + UI affordance.

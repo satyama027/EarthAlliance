@@ -1,5 +1,4 @@
 import { Card, Text, Badge, Box, Group, Progress } from '@mantine/core';
-import { motion, type PanInfo } from 'framer-motion';
 import { CATEGORY_COLOR } from '../theme.js';
 import type { CardVM } from '../game/policyView.js';
 
@@ -12,9 +11,9 @@ const FUND_COLOR = { 'one-time': 'gray', recurring: 'teal', buildout: 'earth' } 
 
 interface PolicyCardProps {
   vm: CardVM;
-  onActivate(vm: CardVM): void;
-  onDragStart?(vm: CardVM): void;
-  onDragEnd(vm: CardVM, point: { x: number; y: number }): void;
+  onActivate(vm: CardVM): void;            // click / keyboard equivalent of a drop
+  onDragStart(vm: CardVM, e: React.PointerEvent): void;  // begins a pointer drag/tap
+  dragging?: boolean;                      // true while THIS card is the drag source
 }
 
 /** Is this card interactive (drag / click / keyboard)? Unaffordable cards stay interactive so
@@ -57,104 +56,118 @@ function ariaLabel(vm: CardVM): string {
   return `${n} (active)`;
 }
 
-export function PolicyCard({ vm, onActivate, onDragStart, onDragEnd }: PolicyCardProps) {
+/**
+ * The card's visual surface, with no interaction. Reused by the interactive `PolicyCard` *and*
+ * by the floating drag overlay (`PolicyBoard`), so the lifted card looks identical to its source.
+ * Pass `floating` when rendered in the overlay (drops the dim, adds a lift shadow).
+ */
+export function CardFace({ vm, floating = false }: { vm: CardVM; floating?: boolean }) {
   const { policy } = vm;
-  const actionable = isActionable(vm);
   const showBar = policy.funding === 'buildout' && vm.capacity !== undefined;
   const staged = vm.state === 'staged';
-  const pressed = staged || vm.cancelling;
-  const dim = vm.state === 'locked' || (vm.lane === 'available' && !vm.affordable);
-
-  const act = () => { if (actionable) onActivate(vm); };
+  const dim = !floating && (vm.state === 'locked' || (vm.lane === 'available' && !vm.affordable));
 
   return (
-    <motion.div
-      style={{ width: 180, flex: '0 0 180px' }}
-      drag={actionable}
-      dragSnapToOrigin
-      whileDrag={{ scale: 1.04, rotate: -3, zIndex: 5, cursor: 'grabbing' }}
-      whileHover={actionable ? { scale: 1.02 } : undefined}
-      onDragStart={() => onDragStart?.(vm)}
-      onDragEnd={(_e, info: PanInfo) => onDragEnd(vm, info.point)}
+    <Card
+      withBorder
+      padding="sm"
+      style={{
+        opacity: dim ? 0.5 : 1,
+        outline: staged ? '2px solid var(--mantine-color-earth-5)'
+          : vm.cancelling ? '2px solid var(--mantine-color-red-6)' : 'none',
+        outlineOffset: -1,
+        position: 'relative',
+        boxShadow: floating ? '0 14px 24px rgba(0,0,0,.55)' : undefined,
+      }}
     >
-      <Card
-        data-testid="policy-card"
-        data-policy-id={policy.id}
-        data-lane={vm.lane}
-        withBorder
-        padding="sm"
-        role="button"
-        tabIndex={actionable ? 0 : -1}
-        aria-disabled={!actionable}
-        aria-pressed={pressed}
-        aria-label={ariaLabel(vm)}
-        onClick={act}
-        onKeyDown={(e) => { if (actionable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); act(); } }}
-        style={{
-          cursor: actionable ? 'grab' : 'default',
-          opacity: dim ? 0.5 : 1,
-          outline: staged ? '2px solid var(--mantine-color-earth-5)'
-            : vm.cancelling ? '2px solid var(--mantine-color-red-6)' : 'none',
-          outlineOffset: -1,
-          position: 'relative',
-        }}
-      >
-        {staged && (
-          <Badge size="xs" color="earth" style={{ position: 'absolute', top: 6, left: 6, zIndex: 2 }}>STAGED</Badge>
-        )}
-        {(vm.cancellable) && (
-          <Box aria-hidden style={{
-            position: 'absolute', top: 5, right: 6, zIndex: 2, width: 18, height: 18, borderRadius: '50%',
-            background: vm.cancelling ? 'var(--mantine-color-earth-9)' : 'var(--mantine-color-red-light)',
-            color: vm.cancelling ? 'var(--mantine-color-earth-3)' : 'var(--mantine-color-red-4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700,
-          }}>{vm.cancelling ? '↺' : '✕'}</Box>
-        )}
+      {staged && (
+        <Badge size="xs" color="earth" style={{ position: 'absolute', top: 6, left: 6, zIndex: 2 }}>STAGED</Badge>
+      )}
+      {vm.cancellable && (
+        <Box aria-hidden style={{
+          position: 'absolute', top: 5, right: 6, zIndex: 2, width: 18, height: 18, borderRadius: '50%',
+          background: vm.cancelling ? 'var(--mantine-color-earth-9)' : 'var(--mantine-color-red-light)',
+          color: vm.cancelling ? 'var(--mantine-color-earth-3)' : 'var(--mantine-color-red-4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700,
+        }}>{vm.cancelling ? '↺' : '✕'}</Box>
+      )}
 
-        <Box style={{ background: CATEGORY_COLOR[policy.category], height: 34, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-          {CATEGORY_ICON[policy.category] ?? '•'}
+      <Box style={{ background: CATEGORY_COLOR[policy.category], height: 34, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+        {CATEGORY_ICON[policy.category] ?? '•'}
+      </Box>
+
+      <Text fw={700} mt="xs" size="sm" lh={1.2}>{policy.name}</Text>
+      <Badge size="xs" color={FUND_COLOR[policy.funding]} variant="light" mt={4}>
+        {FUND_LABEL[policy.funding]}
+      </Badge>
+
+      {vm.lane === 'available' && vm.state === 'available' && (
+        <Text size="xs" c="dimmed" lineClamp={2} mt={4}>{policy.description}</Text>
+      )}
+      {vm.state === 'locked' && (
+        <Text size="xs" c="dimmed" mt={4}>🔒 Requires {policy.prerequisites?.[0]} here</Text>
+      )}
+
+      {showBar && (
+        <Box mt={6}>
+          <Group justify="space-between" gap={4}>
+            <Text size="10px" c="dimmed">Installed</Text>
+            <Text size="10px" fw={700}>{pct(vm.capacity ?? 0)}%</Text>
+          </Group>
+          <Progress value={pct(vm.capacity ?? 0)} size="sm" mt={2}
+            color={vm.state === 'frozen' ? 'gray' : 'earth'} />
         </Box>
+      )}
 
-        <Text fw={700} mt="xs" size="sm" lh={1.2}>{policy.name}</Text>
-        <Badge size="xs" color={FUND_COLOR[policy.funding]} variant="light" mt={4}>
-          {FUND_LABEL[policy.funding]}
+      {stateLine(vm) && (
+        <Text size="10px" fw={700} mt={6}
+          c={vm.cancelling ? 'red.4' : vm.lane === 'active' ? 'earth.4' : 'dimmed'}>
+          {stateLine(vm)}
+        </Text>
+      )}
+
+      <Group mt="xs" gap={6}>
+        {vm.state !== 'permanent' && vm.state !== 'built' && vm.state !== 'frozen' && (
+          <Badge color="grape" variant="light">PC {policy.cost.politicalCapital}</Badge>
+        )}
+        <Badge color="teal" variant="light"
+          style={(vm.state === 'built' || vm.state === 'frozen' || vm.state === 'permanent') ? { opacity: 0.6 } : undefined}>
+          {moneyLabel(vm)}
         </Badge>
+      </Group>
+    </Card>
+  );
+}
 
-        {vm.lane === 'available' && vm.state === 'available' && (
-          <Text size="xs" c="dimmed" lineClamp={2} mt={4}>{policy.description}</Text>
-        )}
-        {vm.state === 'locked' && (
-          <Text size="xs" c="dimmed" mt={4}>🔒 Requires {policy.prerequisites?.[0]} here</Text>
-        )}
+/**
+ * Interactive wrapper around `CardFace`. Pointer down starts a drag/tap (resolved by `PolicyBoard`);
+ * Enter/Space is the accessible equivalent. The dragged source dims while its floating clone is lifted.
+ */
+export function PolicyCard({ vm, onActivate, onDragStart, dragging = false }: PolicyCardProps) {
+  const { policy } = vm;
+  const actionable = isActionable(vm);
+  const pressed = vm.state === 'staged' || vm.cancelling;
 
-        {showBar && (
-          <Box mt={6}>
-            <Group justify="space-between" gap={4}>
-              <Text size="10px" c="dimmed">Installed</Text>
-              <Text size="10px" fw={700}>{pct(vm.capacity ?? 0)}%</Text>
-            </Group>
-            <Progress value={pct(vm.capacity ?? 0)} size="sm" mt={2}
-              color={vm.state === 'frozen' ? 'gray' : 'earth'} />
-          </Box>
-        )}
-
-        {stateLine(vm) && (
-          <Text size="10px" fw={700} mt={6}
-            c={vm.cancelling ? 'red.4' : vm.lane === 'active' ? 'earth.4' : 'dimmed'}>
-            {stateLine(vm)}
-          </Text>
-        )}
-
-        <Group mt="xs" gap={6}>
-          {vm.state !== 'permanent' && vm.state !== 'built' && vm.state !== 'frozen' && (
-            <Badge color="grape" variant="light">PC {policy.cost.politicalCapital}</Badge>
-          )}
-          <Badge color="teal" variant="light"
-            style={(vm.state === 'built' || vm.state === 'frozen' || vm.state === 'permanent') ? { opacity: 0.6 } : undefined}>
-            {moneyLabel(vm)}
-          </Badge>
-        </Group>
-      </Card>
-    </motion.div>
+  return (
+    <div
+      data-testid="policy-card"
+      data-policy-id={policy.id}
+      data-lane={vm.lane}
+      role="button"
+      tabIndex={actionable ? 0 : -1}
+      aria-disabled={!actionable}
+      aria-pressed={pressed}
+      aria-label={ariaLabel(vm)}
+      onKeyDown={(e) => { if (actionable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onActivate(vm); } }}
+      onPointerDown={(e) => { if (actionable && e.button === 0) onDragStart(vm, e); }}
+      style={{
+        width: 180, flex: '0 0 180px',
+        cursor: actionable ? 'grab' : 'default',
+        opacity: dragging ? 0.3 : 1,
+        userSelect: 'none', touchAction: 'none',
+      }}
+    >
+      <CardFace vm={vm} />
+    </div>
   );
 }

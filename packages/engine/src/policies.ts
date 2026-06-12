@@ -137,7 +137,12 @@ export interface ValidationResult {
 const worldGdp = (state: WorldState): number =>
   state.regions.reduce((sum, r) => sum + r.gdpPerCapita * r.population, 0);
 
-/** Money charged for a one-time policy in a region this turn, scaled by GDP share. */
+/**
+ * Money charged for a policy in a region for ONE turn, scaled by the region's GDP share.
+ * For `one-time` policies this is the single enactment charge; for `recurring`/`buildout` it is the
+ * per-turn upkeep — which is also charged on the enactment turn (by the `programs` submodel), so it
+ * is the policy's "setup" cost as well.
+ */
 export function regionCharge(state: WorldState, policy: Policy, regionId: string): number {
   const region = state.regions.find((r) => r.id === regionId);
   const total = worldGdp(state);
@@ -148,7 +153,7 @@ export function regionCharge(state: WorldState, policy: Policy, regionId: string
 export function validateSelection(state: WorldState, selections: PolicySelection[]): ValidationResult {
   const seen = new Set<string>();
   let totalPc = 0;
-  let oneTimeMoney = 0;
+  let moneyNow = 0;
   for (const { policyId, regionId } of selections) {
     const key = `${policyId}:${regionId}`;
     if (seen.has(key)) return { ok: false, reason: `Duplicate selection: ${policyId} in ${regionId}` };
@@ -168,12 +173,14 @@ export function validateSelection(state: WorldState, selections: PolicySelection
       }
     }
     totalPc += policy.cost.politicalCapital;
-    if (policy.funding === 'one-time') oneTimeMoney += regionCharge(state, policy, regionId);
+    // Every funding mode spends money on the enactment turn (one-time at enactment; recurring/buildout
+    // as their first upkeep, charged this turn by `programs`), so all count toward this turn's budget.
+    moneyNow += regionCharge(state, policy, regionId);
   }
   if (totalPc > state.resources.politicalCapital) {
     return { ok: false, reason: 'Not enough political capital' };
   }
-  if (oneTimeMoney > state.resources.money) {
+  if (moneyNow > state.resources.money) {
     return { ok: false, reason: 'Not enough money' };
   }
   return { ok: true };
