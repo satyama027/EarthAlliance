@@ -79,10 +79,14 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
 ## Spacing & layout
 
 - Mantine spacing scale (`xs`, `sm`, `md`, `xl`). Panels pad `p="sm"`; ending screen `p="xl"`.
-- App frame: `AppShell` with `padding="md"`.
-- Main layout: 2-column `Grid` — scene `span md=7`, info column `span md=5`; policy tray spans 12.
-  Stacks to single column on `base` (mobile).
-- Scene viewport: `height: 70vh`, `minHeight: 420`.
+- App frame: `AppShell` with `padding="md"`. A **sticky ResourceBar header** sits at the top of
+  `AppShell.Main` (`position: sticky; top: 0; zIndex: 200`), above the grid.
+- Main layout (top→bottom, so the action sits above the fold): sticky resource header → 2-column
+  `Grid` (scene `span md=7`, info column `span md=5` holding **Dashboard + RegionPanel**) → full-width
+  **PolicyBoard** (`span 12`) → full-width **TurnLog** (`span 12`, demoted to bottom as
+  reference/history). Stacks to single column on `base` (mobile).
+- Scene viewport: `height: clamp(220px, 38vh, 340px)`, `minHeight: 220` — shortened from the old
+  `70vh` so the policy board is reachable without scrolling.
 - Right info column gap: `12px`.
 
 ---
@@ -96,7 +100,12 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   to 0.32; hover brightens). India follows the Government-of-India depiction (J&K incl. Azad
   Kashmir, Gilgit-Baltistan, Shaksgam, Aksai Chin). Replaces the former 3D R3F globe.
 - **ResourceBar** — bordered `Paper`, year/turn on the left (`fw={700}`), PC (`grape`) and Money
-  (`teal`) `Badge`s (`size="lg"`) on the right.
+  (`teal`) `Badge`s (`size="lg"`) on the right. The badges show what is **REMAINING** to spend this
+  turn — balance minus the staged `costNow` (PC and money) — not the raw balance, so staging a policy
+  immediately drops the numbers. When a staged selection exceeds the budget the relevant badge turns
+  **red** and an `⚠ over budget` `role="alert"` line appears (mirrors `validateSelection` / the disabled
+  End Turn). Rendered as a **sticky header** at the top of `AppShell.Main` (`position: sticky; top: 0`,
+  body-colored background) so it stays visible while the player works the policy board.
 - **Dashboard** — bordered `Paper`, title "Planet", warming/CO₂/emissions rows, temperature value
   colored by `temperatureColor`, trailed by a `Sparkline` (240×40) of temperature history.
 - **RegionPanel** — bordered `Paper`; per-metric rows with a `Progress` bar colored by

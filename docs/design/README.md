@@ -29,6 +29,7 @@ Mockups are self-contained HTML — open them directly in a browser (`file://`).
 
 | Date | Topic | Status | Proposal |
 |------|-------|--------|----------|
+| 2026-06-12 | Policy selection — sticky resource header shows **remaining** PC/Money + reorder (policy board raised, Turn Log to bottom) so you set policies & End Turn without scrolling | **Implemented** | [proposal](./proposals/2026-06-12-policy-selection-no-scroll/design.md) |
 | 2026-06-11 | Per-region policy selection — two-lane drag board (Available/Active, drag to enact, cancellable programs) | **Implemented** | [proposal](./proposals/2026-06-11-per-region-policy-selection/design.md) |
 | 2026-06-06 | Turn Log — "More" calc-internals (per-turn intermediate variables) | **Implemented** | [proposal](./proposals/2026-06-06-turn-log-calc-internals/design.md) |
 | 2026-06-05 | Turn Log panel — per-turn data history (global + selected region) | **Implemented** | [proposal](./proposals/2026-06-05-turn-log-panel/design.md) |

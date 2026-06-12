@@ -27,9 +27,16 @@ export default function App() {
   return (
     <AppShell padding="md">
       <AppShell.Main>
+        {/* Sticky resource header — stays visible while you set policies, and shows what is
+            REMAINING to spend (balance − this turn's staged cost). */}
+        <Box style={{ position: 'sticky', top: 0, zIndex: 200, background: 'var(--mantine-color-body)', paddingBottom: 8 }}>
+          <ResourceBar year={game.state.year} turn={game.state.turn}
+            politicalCapital={game.state.resources.politicalCapital} money={game.state.resources.money}
+            costNow={game.costNow} />
+        </Box>
         <Grid gutter="md">
           <Grid.Col span={{ base: 12, md: 7 }}>
-            <Box style={{ height: '70vh', minHeight: 420, borderRadius: 8, overflow: 'hidden', background: '#05080f' }}>
+            <Box style={{ height: 'clamp(220px, 38vh, 340px)', minHeight: 220, borderRadius: 8, overflow: 'hidden', background: '#05080f' }}>
               <WorldMap
                 selectedRegionId={selectedRegionId}
                 onSelectRegion={setSelectedRegionId}
@@ -38,14 +45,13 @@ export default function App() {
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 5 }}>
             <Box style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <ResourceBar year={game.state.year} turn={game.state.turn}
-                politicalCapital={game.state.resources.politicalCapital} money={game.state.resources.money} />
               <Dashboard temperature={game.state.climate.temperatureAnomaly} co2={game.state.climate.co2Concentration}
                 annualEmissions={game.state.climate.annualEmissions} history={game.history} />
               <RegionPanel region={selectedRegion} />
-              <TurnLog turnLog={game.turnLog} selectedRegionId={selectedRegionId} />
             </Box>
           </Grid.Col>
+          {/* Policy board raised directly under the map/info row so policies can be set and the
+              turn ended without scrolling. */}
           <Grid.Col span={12}>
             <PolicyBoard
               state={game.state}
@@ -62,6 +68,10 @@ export default function App() {
               upkeepNext={game.upkeepNext}
               stagedTotal={game.staged.length}
             />
+          </Grid.Col>
+          {/* Turn Log demoted to the bottom — reference/history, not action. */}
+          <Grid.Col span={12}>
+            <TurnLog turnLog={game.turnLog} selectedRegionId={selectedRegionId} />
           </Grid.Col>
         </Grid>
       </AppShell.Main>

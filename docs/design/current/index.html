@@ -40,7 +40,7 @@
            border-radius:var(--radius); padding:12px; }
 
   /* Scene viewport */
-  .scene { height:70vh; min-height:420px; border-radius:var(--radius); overflow:hidden;
+  .scene { height:clamp(220px,38vh,340px); min-height:220px; border-radius:var(--radius); overflow:hidden;
     background: radial-gradient(circle at 50% 45%, #0b1830 0%, var(--scene-bg) 70%);
     position:relative; display:flex; align-items:center; justify-content:center; }
   .globe { width:300px; height:300px; border-radius:50%;
@@ -182,6 +182,26 @@
   <code>/implement</code> step keeps this file in sync with the real UI. Open in any browser.
 </div>
 
+<!-- ── Sticky resource header — always visible; shows REMAINING to spend ── -->
+<div style="max-width:1100px; margin:0 auto 16px;">
+  <div class="paper" style="position:sticky; top:0;">
+    <div class="row">
+      <span class="strong">Year 2025 · Turn 1</span>
+      <span style="display:flex; gap:8px; align-items:center;">
+        <span class="badge badge-lg badge-grape-solid">Political Capital: 92</span>
+        <span class="badge badge-lg badge-teal-solid">Money: 1,500</span>
+      </span>
+    </div>
+  </div>
+  <div class="xs dimmed" style="margin:6px 2px 0;">
+    Sticky header. Badges show what is <strong>remaining</strong> to spend this turn
+    (balance − staged cost; the 1 staged policy below = −PC&nbsp;8, so 100 → 92).
+    Over budget → badge turns red with an <span style="color:var(--red)">⚠ over budget</span> alert and
+    End&nbsp;Turn is disabled, e.g.:
+    <span class="badge badge-red" style="margin-left:4px;">Political Capital: -3</span>
+  </div>
+</div>
+
 <!-- ── Main app layout ───────────────────────────────────────────── -->
 <div class="app">
   <!-- Scene -->
@@ -194,17 +214,6 @@
 
   <!-- Info column -->
   <div class="col-info">
-    <!-- ResourceBar -->
-    <div class="paper">
-      <div class="row">
-        <span class="strong">Year 2025 · Turn 1</span>
-        <span style="display:flex; gap:8px;">
-          <span class="badge badge-lg badge-grape-solid">Political Capital: 100</span>
-          <span class="badge badge-lg badge-teal-solid">Money: 1500</span>
-        </span>
-      </div>
-    </div>
-
     <!-- Dashboard -->
     <div class="paper">
       <div class="h4">Planet</div>
@@ -244,8 +253,10 @@
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- TurnLog -->
+  <!-- TurnLog (full width, bottom) — demoted from the info column to reference/history -->
+  <div class="col-full" style="order:1">
     <div class="paper">
       <div class="h4">Turn Log</div>
       <div class="tlog-scroll">

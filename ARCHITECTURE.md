@@ -304,7 +304,13 @@ the dashboard sparkline.
   time (see below), so it carries the South Asia hue and selects with South Asia — not an overlay
   painted on top. The geometry is baked offline by `scripts/generate-map.mjs` — **no D3/TopoJSON
   ships at runtime** (the former R3F globe and `three` are gone).
-- **HUD** (`components/`, Mantine DOM overlay): `ResourceBar`, `Dashboard` (+ `Sparkline`
+  The page is laid out top→bottom so the action sits above the fold: a **sticky `ResourceBar`
+  header** (`position: sticky; top: 0`) → map (`span md=7`, height `clamp(220px, 38vh, 340px)`) +
+  info column (`span md=5`: `Dashboard` + `RegionPanel`) → full-width `PolicyBoard` → full-width
+  `TurnLog` (demoted to bottom as reference/history).
+- **HUD** (`components/`, Mantine DOM overlay): `ResourceBar` (shows what is **remaining** to spend
+  this turn — `resources − costNow` — going red with an `⚠ over budget` `role="alert"` when a staged
+  selection exceeds the budget; rendered as the sticky top header), `Dashboard` (+ `Sparkline`
   trend), `RegionPanel` (the selected region), `TurnLog` (a scrollable, newest-first history of
   every per-turn data point — a global "Planet" block plus the selected region's full block, each
   value carrying a good/bad-colored change chip vs. the prior turn; each non-baseline entry also has
