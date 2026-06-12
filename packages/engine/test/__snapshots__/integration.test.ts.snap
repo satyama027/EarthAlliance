@@ -2,10 +2,10 @@
 
 exports[`golden trajectory (do-nothing) > matches the recorded terminal reference 1`] = `
 {
-  "co2": 690.19,
+  "co2": 677.89,
   "endingId": "eco-collapse",
-  "temp": 3.525,
-  "turn": 13,
-  "year": 2090,
+  "temp": 3.5048,
+  "turn": 16,
+  "year": 2105,
 }
 `;

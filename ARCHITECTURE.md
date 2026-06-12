@@ -395,9 +395,17 @@ These hold across the engine and are guarded by the test suite. Treat them as lo
   engine + UI affordance.
 - **Balance.** `data/scenario.ts` is the single tuning surface (every constant in
   `DEFAULT_PARAMS` + the starting `DEFAULT_SCENARIO`), alongside the policy costs/funding in
-  `policies.ts`. Do-nothing still ends in an eco-collapse loss around 2090; the region-scaled
-  policy economy (build/upkeep, buildout rates, baselines, starting budget) is tuned for
-  meaningful tradeoffs but remains a playtesting surface.
+  `policies.ts`. The per-region starting data (`data/regions.ts`, `SAMPLE_REGIONS`) is
+  **re-grounded to real ~2025 figures**: `gdpPerCapita` is nominal USD; `regionalEmissions`
+  is real territorial fossil+industry CO₂ summing to ~35.5 GtCO₂/yr (was an inflated 52);
+  population/fertility/medianAge are real, and the soft 0–100 indices use real-world proxies
+  (HDI sub-indices, `100−Gini`, water-stress, biodiversity-intactness). With this accurate
+  baseline, do-nothing ends in an eco-collapse loss around 2105 (the golden snapshot in
+  `test/integration.test.ts` locks the terminal point; `test/data.test.ts` locks the anchor
+  values + the "East Asia is the largest emitter" structural invariant). Re-tuning
+  `DEFAULT_PARAMS` to this new baseline is a **separate, deferred balance pass**; the
+  region-scaled policy economy (build/upkeep, buildout rates, baselines, starting budget) is
+  tuned for meaningful tradeoffs but remains a playtesting surface.
 - **Disaster/random events.** The RNG is threaded through every turn but only a
   `turn-advanced` event is emitted today; seeded disaster/milestone events are reserved.
 - **Art & audio.** Card art is referenced by asset *key* and SFX are synthesized in-browser;

@@ -18,6 +18,38 @@ describe('sample regions', () => {
       }
     }
   });
+
+  describe('re-grounded to real-world ~2025 figures', () => {
+    const byId = (id: string) => {
+      const r = SAMPLE_REGIONS.find((x) => x.id === id);
+      if (!r) throw new Error(`no region ${id}`);
+      return r;
+    };
+
+    it('uses nominal-USD GDP per capita for developing regions', () => {
+      // The class of bug this fixes: developing regions were inflated far above
+      // real nominal USD (South Asia 7000, Sub-Saharan Africa 4000).
+      expect(byId('south-asia').gdpPerCapita).toBe(2700);
+      expect(byId('sub-saharan-africa').gdpPerCapita).toBe(1800);
+      expect(byId('north-america').gdpPerCapita).toBe(65000); // already correct
+    });
+
+    it('uses real territorial CO₂ for emissions', () => {
+      expect(byId('south-asia').regionalEmissions).toBe(3.2);
+      const total = SAMPLE_REGIONS.reduce((s, r) => s + r.regionalEmissions, 0);
+      expect(total).toBeGreaterThan(35);
+      expect(total).toBeLessThan(36);
+    });
+
+    it('keeps East Asia (China) as the single largest emitter', () => {
+      // Structural invariant that would have caught the old South-Asia=8.0 error.
+      const eastAsia = byId('east-asia').regionalEmissions;
+      for (const r of SAMPLE_REGIONS) {
+        if (r.id === 'east-asia') continue;
+        expect(r.regionalEmissions).toBeLessThan(eastAsia);
+      }
+    });
+  });
 });
 
 describe('default scenario', () => {
