@@ -57,6 +57,8 @@ export function createSimulation(
         r.energyStorageCapacity = clamp(r.energyStorageCapacity, 0, 1);
         r.electricityDemand = Math.max(0, r.electricityDemand);
         r.agriculturalProductivity = Math.max(0, r.agriculturalProductivity);
+        // Aviation/shipping cannot be policy-driven below its hard-to-abate floor for the turn.
+        r.aviationShipping = Math.max(r.aviationShipping, ctx.scratch.aviationFloorByRegion[r.id] ?? 0);
         r.electricity = r.electricityDemand * r.gridCarbonIntensity;
         r.regionalEmissions =
           r.electricity + r.transport + r.aviationShipping + r.industry + r.agriculture + r.landUse;

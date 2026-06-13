@@ -57,6 +57,122 @@ export const POLICY_CATALOG: readonly Policy[] = [
       { target: 'publicSupport', delta: 2, duration: 'immediate' },
     ],
   },
+  // ── New sectoral policies (CP4). Level-shift couplings (electricityDemand, agricultural
+  // productivity) use `immediate` effects = a one-time shift that holds, avoiding per-turn drift;
+  // emission cuts use `ongoing` flows. Costs/deltas are provisional pending the balance pass. ──
+  {
+    id: 'grid-storage', name: 'Grid Storage & Modernization', category: 'energy',
+    description: 'Batteries and grid upgrades so intermittent renewables run at full output.',
+    art: 'grid-storage', cost: { money: 600 }, funding: 'buildout',
+    buildout: { ratePerTurn: 0.12, defaultBaseline: 0 },
+    effects: [{ target: 'energyStorageCapacity', delta: 0.15, duration: 'ongoing' }],
+  },
+  {
+    id: 'ev-transition', name: 'EV Transition', category: 'industry',
+    description: 'Electrify the vehicle fleet: cuts tailpipe emissions, adds electricity demand.',
+    art: 'ev-transition', cost: { money: 900 }, funding: 'buildout',
+    buildout: { ratePerTurn: 0.10, defaultBaseline: 0 },
+    effects: [
+      { target: 'transport', delta: -0.25, duration: 'ongoing' },
+      { target: 'electricityDemand', delta: 0.5, duration: 'immediate' }, // one-time demand shift
+    ],
+  },
+  {
+    id: 'fuel-efficiency', name: 'Fuel Efficiency Standards', category: 'industry',
+    description: 'Tighten mileage rules; a cheap, modest cut to road transport emissions.',
+    art: 'fuel-efficiency', cost: { money: 100 }, funding: 'one-time',
+    effects: [{ target: 'transport', delta: -0.15, duration: 'ongoing' }],
+  },
+  {
+    id: 'sustainable-fuels', name: 'Sustainable Aviation & Marine Fuels', category: 'industry',
+    description: 'Scale low-carbon jet and ship fuels — expensive, for hard-to-abate transport.',
+    art: 'sustainable-fuels', cost: { money: 700 }, funding: 'buildout',
+    buildout: { ratePerTurn: 0.08, defaultBaseline: 0 },
+    effects: [{ target: 'aviationShipping', delta: -0.15, duration: 'ongoing' }],
+  },
+  {
+    id: 'flight-freight-levy', name: 'Flight & Freight Levy', category: 'industry',
+    description: 'Tax aviation and shipping to curb demand; unpopular, funded continuously.',
+    art: 'flight-freight-levy', cost: { money: 150 }, funding: 'recurring',
+    effects: [
+      { target: 'aviationShipping', delta: -0.1, duration: 'ongoing' },
+      { target: 'publicSupport', delta: -2, duration: 'immediate' },
+    ],
+  },
+  {
+    id: 'industrial-electrification', name: 'Industrial Electrification', category: 'industry',
+    description: 'Swap furnaces and process heat to electricity: cuts industry, adds demand.',
+    art: 'industrial-electrification', cost: { money: 1000 }, funding: 'buildout',
+    buildout: { ratePerTurn: 0.08, defaultBaseline: 0 },
+    effects: [
+      { target: 'industry', delta: -0.3, duration: 'ongoing' },
+      { target: 'electricityDemand', delta: 0.4, duration: 'immediate' },
+    ],
+  },
+  {
+    id: 'green-steel-cement', name: 'Green Steel & Cement', category: 'industry',
+    description: 'Hydrogen steel and low-clinker cement attack process emissions; very costly.',
+    art: 'green-steel-cement', cost: { money: 1400 }, funding: 'buildout',
+    buildout: { ratePerTurn: 0.06, defaultBaseline: 0 },
+    effects: [{ target: 'industry', delta: -0.4, duration: 'ongoing' }],
+  },
+  {
+    id: 'carbon-capture', name: 'Carbon Capture (CCS)', category: 'industry',
+    description: 'Capture flue-gas CO₂ from heavy industry — slow and very expensive.',
+    art: 'carbon-capture', cost: { money: 1600 }, funding: 'buildout',
+    buildout: { ratePerTurn: 0.05, defaultBaseline: 0 },
+    effects: [{ target: 'industry', delta: -0.3, duration: 'ongoing' }],
+  },
+  {
+    id: 'circular-economy', name: 'Circular Economy', category: 'industry',
+    description: 'Reuse and recycle materials to shrink industrial throughput emissions.',
+    art: 'circular-economy', cost: { money: 500 }, funding: 'buildout',
+    buildout: { ratePerTurn: 0.10, defaultBaseline: 0 },
+    effects: [
+      { target: 'industry', delta: -0.2, duration: 'ongoing' },
+      { target: 'equityIndex', delta: 1, duration: 'immediate' },
+    ],
+  },
+  {
+    id: 'organic-farming', name: 'Organic & Regenerative Farming', category: 'land',
+    description: 'Cut farm emissions, but lower yields mean more land is needed per tonne.',
+    art: 'organic-farming', cost: { money: 400 }, funding: 'buildout',
+    buildout: { ratePerTurn: 0.10, defaultBaseline: 0 },
+    effects: [
+      { target: 'agriculture', delta: -0.15, duration: 'ongoing' },
+      { target: 'agriculturalProductivity', delta: -12, duration: 'immediate' }, // yield penalty
+    ],
+  },
+  {
+    id: 'precision-agriculture', name: 'Precision Agriculture', category: 'land',
+    description: 'Sensors and targeted inputs cut fertilizer emissions while raising yields.',
+    art: 'precision-agriculture', cost: { money: 600 }, funding: 'buildout',
+    buildout: { ratePerTurn: 0.10, defaultBaseline: 0 },
+    effects: [
+      { target: 'agriculture', delta: -0.1, duration: 'ongoing' },
+      { target: 'agriculturalProductivity', delta: 8, duration: 'immediate' }, // yield gain
+    ],
+  },
+  {
+    id: 'plant-rich-diet', name: 'Plant-Rich Diet Shift', category: 'social',
+    description: 'Shift diets off livestock: cuts agricultural methane, meets cultural resistance.',
+    art: 'plant-rich-diet', cost: { money: 200 }, funding: 'recurring',
+    effects: [
+      { target: 'agriculture', delta: -0.2, duration: 'ongoing' },
+      { target: 'publicSupport', delta: -3, duration: 'immediate' },
+      { target: 'healthIndex', delta: 1, duration: 'immediate' },
+    ],
+  },
+  {
+    id: 'anti-deforestation', name: 'Anti-Deforestation Enforcement', category: 'land',
+    description: 'Protect standing forests: stops land-use emissions and restores habitat.',
+    art: 'anti-deforestation', cost: { money: 300 }, funding: 'recurring',
+    effects: [
+      { target: 'landUse', delta: -0.2, duration: 'ongoing' },
+      { target: 'biodiversityIndex', delta: 1, duration: 'ongoing' },
+      { target: 'gdpPerCapita', delta: -500, duration: 'immediate' },
+    ],
+  },
   {
     id: 'climate-adaptation', name: 'Climate Adaptation Fund', category: 'social',
     description: 'Buffer communities against climate shocks; funded continuously.',

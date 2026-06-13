@@ -157,11 +157,16 @@ policy-addressable ones are members of `EffectTarget` (`electricity` is not — 
 the two coupling variables). The `emissions` sub-model re-derives the activity-driven sources from
 their drivers each turn with **no autonomous decarbonization** (replacing the old flat `AUTON_DECARB`);
 policy cuts and the `electricity`/total derivations are layered at finalization (see §4). The six
-existing emission policies are remapped onto the new targets, and the coupling mechanics
-(storage-gated renewables in `programs`; agricultural-productivity→land in `constraints`) are wired
-in. Still to come: the brand-new policies (EV, grid-storage, organic farming, …) and the aviation
-hard-to-abate floor — both land in the policy-catalog checkpoint. Remap/coupling deltas are
-provisional pending a balance pass.
+existing emission policies are remapped onto the new targets, the coupling mechanics (storage-gated
+renewables in `programs`; agricultural-productivity→land in `constraints`) are wired in, and the
+catalog is expanded with the new sectoral policies (grid-storage, EV, fuel-efficiency, sustainable
+fuels, flight/freight levy, industrial electrification, green steel & cement, CCS, circular economy,
+organic & precision farming, plant-rich diet, anti-deforestation). **Level-shift couplings**
+(`electricityDemand` from electrification, `agriculturalProductivity` from farming) are modelled as
+`immediate` one-time shifts that hold, *not* per-turn flows — otherwise a sustained ongoing effect
+would make them drift without bound; emission cuts stay `ongoing` flows. Aviation/shipping has a
+hard-to-abate **floor** (`AVIATION_FLOOR` of its activity-driven level, stashed by `emissions` and
+enforced at finalization). All deltas/costs are provisional pending a balance pass.
 
 ---
 
@@ -196,7 +201,7 @@ interface SimContext {
 | C | `damage`       | temperature → quadratic GDP damage fraction (clamped ≤ 1)            |
 | D | `economy`      | per-region GDP/capita growth; damage + water/land scarcity dampen the growth *increment* (toward zero), never reverse it into decay |
 | F | `demography`   | per-region population, fertility, median age, education             |
-| E | `emissions`    | per-source emissions **re-derived** from drivers (transport/industry/aviation × output growth; agriculture × population; electricityDemand × output) — **no autonomous decarb**; electricity itself is derived at finalization |
+| E | `emissions`    | per-source emissions **re-derived** from drivers (transport/industry/aviation × output growth; agriculture × population; electricityDemand × output) — **no autonomous decarb**; electricity is derived at finalization, and the per-turn aviation hard-to-abate floor is stashed for finalization |
 | G | `constraints`  | per-region water + land availability (warming/population degrade; an agricultural-productivity shortfall below 100 also erodes land) |
 | G | `biodiversity` | per-region ecosystem health                                          |
 | H | `support`      | per-region public support + equity drift                            |
@@ -243,7 +248,7 @@ reference. Money is the **only** spendable resource — there is no second curre
 |---|---|---|---|
 | `one-time`  | once at enactment (`spendAndRegister`) | permanent | carbon-tax, degrowth, orbital, off-world |
 | `recurring` | every turn while active (`programs`), never completes | flat | climate-adaptation |
-| `buildout`  | every turn until installed capacity reaches 100%, then stops | ramps with capacity (`delta × capacity`), persists at full after completion | renewable-subsidy, nuclear, reforestation, transit, education |
+| `buildout`  | every turn until installed capacity reaches 100%, then stops | ramps with capacity (`delta × capacity`), persists at full after completion | renewable-subsidy, nuclear, reforestation, transit, education, grid-storage, EV, sustainable-fuels, industrial-electrification, green-steel-cement, CCS, circular-economy, organic-farming, precision-agriculture |
 
 An ongoing effect flagged **`storageGated`** (intermittent renewables) is additionally scaled in
 `programs` by the region's grid-storage efficiency `STORAGE_FLOOR + (1 − STORAGE_FLOOR) × energyStorageCapacity`
@@ -290,8 +295,10 @@ advanceTurn(state, selections, cancellations):       // selections/cancellations
   4. run DEFAULT_MODELS over a fresh SimContext       // the natural pipeline (§4); `programs` (last)
      →  charges recurring/buildout upkeep, advances capacity, applies ramped buildout effects
   5. applyEffects(draft, immediate)                   // layer non-buildout policy deltas on top; tick/expire ongoing
-  6. finalize emissions: per region, electricity = electricityDemand × gridCarbonIntensity (≥0);
-     regionalEmissions = Σ six sources; draft.climate.annualEmissions = Σ regionalEmissions
+  6. finalize emissions: per region, clamp coupling stocks (gridCarbonIntensity/energyStorageCapacity
+     → [0,1]; electricityDemand/agriculturalProductivity → ≥0) and the aviation floor; then
+     electricity = electricityDemand × gridCarbonIntensity; regionalEmissions = Σ six sources;
+     draft.climate.annualEmissions = Σ regionalEmissions
      // electricity + the regional/global totals are always derived, never settable targets
   7. draft.rngSeed = rng.seed; turn += 1; year += TURN_YEARS; push 'turn-advanced' event
   8. evaluateEnding(draft) — set status='ended' + endingId if it fires

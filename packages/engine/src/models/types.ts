@@ -49,6 +49,7 @@ export interface TurnScratch {
   scarcityByRegion: Record<RegionId, number>;         // min(water,land)/100 (set by economy)
   constraintFactorByRegion: Record<RegionId, number>; // 0.5–1.0 growth dampener (set by economy)
   outputRatioByRegion: Record<RegionId, number>;      // economic-output expansion (set by emissions)
+  aviationFloorByRegion: Record<RegionId, number>;    // hard-to-abate aviation/shipping floor for the turn (set by emissions)
   popGrowthByRegion: Record<RegionId, number>;        // clamped annual pop growth (set by demography)
   waterLossByRegion: Record<RegionId, number>;        // pre-clamp water drop: warming + pop pressure (set by constraints)
   landLossByRegion: Record<RegionId, number>;         // pre-clamp land drop from warming (set by constraints)
@@ -91,6 +92,7 @@ export function createScratch(): TurnScratch {
     scarcityByRegion: {},
     constraintFactorByRegion: {},
     outputRatioByRegion: {},
+    aviationFloorByRegion: {},
     popGrowthByRegion: {},
     waterLossByRegion: {},
     landLossByRegion: {},

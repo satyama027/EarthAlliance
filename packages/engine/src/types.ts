@@ -69,7 +69,8 @@ export type EffectTarget =
   | 'landUse'
   | 'gridCarbonIntensity'
   | 'electricityDemand'
-  | 'agriculturalProductivity';
+  | 'agriculturalProductivity'
+  | 'energyStorageCapacity';
 
 export type EffectDuration = 'immediate' | 'ongoing';
 

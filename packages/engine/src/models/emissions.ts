@@ -16,7 +16,7 @@ import type { SubModel } from './types.js';
  */
 export const emissions: SubModel = {
   id: 'emissions',
-  step({ state, scratch }) {
+  step({ state, params, scratch }) {
     for (const r of state.regions) {
       const prevGdp = scratch.prevGdpPerCapita[r.id] ?? r.gdpPerCapita;
       const prevPop = scratch.prevPopulation[r.id] ?? r.population;
@@ -31,6 +31,9 @@ export const emissions: SubModel = {
       r.electricityDemand *= outputRatio;
       // r.landUse: untouched (policy-driven). r.electricity: derived at finalization.
 
+      // Hard-to-abate floor for this turn: even at full policy, aviation/shipping can't fall
+      // below this fraction of its activity-driven level. Enforced at finalization (after policy).
+      scratch.aviationFloorByRegion[r.id] = r.aviationShipping * params.AVIATION_FLOOR;
       scratch.outputRatioByRegion[r.id] = outputRatio;
     }
   },
