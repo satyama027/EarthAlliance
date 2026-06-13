@@ -50,6 +50,36 @@ describe('sample regions', () => {
       }
     });
   });
+
+  describe('per-source emission breakdown', () => {
+    const SOURCES = [
+      'electricity', 'transport', 'aviationShipping', 'industry', 'agriculture', 'landUse',
+    ] as const;
+
+    it("splits each region's emissions into six sources summing to its total", () => {
+      for (const r of SAMPLE_REGIONS) {
+        const sum = SOURCES.reduce((s, k) => s + r[k], 0);
+        expect(sum).toBeCloseTo(r.regionalEmissions, 2);
+      }
+    });
+
+    it('derives electricity emissions as electricityDemand × gridCarbonIntensity', () => {
+      for (const r of SAMPLE_REGIONS) {
+        expect(r.electricity).toBeCloseTo(r.electricityDemand * r.gridCarbonIntensity, 2);
+      }
+    });
+
+    it('keeps the new coupling variables in valid ranges', () => {
+      for (const r of SAMPLE_REGIONS) {
+        expect(r.gridCarbonIntensity).toBeGreaterThanOrEqual(0);
+        expect(r.gridCarbonIntensity).toBeLessThanOrEqual(1);
+        expect(r.energyStorageCapacity).toBeGreaterThanOrEqual(0);
+        expect(r.energyStorageCapacity).toBeLessThanOrEqual(1);
+        expect(r.agriculturalProductivity).toBeGreaterThan(0);
+        expect(r.electricityDemand).toBeGreaterThan(0);
+      }
+    });
+  });
 });
 
 describe('default scenario', () => {

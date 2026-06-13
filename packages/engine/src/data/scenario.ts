@@ -20,7 +20,6 @@ export const DEFAULT_PARAMS: ModelParams = Object.freeze({
   WARMING_ADJUST: 0.3,
   DAMAGE_COEFF: 0.005,
   BASE_GROWTH: 0.02,
-  AUTON_DECARB: 0.01,
   FERT_W: 0.01,
   HEALTH_W: 0.0002,
   DEMO_TRANSITION: 0.01,
@@ -36,6 +35,10 @@ export const DEFAULT_PARAMS: ModelParams = Object.freeze({
   INEQUALITY_DRIFT: 5,
   TAX_RATE: 0.02,
   MONEY_SCALE: 1e9,
+  // --- Sectoral-emissions model (used from CP2/CP3 onward) ---
+  STORAGE_FLOOR: 0.6,        // renewables deliver 60% of their grid-cleaning benefit with zero storage
+  AVIATION_FLOOR: 0.2,       // fraction of a region's baseline aviation/shipping that is hard-to-abate
+  AG_YIELD_LAND_COEFF: 0.1,  // how strongly a productivity shortfall (below 100) erodes land/GDP
 });
 
 export const DEFAULT_SCENARIO: Scenario = {

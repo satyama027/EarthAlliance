@@ -1,5 +1,14 @@
 import type { Region } from '../types.js';
 
+// Per-region ~2025 data. ALL emission figures — `regionalEmissions` and the six per-source
+// fields — are in **Gt CO₂/yr** (gigatonnes of CO₂ per year). The six sources sum to
+// `regionalEmissions` (the calibrated real territorial total); their split reflects each
+// region's sectoral profile (e.g. China =
+// industry+coal-power heavy; Latin America / SE Asia = land-use + agriculture heavy; cleaner
+// hydro grids in Latin America). `gridCarbonIntensity` is seeded from real regional grid
+// carbon intensity (0–1, where 1 ≈ a ~1.0 kgCO2/kWh coal grid); `electricityDemand` is set so
+// `electricityDemand × gridCarbonIntensity ≈ electricity`. `agriculturalProductivity` starts at
+// the 100 baseline; grid storage is nascent in 2025 (energyStorageCapacity ≈ 0).
 export const SAMPLE_REGIONS: readonly Region[] = [
   {
     id: 'north-america', name: 'North America',
@@ -7,6 +16,10 @@ export const SAMPLE_REGIONS: readonly Region[] = [
     fertilityRate: 1.6, gdpPerCapita: 65000, publicSupport: 58, equityIndex: 59,
     biodiversityIndex: 58, regionalEmissions: 5.9, waterAvailability: 70,
     landAvailability: 75, lat: 40, lon: -100,
+    electricity: 2.24, transport: 1.65, aviationShipping: 0.41, industry: 1.18,
+    agriculture: 0.30, landUse: 0.12,
+    gridCarbonIntensity: 0.37, electricityDemand: 6.0541,
+    agriculturalProductivity: 100, energyStorageCapacity: 0.04,
   },
   {
     id: 'europe', name: 'Europe',
@@ -14,6 +27,10 @@ export const SAMPLE_REGIONS: readonly Region[] = [
     fertilityRate: 1.5, gdpPerCapita: 40000, publicSupport: 70, equityIndex: 69,
     biodiversityIndex: 48, regionalEmissions: 3.2, waterAvailability: 70,
     landAvailability: 60, lat: 50, lon: 10,
+    electricity: 0.96, transport: 0.90, aviationShipping: 0.32, industry: 0.70,
+    agriculture: 0.26, landUse: 0.06,
+    gridCarbonIntensity: 0.25, electricityDemand: 3.84,
+    agriculturalProductivity: 100, energyStorageCapacity: 0.05,
   },
   {
     id: 'sub-saharan-africa', name: 'Sub-Saharan Africa',
@@ -21,6 +38,10 @@ export const SAMPLE_REGIONS: readonly Region[] = [
     fertilityRate: 4.3, gdpPerCapita: 1800, publicSupport: 62, equityIndex: 52,
     biodiversityIndex: 68, regionalEmissions: 1.0, waterAvailability: 58,
     landAvailability: 78, lat: 0, lon: 20,
+    electricity: 0.20, transport: 0.18, aviationShipping: 0.04, industry: 0.13,
+    agriculture: 0.25, landUse: 0.20,
+    gridCarbonIntensity: 0.55, electricityDemand: 0.3636,
+    agriculturalProductivity: 100, energyStorageCapacity: 0.01,
   },
   {
     id: 'south-asia', name: 'South Asia',
@@ -28,6 +49,10 @@ export const SAMPLE_REGIONS: readonly Region[] = [
     fertilityRate: 2.3, gdpPerCapita: 2700, publicSupport: 62, equityIndex: 64,
     biodiversityIndex: 42, regionalEmissions: 3.2, waterAvailability: 42,
     landAvailability: 45, lat: 22, lon: 78,
+    electricity: 1.34, transport: 0.45, aviationShipping: 0.10, industry: 0.70,
+    agriculture: 0.51, landUse: 0.10,
+    gridCarbonIntensity: 0.70, electricityDemand: 1.9143,
+    agriculturalProductivity: 100, energyStorageCapacity: 0.01,
   },
   {
     id: 'east-asia', name: 'East Asia',
@@ -35,6 +60,10 @@ export const SAMPLE_REGIONS: readonly Region[] = [
     fertilityRate: 1.1, gdpPerCapita: 15000, publicSupport: 58, equityIndex: 63,
     biodiversityIndex: 45, regionalEmissions: 13.3, waterAvailability: 52,
     landAvailability: 48, lat: 35, lon: 110,
+    electricity: 5.99, transport: 1.33, aviationShipping: 0.40, industry: 4.65,
+    agriculture: 0.66, landUse: 0.27,
+    gridCarbonIntensity: 0.58, electricityDemand: 10.3276,
+    agriculturalProductivity: 100, energyStorageCapacity: 0.05,
   },
   {
     id: 'latin-america', name: 'Latin America',
@@ -42,6 +71,10 @@ export const SAMPLE_REGIONS: readonly Region[] = [
     fertilityRate: 1.8, gdpPerCapita: 9500, publicSupport: 68, equityIndex: 50,
     biodiversityIndex: 70, regionalEmissions: 1.4, waterAvailability: 80,
     landAvailability: 80, lat: -15, lon: -60,
+    electricity: 0.25, transport: 0.31, aviationShipping: 0.07, industry: 0.21,
+    agriculture: 0.28, landUse: 0.28,
+    gridCarbonIntensity: 0.20, electricityDemand: 1.25,
+    agriculturalProductivity: 100, energyStorageCapacity: 0.02,
   },
   {
     id: 'russia-central-asia', name: 'Russia & Central Asia',
@@ -49,6 +82,10 @@ export const SAMPLE_REGIONS: readonly Region[] = [
     fertilityRate: 1.9, gdpPerCapita: 12000, publicSupport: 45, equityIndex: 63,
     biodiversityIndex: 70, regionalEmissions: 2.4, waterAvailability: 68,
     landAvailability: 78, lat: 60, lon: 90,
+    electricity: 0.96, transport: 0.36, aviationShipping: 0.10, industry: 0.72,
+    agriculture: 0.19, landUse: 0.07,
+    gridCarbonIntensity: 0.45, electricityDemand: 2.1333,
+    agriculturalProductivity: 100, energyStorageCapacity: 0.01,
   },
   {
     id: 'mena', name: 'MENA',
@@ -56,6 +93,10 @@ export const SAMPLE_REGIONS: readonly Region[] = [
     fertilityRate: 2.8, gdpPerCapita: 8000, publicSupport: 55, equityIndex: 58,
     biodiversityIndex: 40, regionalEmissions: 2.8, waterAvailability: 22,
     landAvailability: 28, lat: 27, lon: 30,
+    electricity: 1.26, transport: 0.56, aviationShipping: 0.17, industry: 0.70,
+    agriculture: 0.08, landUse: 0.03,
+    gridCarbonIntensity: 0.55, electricityDemand: 2.2909,
+    agriculturalProductivity: 100, energyStorageCapacity: 0.01,
   },
   {
     id: 'southeast-asia', name: 'Southeast Asia',
@@ -63,6 +104,10 @@ export const SAMPLE_REGIONS: readonly Region[] = [
     fertilityRate: 2.0, gdpPerCapita: 5500, publicSupport: 65, equityIndex: 60,
     biodiversityIndex: 62, regionalEmissions: 1.8, waterAvailability: 72,
     landAvailability: 58, lat: 5, lon: 110,
+    electricity: 0.54, transport: 0.32, aviationShipping: 0.09, industry: 0.31,
+    agriculture: 0.22, landUse: 0.32,
+    gridCarbonIntensity: 0.50, electricityDemand: 1.08,
+    agriculturalProductivity: 100, energyStorageCapacity: 0.01,
   },
   {
     id: 'oceania', name: 'Oceania',
@@ -70,5 +115,9 @@ export const SAMPLE_REGIONS: readonly Region[] = [
     fertilityRate: 1.8, gdpPerCapita: 46000, publicSupport: 60, equityIndex: 62,
     biodiversityIndex: 70, regionalEmissions: 0.5, waterAvailability: 60,
     landAvailability: 70, lat: -25, lon: 135,
+    electricity: 0.19, transport: 0.10, aviationShipping: 0.04, industry: 0.06,
+    agriculture: 0.09, landUse: 0.02,
+    gridCarbonIntensity: 0.50, electricityDemand: 0.38,
+    agriculturalProductivity: 100, energyStorageCapacity: 0.03,
   },
 ];

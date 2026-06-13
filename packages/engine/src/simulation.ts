@@ -46,7 +46,16 @@ export function createSimulation(
       // 13: layer policy effects on top of the natural dynamics.
       applyEffects(draft, immediate);
 
-      // 14: annual emissions are always derived from regional emissions.
+      // 14: finalize emissions. Electricity is derived LAST (after policy moved demand &
+      // grid intensity); regionalEmissions is the derived sum of the six sources; annual
+      // emissions is the sum across regions. landUse may be negative (a sink), so the
+      // regional total — and the global total — may go net-negative.
+      for (const r of draft.regions) {
+        r.gridCarbonIntensity = Math.max(0, r.gridCarbonIntensity);
+        r.electricity = Math.max(0, r.electricityDemand * r.gridCarbonIntensity);
+        r.regionalEmissions =
+          r.electricity + r.transport + r.aviationShipping + r.industry + r.agriculture + r.landUse;
+      }
       draft.climate.annualEmissions = draft.regions.reduce((a, r) => a + r.regionalEmissions, 0);
 
       // 15–16: persist RNG, advance the clock.
@@ -84,7 +93,6 @@ export function createSimulation(
         deltaPpm: scratch.deltaPpm,
         grossEmissions: scratch.grossEmissions,
         baseGrowthFactor: scratch.baseGrowthFactor,
-        decarbFactor: scratch.decarbFactor,
         avgSupport: scratch.avgSupport,
         worldPopulation: scratch.worldPopulation,
         worldGdp: scratch.worldGdp,

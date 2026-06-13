@@ -123,7 +123,6 @@ describe('advanceTurn', () => {
 
     // ── Global economy intermediates ──
     expect(d.baseGrowthFactor).toBeCloseTo(Math.pow(1 + P.BASE_GROWTH, P.TURN_YEARS), 9);
-    expect(d.decarbFactor).toBeCloseTo(Math.pow(1 - P.AUTON_DECARB, P.TURN_YEARS), 9);
     // Avg support is the population-weighted mean of the post-turn (final) regional support.
     const supportPop = s1.regions.reduce((a, r) => a + r.publicSupport * r.population, 0);
     const totalPop = s1.regions.reduce((a, r) => a + r.population, 0);

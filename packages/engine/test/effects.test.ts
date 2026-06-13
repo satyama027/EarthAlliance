@@ -16,9 +16,9 @@ describe('spendAndRegister', () => {
     expect(state.enactments).toContainEqual(
       expect.objectContaining({ policyId: 'carbon-tax', regionId: 'r1', complete: true }),
     );
-    // ongoing emissions cut registered, scoped to the region; immediate support hit returned
+    // ongoing grid-intensity cut registered, scoped to the region; immediate support hit returned
     expect(state.activeEffects).toHaveLength(1);
-    expect(state.activeEffects[0]!.effect.target).toBe('regionalEmissions');
+    expect(state.activeEffects[0]!.effect.target).toBe('gridCarbonIntensity');
     expect(state.activeEffects[0]!.regionId).toBe('r1');
     expect(immediate).toHaveLength(1);
     expect(immediate[0]!.effect.target).toBe('publicSupport');
@@ -60,26 +60,26 @@ describe('applyEffects', () => {
   });
 
   it('applies and expires ongoing effects on schedule', () => {
-    const state = makeState({ regions: [makeRegion({ regionalEmissions: 10 })] });
-    const active: ActiveEffect = { policyId: 'x', regionId: null, effect: { target: 'regionalEmissions', delta: -1, duration: 'ongoing', turns: 2 }, turnsRemaining: 2 };
+    const state = makeState({ regions: [makeRegion({ transport: 10 })] });
+    const active: ActiveEffect = { policyId: 'x', regionId: null, effect: { target: 'transport', delta: -1, duration: 'ongoing', turns: 2 }, turnsRemaining: 2 };
     state.activeEffects = [active];
 
     applyEffects(state, []);
-    expect(state.regions[0]!.regionalEmissions).toBe(9);
+    expect(state.regions[0]!.transport).toBe(9);
     expect(state.activeEffects[0]!.turnsRemaining).toBe(1);
 
     applyEffects(state, []);
-    expect(state.regions[0]!.regionalEmissions).toBe(8);
+    expect(state.regions[0]!.transport).toBe(8);
     expect(state.activeEffects).toHaveLength(0); // expired
   });
 
-  it('clamps 0–100 targets but lets emissions go negative', () => {
-    const state = makeState({ regions: [makeRegion({ biodiversityIndex: 99, regionalEmissions: 0.5 })] });
+  it('clamps 0–100 indices but lets source emissions go negative', () => {
+    const state = makeState({ regions: [makeRegion({ biodiversityIndex: 99, transport: 0.5 })] });
     applyEffects(state, [
       { policyId: 'x', regionId: null, effect: { target: 'biodiversityIndex', delta: 5, duration: 'immediate' }, turnsRemaining: 0 },
-      { policyId: 'y', regionId: null, effect: { target: 'regionalEmissions', delta: -1, duration: 'immediate' }, turnsRemaining: 0 },
+      { policyId: 'y', regionId: null, effect: { target: 'transport', delta: -1, duration: 'immediate' }, turnsRemaining: 0 },
     ]);
     expect(state.regions[0]!.biodiversityIndex).toBe(100);
-    expect(state.regions[0]!.regionalEmissions).toBeCloseTo(-0.5, 5);
+    expect(state.regions[0]!.transport).toBeCloseTo(-0.5, 5);
   });
 });

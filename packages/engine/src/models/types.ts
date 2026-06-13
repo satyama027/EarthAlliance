@@ -9,7 +9,6 @@ export interface ModelParams {
   WARMING_ADJUST: number;
   DAMAGE_COEFF: number;
   BASE_GROWTH: number;
-  AUTON_DECARB: number;
   FERT_W: number;
   HEALTH_W: number;
   DEMO_TRANSITION: number;
@@ -25,6 +24,10 @@ export interface ModelParams {
   INEQUALITY_DRIFT: number;
   TAX_RATE: number;
   MONEY_SCALE: number;
+  // Sectoral-emissions model (used from CP2/CP3 onward).
+  STORAGE_FLOOR: number;       // renewable effectiveness floor at zero storage (0–1)
+  AVIATION_FLOOR: number;      // hard-to-abate fraction of baseline aviation/shipping
+  AG_YIELD_LAND_COEFF: number; // land/GDP penalty per unit of productivity shortfall
 }
 
 /** Per-turn intermediate values passed between sub-models. */
@@ -39,7 +42,6 @@ export interface TurnScratch {
   deltaPpm: number;        // ppm added this turn (set by carbonCycle)
   grossEmissions: number;  // Gt emitted over the turn period (set by carbonCycle)
   baseGrowthFactor: number;// base GDP growth multiplier before damage/scarcity (set by economy)
-  decarbFactor: number;    // autonomous decarbonization multiplier (set by emissions)
   avgSupport: number;      // population-weighted mean public support (set by resources)
   worldPopulation: number; // global population sum (set by resources)
   worldGdp: number;        // global GDP sum, gdpPerCapita×population (set by resources)
@@ -82,7 +84,6 @@ export function createScratch(): TurnScratch {
     deltaPpm: 0,
     grossEmissions: 0,
     baseGrowthFactor: 0,
-    decarbFactor: 0,
     avgSupport: 0,
     worldPopulation: 0,
     worldGdp: 0,

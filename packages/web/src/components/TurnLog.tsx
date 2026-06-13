@@ -101,7 +101,6 @@ function PlanetCalcBlock({ d }: { d: TurnDiagnostics }) {
       <SimpleGrid cols={2} spacing="md" verticalSpacing={2}>
         <Cell label="Damage" value={`${(d.damageFraction * 100).toFixed(2)}%`} />
         <Cell label="Base growth" value={mult(d.baseGrowthFactor)} />
-        <Cell label="Decarb" value={mult(d.decarbFactor)} />
       </SimpleGrid>
       <CalcLabel>Calc · Resources</CalcLabel>
       <SimpleGrid cols={2} spacing="md" verticalSpacing={2}>

@@ -12,10 +12,11 @@ const RENEWABLE_BASELINE: Record<string, number> = {
 export const POLICY_CATALOG: readonly Policy[] = [
   {
     id: 'carbon-tax', name: 'Carbon Tax', category: 'industry',
-    description: 'Price carbon to cut emissions; unpopular up front.',
+    description: 'Price carbon to clean the power grid; unpopular up front.',
     art: 'carbon-tax', cost: { money: 50 }, funding: 'one-time',
     effects: [
-      { target: 'regionalEmissions', delta: -0.4, duration: 'ongoing' },
+      // Prices fossil power → grid carbon intensity falls each turn (provisional; tuned in CP5 balance).
+      { target: 'gridCarbonIntensity', delta: -0.04, duration: 'ongoing' },
       { target: 'publicSupport', delta: -3, duration: 'immediate' },
     ],
   },
@@ -24,14 +25,16 @@ export const POLICY_CATALOG: readonly Policy[] = [
     description: 'Fund wind and solar deployment until the grid is built out.',
     art: 'renewable-subsidy', cost: { money: 1200 }, funding: 'buildout',
     buildout: { ratePerTurn: 0.10, baselineByRegion: RENEWABLE_BASELINE, defaultBaseline: 0 },
-    effects: [{ target: 'regionalEmissions', delta: -0.6, duration: 'ongoing' }],
+    // Intermittent: storage-gated (full grid-cleaning benefit only once storage is built — CP3).
+    effects: [{ target: 'gridCarbonIntensity', delta: -0.08, duration: 'ongoing', storageGated: true }],
   },
   {
     id: 'nuclear-buildout', name: 'Nuclear Buildout', category: 'energy',
     description: 'Large baseload decarbonization; reactors come online over years.',
     art: 'nuclear-buildout', cost: { money: 800 }, funding: 'buildout',
     buildout: { ratePerTurn: 0.08, defaultBaseline: 0 },
-    effects: [{ target: 'regionalEmissions', delta: -1.0, duration: 'ongoing' }],
+    // Firm baseload: NOT storage-gated — delivers full grid-cleaning benefit immediately.
+    effects: [{ target: 'gridCarbonIntensity', delta: -0.10, duration: 'ongoing' }],
   },
   {
     id: 'reforestation', name: 'Reforestation', category: 'land',
@@ -39,7 +42,8 @@ export const POLICY_CATALOG: readonly Policy[] = [
     art: 'reforestation', cost: { money: 250 }, funding: 'buildout',
     buildout: { ratePerTurn: 0.10, defaultBaseline: 0 },
     effects: [
-      { target: 'regionalEmissions', delta: -0.3, duration: 'ongoing' },
+      // Forests are a carbon sink: a negative land-use source pulls the regional total down.
+      { target: 'landUse', delta: -0.3, duration: 'ongoing' },
       { target: 'biodiversityIndex', delta: 2, duration: 'ongoing' },
     ],
   },
@@ -49,7 +53,7 @@ export const POLICY_CATALOG: readonly Policy[] = [
     art: 'public-transit', cost: { money: 500 }, funding: 'buildout',
     buildout: { ratePerTurn: 0.10, defaultBaseline: 0 },
     effects: [
-      { target: 'regionalEmissions', delta: -0.3, duration: 'ongoing' },
+      { target: 'transport', delta: -0.3, duration: 'ongoing' },
       { target: 'publicSupport', delta: 2, duration: 'immediate' },
     ],
   },
@@ -77,7 +81,12 @@ export const POLICY_CATALOG: readonly Policy[] = [
     description: 'Slash emissions by curbing output; politically costly.',
     art: 'degrowth-mandate', cost: { money: 1500 }, funding: 'one-time',
     effects: [
-      { target: 'regionalEmissions', delta: -1.5, duration: 'ongoing' },
+      // Curbing output cuts every activity-driven source (and the GDP cut keeps cutting them
+      // via the output driver next turn). Split of the old −1.5 across sources.
+      { target: 'transport', delta: -0.5, duration: 'ongoing' },
+      { target: 'industry', delta: -0.6, duration: 'ongoing' },
+      { target: 'aviationShipping', delta: -0.1, duration: 'ongoing' },
+      { target: 'agriculture', delta: -0.3, duration: 'ongoing' },
       { target: 'gdpPerCapita', delta: -2000, duration: 'immediate' },
       { target: 'publicSupport', delta: -8, duration: 'immediate' },
     ],

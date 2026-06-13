@@ -12,6 +12,11 @@ export function makeRegion(overrides: Partial<Region> = {}): Region {
     fertilityRate: 2.0, gdpPerCapita: 20000, publicSupport: 50, equityIndex: 50,
     biodiversityIndex: 50, regionalEmissions: 10, waterAvailability: 50,
     landAvailability: 50, lat: 0, lon: 0,
+    // Sectoral emissions: six sources summing to regionalEmissions (10).
+    electricity: 4, transport: 2, aviationShipping: 0.5, industry: 2,
+    agriculture: 1, landUse: 0.5,
+    gridCarbonIntensity: 0.5, electricityDemand: 8,
+    agriculturalProductivity: 100, energyStorageCapacity: 0,
     ...overrides,
   };
 }

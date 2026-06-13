@@ -17,7 +17,6 @@ describe('createScratch', () => {
     expect(s.deltaPpm).toBe(0);
     expect(s.grossEmissions).toBe(0);
     expect(s.baseGrowthFactor).toBe(0);
-    expect(s.decarbFactor).toBe(0);
     expect(s.avgSupport).toBe(0);
     expect(s.worldPopulation).toBe(0);
     expect(s.worldGdp).toBe(0);

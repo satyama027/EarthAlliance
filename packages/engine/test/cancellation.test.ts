@@ -78,13 +78,13 @@ describe('advanceTurn — cancelling a committed buildout', () => {
 describe('programs — cancelled buildout', () => {
   it('charges nothing and stops advancing, but the installed capacity still delivers its benefit', () => {
     const state = makeState({
-      regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, regionalEmissions: 10 })],
+      regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, gridCarbonIntensity: 0.5 })],
       resources: { money: 5000 },
       enactments: [enact({ capacity: 0.4, cancelled: true })],
     });
     programs.step(makeContext(state));
     expect(state.resources.money).toBeCloseTo(5000, 5);          // no upkeep
     expect(state.enactments[0]!.capacity).toBeCloseTo(0.4, 5);    // frozen
-    expect(state.regions[0]!.regionalEmissions).toBeCloseTo(10 - 0.6 * 0.4, 5); // benefit persists
+    expect(state.regions[0]!.gridCarbonIntensity).toBeCloseTo(0.5 - 0.08 * 0.4, 5); // benefit persists
   });
 });

@@ -23,11 +23,28 @@ export interface Region {
   publicSupport: number;    // 0–100
   equityIndex: number;      // 0–100
   biodiversityIndex: number;// 0–100
-  regionalEmissions: number;// GtCO2/yr (may go negative => net-negative)
+  regionalEmissions: number;// GtCO2/yr — DERIVED total = sum of the six per-source fields below
   waterAvailability: number;// 0–100
   landAvailability: number; // 0–100
   lat: number;
   lon: number;
+
+  // --- Per-source emissions (GtCO2/yr). Sum === regionalEmissions. ---
+  // `electricity` is DERIVED each turn as electricityDemand × gridCarbonIntensity; the
+  // other five are activity-driven stocks that policies cut directly. `landUse` may go
+  // negative (a forest sink). None are clamped to 0–100 (they are Gt, not indices).
+  electricity: number;       // power-sector emissions (derived: demand × grid intensity)
+  transport: number;         // road transport
+  aviationShipping: number;  // aviation + shipping (hard-to-abate; floored)
+  industry: number;          // industry (energy + process: steel, cement, chemicals)
+  agriculture: number;       // agriculture (livestock methane, fertilizer N2O)
+  landUse: number;           // land-use & forestry; negative => net sink
+
+  // --- Coupling variables the new policies move (the trade-off carriers). ---
+  gridCarbonIntensity: number;     // 0–1, dirtiness per kWh (1 ≈ 1.0 kgCO2/kWh coal grid)
+  electricityDemand: number;       // power draw in Gt-at-reference units (grows with GDP)
+  agriculturalProductivity: number;// crop/land yield index, baseline 100
+  energyStorageCapacity: number;   // 0–1 installed grid storage; gates renewable effectiveness
 }
 
 /** Numeric Region fields a policy effect may modify. */
@@ -35,7 +52,6 @@ export interface Region {
 // medianAge, fertilityRate) are intentionally excluded: policies influence them
 // indirectly (via education, health, gdp), never by direct assignment.
 export type EffectTarget =
-  | 'regionalEmissions'
   | 'biodiversityIndex'
   | 'publicSupport'
   | 'equityIndex'
@@ -43,7 +59,17 @@ export type EffectTarget =
   | 'landAvailability'
   | 'educationIndex'
   | 'healthIndex'
-  | 'gdpPerCapita';
+  | 'gdpPerCapita'
+  // Per-source emission targets (electricity is NOT here — it is derived from the two
+  // coupling variables below, which policies move instead).
+  | 'transport'
+  | 'aviationShipping'
+  | 'industry'
+  | 'agriculture'
+  | 'landUse'
+  | 'gridCarbonIntensity'
+  | 'electricityDemand'
+  | 'agriculturalProductivity';
 
 export type EffectDuration = 'immediate' | 'ongoing';
 
@@ -53,6 +79,12 @@ export interface PolicyEffect {
   duration: EffectDuration;
   /** For ongoing effects: number of turns it persists. Undefined => permanent. */
   turns?: number;
+  /**
+   * For intermittent renewables: when true, this effect's magnitude is scaled by the
+   * region's grid-storage efficiency (`STORAGE_FLOOR + (1 − STORAGE_FLOOR) × storageCapacity`).
+   * Firm sources (nuclear) leave this unset and deliver full benefit immediately. (Used in CP3.)
+   */
+  storageGated?: boolean;
 }
 
 export type PolicyCategory = 'energy' | 'industry' | 'land' | 'social' | 'frontier';
@@ -154,7 +186,6 @@ export interface TurnDiagnostics {
   deltaPpm: number;          // ppm added to the atmosphere this turn
   grossEmissions: number;    // Gt emitted over the 5-year turn (annual rate × TURN_YEARS)
   baseGrowthFactor: number;  // base GDP growth multiplier before damage & resource scarcity
-  decarbFactor: number;      // autonomous decarbonization multiplier applied to emissions
   avgSupport: number;        // population-weighted mean public support across all regions
   worldPopulation: number;   // global population sum
   worldGdp: number;          // global GDP sum (Σ gdpPerCapita × population)

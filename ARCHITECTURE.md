@@ -117,7 +117,7 @@ pipeline computes but the state discards. The sub-models stash these locals into
 `damageFraction` and `deltaTemperature` (global), `growthByRegion` (per-region GDP/capita growth),
 plus a widened set of **calc internals** for the Turn Log's "More" panel covering every sub-model:
 global `co2Ratio`, `equilibriumTemp`, `deltaPpm`, `grossEmissions`, `baseGrowthFactor`,
-`decarbFactor`, `avgSupport`, `worldPopulation`, `worldGdp`, `moneyGain`; and
+`avgSupport`, `worldPopulation`, `worldGdp`, `moneyGain`; and
 per-region `scarcityByRegion`, `constraintFactorByRegion`, `outputRatioByRegion`, `popGrowthByRegion`,
 `waterLossByRegion`, `landLossByRegion`, `bioLossByRegion`, the three support-change contributions
 (`supportTempTermByRegion`, `supportEconTermByRegion`, `supportEquityTermByRegion`),
@@ -145,6 +145,21 @@ annualEmissions), `regions[]`, `activeEffects[]` (ongoing policy effects still t
 `enactments[]` (active `{ policyId, regionId, capacity, complete }` records — the single source
 of truth for what is enacted where, and how far each buildout has progressed), `log[]`, and
 `rngSeed`.
+
+**Sectoral emissions.** Each `Region` carries a six-source emissions breakdown — `electricity`,
+`transport`, `aviationShipping`, `industry`, `agriculture`, `landUse` (Gt CO₂/yr; `landUse` may
+be negative = a forest sink) — that **sums to** `regionalEmissions` (the derived total).
+`electricity` is itself derived as `electricityDemand × gridCarbonIntensity`. Four **coupling
+variables** carry the policy trade-offs: `gridCarbonIntensity` (0–1), `electricityDemand`,
+`agriculturalProductivity` (index, baseline 100), and `energyStorageCapacity` (0–1, gates renewable
+effectiveness). All ten are seeded from real ~2025 sectoral data in `data/regions.ts` and the eight
+policy-addressable ones are members of `EffectTarget` (`electricity` is not — policies reach it via
+the two coupling variables). The `emissions` sub-model re-derives the activity-driven sources from
+their drivers each turn with **no autonomous decarbonization** (replacing the old flat `AUTON_DECARB`);
+policy cuts and the `electricity`/total derivations are layered at finalization (see §4). The six
+existing emission policies are remapped onto the new targets; brand-new policies (EV, grid-storage,
+organic farming, …) and the coupling mechanics (storage-gated renewables, productivity→land) are the
+next checkpoints. Remap deltas are provisional pending a balance pass.
 
 ---
 
@@ -179,7 +194,7 @@ interface SimContext {
 | C | `damage`       | temperature → quadratic GDP damage fraction (clamped ≤ 1)            |
 | D | `economy`      | per-region GDP/capita growth; damage + water/land scarcity dampen the growth *increment* (toward zero), never reverse it into decay |
 | F | `demography`   | per-region population, fertility, median age, education             |
-| E | `emissions`    | per-region emissions **re-derived** from output × autonomous decarb |
+| E | `emissions`    | per-source emissions **re-derived** from drivers (transport/industry/aviation × output growth; agriculture × population; electricityDemand × output) — **no autonomous decarb**; electricity itself is derived at finalization |
 | G | `constraints`  | per-region water + land availability (warming/population degrade)   |
 | G | `biodiversity` | per-region ecosystem health                                          |
 | H | `support`      | per-region public support + equity drift                            |
@@ -200,10 +215,15 @@ A deliberate seam: the sub-models compute **only natural dynamics**. They do *no
 `activeEffects` or apply policy deltas. Policy effects are applied in a single dedicated
 step (`applyEffects`, `effects.ts`) **after** the whole pipeline runs.
 
-This matters most for emissions: stage E *re-derives* `regionalEmissions` from economic
-output every turn. If policy cuts were applied inside the pipeline, that re-derivation
-would overwrite them. By layering ongoing emission cuts on top afterward, they persist —
-which is what makes the multi-decade decarbonization (the "redemption arc") possible.
+This matters most for emissions: stage E *re-derives* each **per-source** emission from its
+economic/population driver every turn (with no autonomous decarb). If policy cuts were applied
+inside the pipeline, that re-derivation would overwrite them. By layering ongoing per-source cuts
+(and the coupling-variable moves — grid intensity, electricity demand, ag productivity) on top
+afterward, they persist — which is what makes the multi-decade, policy-only decarbonization (the
+"redemption arc") possible. `electricity` is special: it is **not** a stored stock the pipeline
+grows but a value **derived at turn finalization** as `electricityDemand × gridCarbonIntensity`,
+*after* policy has moved both — so the player decarbonizes power by cleaning the grid or curbing
+demand, never by writing an electricity number directly (`electricity` is not an `EffectTarget`).
 
 (Buildout policies are the one exception to the `applyEffects` seam: their ramped ongoing
 effects are applied by the `programs` sub-model — also after stage E — because the magnitude
@@ -259,7 +279,9 @@ advanceTurn(state, selections, cancellations):       // selections/cancellations
   4. run DEFAULT_MODELS over a fresh SimContext       // the natural pipeline (§4); `programs` (last)
      →  charges recurring/buildout upkeep, advances capacity, applies ramped buildout effects
   5. applyEffects(draft, immediate)                   // layer non-buildout policy deltas on top; tick/expire ongoing
-  6. draft.climate.annualEmissions = Σ regionalEmissions   // always re-derived, never a settable target
+  6. finalize emissions: per region, electricity = electricityDemand × gridCarbonIntensity (≥0);
+     regionalEmissions = Σ six sources; draft.climate.annualEmissions = Σ regionalEmissions
+     // electricity + the regional/global totals are always derived, never settable targets
   7. draft.rngSeed = rng.seed; turn += 1; year += TURN_YEARS; push 'turn-advanced' event
   8. evaluateEnding(draft) — set status='ended' + endingId if it fires
   return { state: draft, events, diagnostics }
@@ -361,9 +383,13 @@ These hold across the engine and are guarded by the test suite. Treat them as lo
    early-returns when ended — so the UI shows the `EndingScreen` instead of advancing. Once
    a turn returns an ended state, stop calling the engine.
 
-4. **Emissions are derived, never set.** `climate.annualEmissions` is *always* recomputed
-   as `Σ regionalEmissions` at the end of the turn. It is not a valid `EffectTarget`;
-   policies move emissions only via per-region `regionalEmissions` deltas.
+4. **Emissions totals are derived, never set.** At turn finalization, each region's `electricity`
+   is recomputed as `electricityDemand × gridCarbonIntensity`, `regionalEmissions` as the sum of
+   the six per-source fields, and `climate.annualEmissions` as `Σ regionalEmissions`. None of
+   `electricity`/`regionalEmissions`/`annualEmissions` is a valid `EffectTarget`; policies move
+   emissions only via the five activity-driven source fields (`transport`, `aviationShipping`,
+   `industry`, `agriculture`, `landUse`) and the coupling variables (`gridCarbonIntensity`,
+   `electricityDemand`, `agriculturalProductivity`).
 
 5. **Index clamping.** All 0–100 indices (support, equity, biodiversity, water, land,
    education, health) are clamped to `[0, 100]` both in their sub-models and when policy
@@ -400,9 +426,12 @@ These hold across the engine and are guarded by the test suite. Treat them as lo
   is real territorial fossil+industry CO₂ summing to ~35.5 GtCO₂/yr (was an inflated 52);
   population/fertility/medianAge are real, and the soft 0–100 indices use real-world proxies
   (HDI sub-indices, `100−Gini`, water-stress, biodiversity-intactness). With this accurate
-  baseline, do-nothing ends in an eco-collapse loss around 2105 (the golden snapshot in
+  baseline, do-nothing ends in an eco-collapse loss around **2095** (the golden snapshot in
   `test/integration.test.ts` locks the terminal point; `test/data.test.ts` locks the anchor
-  values + the "East Asia is the largest emitter" structural invariant). Re-tuning
+  values + the "East Asia is the largest emitter" structural invariant). It moved earlier (from
+  ~2105) when the **sectoral-emissions** model removed the old flat autonomous-decarbonization
+  cushion — with no free decarb, do-nothing emissions rise faster. The per-source remap deltas
+  (e.g. renewables/nuclear → `gridCarbonIntensity`) are provisional. Re-tuning
   `DEFAULT_PARAMS` to this new baseline is a **separate, deferred balance pass**; the
   region-scaled policy economy (build/upkeep, buildout rates, baselines, starting budget) is
   tuned for meaningful tradeoffs but remains a playtesting surface.
