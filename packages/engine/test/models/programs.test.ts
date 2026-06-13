@@ -35,7 +35,8 @@ describe('programs submodel', () => {
 
   it('ramps a buildout ongoing effect by current capacity', () => {
     const state = makeState({
-      regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, gridCarbonIntensity: 0.5 })],
+      // Full storage isolates the ramp mechanic from storage gating (efficiency = 1).
+      regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, gridCarbonIntensity: 0.5, energyStorageCapacity: 1 })],
       resources: { money: 5000 },
       enactments: [enact({ capacity: 0.5, complete: true })], // complete => no advance, capacity fixed
     });
@@ -46,7 +47,7 @@ describe('programs submodel', () => {
 
   it('stops charging once a buildout reaches 100% but keeps delivering the benefit', () => {
     const state = makeState({
-      regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, gridCarbonIntensity: 0.5 })],
+      regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, gridCarbonIntensity: 0.5, energyStorageCapacity: 1 })],
       resources: { money: 5000 },
       enactments: [enact({ capacity: 0.95 })],
     });
@@ -63,7 +64,7 @@ describe('programs submodel', () => {
 
   it('idles when underfunded: no charge, no advance, existing capacity still delivers', () => {
     const state = makeState({
-      regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, gridCarbonIntensity: 0.5 })],
+      regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, gridCarbonIntensity: 0.5, energyStorageCapacity: 1 })],
       resources: { money: 10 }, // charge 1200 > 10
       enactments: [enact({ capacity: 0.2 })],
     });
@@ -92,5 +93,53 @@ describe('programs submodel', () => {
     });
     programs.step(makeContext(state));
     expect(state.resources.money).toBeCloseTo(5000, 5);
+  });
+});
+
+describe('storage-gated renewables', () => {
+  const renewable = (over = {}) => ({ policyId: 'renewable-subsidy', regionId: 'r1', capacity: 1, complete: true, ...over });
+
+  it('delivers only the storage floor (60%) of the renewable benefit at zero storage', () => {
+    const state = makeState({
+      regions: [makeRegion({ id: 'r1', gridCarbonIntensity: 0.5, energyStorageCapacity: 0 })],
+      resources: { money: 5000 },
+      enactments: [renewable()],
+    });
+    programs.step(makeContext(state));
+    // -0.08 * capacity(1) * (STORAGE_FLOOR 0.6 + 0.4 * storage 0) = -0.048
+    expect(state.regions[0]!.gridCarbonIntensity).toBeCloseTo(0.5 - 0.048, 5);
+  });
+
+  it('delivers the full renewable benefit once storage is fully built out', () => {
+    const state = makeState({
+      regions: [makeRegion({ id: 'r1', gridCarbonIntensity: 0.5, energyStorageCapacity: 1 })],
+      resources: { money: 5000 },
+      enactments: [renewable()],
+    });
+    programs.step(makeContext(state));
+    // -0.08 * 1 * (0.6 + 0.4 * 1) = -0.08
+    expect(state.regions[0]!.gridCarbonIntensity).toBeCloseTo(0.42, 5);
+  });
+
+  it('scales renewable benefit linearly between the floor and full with partial storage', () => {
+    const state = makeState({
+      regions: [makeRegion({ id: 'r1', gridCarbonIntensity: 0.5, energyStorageCapacity: 0.5 })],
+      resources: { money: 5000 },
+      enactments: [renewable()],
+    });
+    programs.step(makeContext(state));
+    // efficiency = 0.6 + 0.4 * 0.5 = 0.8; -0.08 * 0.8 = -0.064
+    expect(state.regions[0]!.gridCarbonIntensity).toBeCloseTo(0.5 - 0.064, 5);
+  });
+
+  it('does NOT storage-gate a firm source (nuclear delivers full benefit at zero storage)', () => {
+    const state = makeState({
+      regions: [makeRegion({ id: 'r1', gridCarbonIntensity: 0.5, energyStorageCapacity: 0 })],
+      resources: { money: 5000 },
+      enactments: [{ policyId: 'nuclear-buildout', regionId: 'r1', capacity: 1, complete: true }],
+    });
+    programs.step(makeContext(state));
+    // nuclear -0.10 applied in full regardless of storage
+    expect(state.regions[0]!.gridCarbonIntensity).toBeCloseTo(0.40, 5);
   });
 });

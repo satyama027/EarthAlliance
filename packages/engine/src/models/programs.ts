@@ -19,7 +19,7 @@ const regionGdp = (r: Region): number => r.gdpPerCapita * r.population;
  */
 export const programs: SubModel = {
   id: 'programs',
-  step({ state, scratch }) {
+  step({ state, params, scratch }) {
     const regionsById = new Map(state.regions.map((r) => [r.id, r]));
     const worldGdp = state.regions.reduce((sum, r) => sum + regionGdp(r), 0);
     const spendByRegion: Record<string, number> = {};
@@ -42,10 +42,16 @@ export const programs: SubModel = {
           if (enactment.capacity >= 1) enactment.complete = true;
         }
         // Installed capacity delivers its benefit every turn, ramped, even once complete.
+        // `storageGated` effects (intermittent renewables) are additionally scaled by the
+        // region's grid-storage efficiency: only the floor share lands until storage is built.
         for (const effect of policy.effects) {
-          if (effect.duration === 'ongoing') {
-            applyToRegion(region, effect.target, effect.delta * enactment.capacity);
+          if (effect.duration !== 'ongoing') continue;
+          let magnitude = effect.delta * enactment.capacity;
+          if (effect.storageGated) {
+            const storage = Math.min(1, Math.max(0, region.energyStorageCapacity));
+            magnitude *= params.STORAGE_FLOOR + (1 - params.STORAGE_FLOOR) * storage;
           }
+          applyToRegion(region, effect.target, magnitude);
         }
       } else {
         // recurring: flat charge every turn while active (never completes).

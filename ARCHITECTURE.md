@@ -157,9 +157,11 @@ policy-addressable ones are members of `EffectTarget` (`electricity` is not — 
 the two coupling variables). The `emissions` sub-model re-derives the activity-driven sources from
 their drivers each turn with **no autonomous decarbonization** (replacing the old flat `AUTON_DECARB`);
 policy cuts and the `electricity`/total derivations are layered at finalization (see §4). The six
-existing emission policies are remapped onto the new targets; brand-new policies (EV, grid-storage,
-organic farming, …) and the coupling mechanics (storage-gated renewables, productivity→land) are the
-next checkpoints. Remap deltas are provisional pending a balance pass.
+existing emission policies are remapped onto the new targets, and the coupling mechanics
+(storage-gated renewables in `programs`; agricultural-productivity→land in `constraints`) are wired
+in. Still to come: the brand-new policies (EV, grid-storage, organic farming, …) and the aviation
+hard-to-abate floor — both land in the policy-catalog checkpoint. Remap/coupling deltas are
+provisional pending a balance pass.
 
 ---
 
@@ -195,7 +197,7 @@ interface SimContext {
 | D | `economy`      | per-region GDP/capita growth; damage + water/land scarcity dampen the growth *increment* (toward zero), never reverse it into decay |
 | F | `demography`   | per-region population, fertility, median age, education             |
 | E | `emissions`    | per-source emissions **re-derived** from drivers (transport/industry/aviation × output growth; agriculture × population; electricityDemand × output) — **no autonomous decarb**; electricity itself is derived at finalization |
-| G | `constraints`  | per-region water + land availability (warming/population degrade)   |
+| G | `constraints`  | per-region water + land availability (warming/population degrade; an agricultural-productivity shortfall below 100 also erodes land) |
 | G | `biodiversity` | per-region ecosystem health                                          |
 | H | `support`      | per-region public support + equity drift                            |
 | I | `resources`    | global money regeneration from taxed GDP (the single spendable resource) |
@@ -242,6 +244,15 @@ reference. Money is the **only** spendable resource — there is no second curre
 | `one-time`  | once at enactment (`spendAndRegister`) | permanent | carbon-tax, degrowth, orbital, off-world |
 | `recurring` | every turn while active (`programs`), never completes | flat | climate-adaptation |
 | `buildout`  | every turn until installed capacity reaches 100%, then stops | ramps with capacity (`delta × capacity`), persists at full after completion | renewable-subsidy, nuclear, reforestation, transit, education |
+
+An ongoing effect flagged **`storageGated`** (intermittent renewables) is additionally scaled in
+`programs` by the region's grid-storage efficiency `STORAGE_FLOOR + (1 − STORAGE_FLOOR) × energyStorageCapacity`
+(`STORAGE_FLOOR = 0.6`): at zero storage a renewable delivers only 60% of its grid-intensity cut,
+rising to 100% once `energyStorageCapacity` is fully built. Firm sources (nuclear) leave the flag unset
+and deliver full benefit immediately — so the player is rewarded for building storage before over-building
+renewables. The coupling stocks policies move (`gridCarbonIntensity`, `energyStorageCapacity` → `[0,1]`;
+`electricityDemand`, `agriculturalProductivity` → `≥ 0`) are clamped to their valid ranges at turn
+finalization, just before `electricity` and the totals are derived.
 
 For `recurring`/`buildout`, the **first** per-turn charge lands on the *enactment* turn (`programs`
 runs over the just-added enactment), so a program's "setup cost" equals one upkeep payment. The UI

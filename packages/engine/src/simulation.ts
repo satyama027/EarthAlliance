@@ -4,6 +4,7 @@ import { createScratch } from './models/types.js';
 import { DEFAULT_MODELS } from './models/pipeline.js';
 import { DEFAULT_PARAMS } from './data/scenario.js';
 import { createRng } from './rng.js';
+import { clamp } from './math.js';
 import { spendAndRegister, applyEffects, applyCancellations } from './effects.js';
 import { validateSelection } from './policies.js';
 import { evaluateEnding } from './endings.js';
@@ -46,13 +47,17 @@ export function createSimulation(
       // 13: layer policy effects on top of the natural dynamics.
       applyEffects(draft, immediate);
 
-      // 14: finalize emissions. Electricity is derived LAST (after policy moved demand &
-      // grid intensity); regionalEmissions is the derived sum of the six sources; annual
-      // emissions is the sum across regions. landUse may be negative (a sink), so the
-      // regional total — and the global total — may go net-negative.
+      // 14: finalize emissions. First clamp the coupling stocks policies moved this turn to
+      // their valid ranges. Electricity is then derived LAST (after policy moved demand & grid
+      // intensity); regionalEmissions is the derived sum of the six sources; annual emissions is
+      // the sum across regions. landUse may be negative (a sink), so the regional total — and
+      // the global total — may go net-negative.
       for (const r of draft.regions) {
-        r.gridCarbonIntensity = Math.max(0, r.gridCarbonIntensity);
-        r.electricity = Math.max(0, r.electricityDemand * r.gridCarbonIntensity);
+        r.gridCarbonIntensity = clamp(r.gridCarbonIntensity, 0, 1);
+        r.energyStorageCapacity = clamp(r.energyStorageCapacity, 0, 1);
+        r.electricityDemand = Math.max(0, r.electricityDemand);
+        r.agriculturalProductivity = Math.max(0, r.agriculturalProductivity);
+        r.electricity = r.electricityDemand * r.gridCarbonIntensity;
         r.regionalEmissions =
           r.electricity + r.transport + r.aviationShipping + r.industry + r.agriculture + r.landUse;
       }

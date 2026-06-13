@@ -78,7 +78,7 @@ describe('advanceTurn — cancelling a committed buildout', () => {
 describe('programs — cancelled buildout', () => {
   it('charges nothing and stops advancing, but the installed capacity still delivers its benefit', () => {
     const state = makeState({
-      regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, gridCarbonIntensity: 0.5 })],
+      regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, gridCarbonIntensity: 0.5, energyStorageCapacity: 1 })],
       resources: { money: 5000 },
       enactments: [enact({ capacity: 0.4, cancelled: true })],
     });
