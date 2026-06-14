@@ -21,4 +21,17 @@ describe('RegionPanel', () => {
     expect(screen.getByText(/support/i)).toBeInTheDocument();
     expect(screen.getByText(/biodiversity/i)).toBeInTheDocument();
   });
+
+  it('shows the per-source emissions breakdown and the energy/land levers', () => {
+    const region = SAMPLE_REGIONS[0]!; // north-america
+    wrap(<RegionPanel region={region} />);
+    expect(screen.getByText(/emissions by source/i)).toBeInTheDocument();
+    expect(screen.getByText('Transport')).toBeInTheDocument();
+    expect(screen.getByText('Land-use')).toBeInTheDocument();
+    // The four coupling levers.
+    expect(screen.getByText(/grid intensity/i)).toBeInTheDocument();
+    expect(screen.getByText(/storage built/i)).toBeInTheDocument();
+    expect(screen.getByText(/crop yield/i)).toBeInTheDocument();
+    expect(screen.getByText(/power demand/i)).toBeInTheDocument();
+  });
 });

@@ -71,7 +71,8 @@ EarthAlliance/
 │        ├─ scene/           # WorldMap (inlines world-map.svg) + metricColor
 │        ├─ assets/          # world-map.svg — baked HD region map (generated, committed)
 │        ├─ components/      # Mantine DOM HUD (ResourceBar, Dashboard, RegionPanel,
-│        │                   #   PolicyTray, PolicyCard, EndingScreen, Sparkline)
+│        │                   #   EmissionsBySource, RegionLevers, PolicyTray, PolicyCard,
+│        │                   #   EndingScreen, Sparkline)
 │        └─ audio/           # useSfx + sound (Web Audio SFX, event-driven)
 └─ docs/superpowers/         # specs and implementation plans
 ```
@@ -364,7 +365,9 @@ the dashboard sparkline.
 - **HUD** (`components/`, Mantine DOM overlay): `ResourceBar` (shows what is **remaining** to spend
   this turn — `resources − costNow` — going red with an `⚠ over budget` `role="alert"` when a staged
   selection exceeds the budget; rendered as the sticky top header), `Dashboard` (+ `Sparkline`
-  trend), `RegionPanel` (the selected region), `TurnLog` (a scrollable, newest-first history of
+  trend + a global **emissions-by-source** breakdown), `RegionPanel` (the selected region — its
+  per-source breakdown via the shared `EmissionsBySource` stacked bar, the four coupling-variable
+  **levers** via `RegionLevers` with hover tooltips, then the metric bars), `TurnLog` (a scrollable, newest-first history of
   every per-turn data point — a global "Planet" block plus the selected region's full block, each
   value carrying a good/bad-colored change chip vs. the prior turn; each non-baseline entry also has
   a per-entry **"More"** toggle revealing a `Collapse`d CALC section of the engine's `TurnDiagnostics`

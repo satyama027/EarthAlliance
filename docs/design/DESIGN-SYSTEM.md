@@ -43,6 +43,21 @@ Used as the placeholder card-art band; real art will drop in later behind the sa
 | social | `#1971c2` | 🤝 |
 | frontier | `#9c36b5` | 🚀 |
 
+### Emission-source colors (`SOURCE_COLORS` in `theme.ts`)
+
+The by-source emissions breakdown (Dashboard + RegionPanel). All reused from existing palette hues
+so the breakdown reads as native; `sink` is the one new accent, used when `landUse` goes negative.
+
+| Source | Color | Origin |
+|--------|-------|--------|
+| electricity | `#f59f00` | energy category (⚡) |
+| transport | `#4dabf7` | north-america region |
+| aviationShipping | `#66d9e8` | oceania region |
+| industry | `#868e96` | industry category (🏭) |
+| agriculture | `#a9e34b` | southeast-asia region |
+| landUse | `#2f9e44` | land category (🌳) |
+| sink (landUse < 0) | `#1098ad` (dashed `earth-3` border) | new accent — the one negative case |
+
 ### World-map region colors (`REGION_COLORS` in `theme.ts`)
 
 Distinct fixed fill per map region (keyed by engine region id). The map generator
@@ -113,9 +128,21 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   `AppShell.Main` (`position: sticky; top: 0`, body-colored background) so it stays visible while the
   player works the policy board.
 - **Dashboard** — bordered `Paper`, title "Planet", warming/CO₂/emissions rows, temperature value
-  colored by `temperatureColor`, trailed by a `Sparkline` (240×40) of temperature history.
-- **RegionPanel** — bordered `Paper`; per-metric rows with a `Progress` bar colored by
-  `metricColor(value)`. Empty state: dimmed "Select a region on the globe."
+  colored by `temperatureColor`, then an **Emissions by source** block (the per-source totals summed
+  across all regions), trailed by a `Sparkline` (240×40) of temperature history.
+- **EmissionsBySource** (`EmissionsBySource.tsx`, shared by Dashboard + RegionPanel) — a horizontal
+  **stacked bar** (`dark-8` track, each source a `SOURCE_COLORS` segment) over a 3-column **legend**
+  grid (`source · Gt · %`), sources **ordered by size** (descending). Each legend label carries a
+  Mantine `<Tooltip multiline w={250}>` explaining the source (dotted-underline affordance). The one
+  source that can go negative (`landUse` after reforestation) renders as a dashed-teal **sink**
+  segment left of a thin zero divider, with positives stacked to its right; its legend value shows a
+  `−` sign in `teal.4` and reads `sink` instead of a %.
+- **RegionPanel** — bordered `Paper`; region name + a `GDP/capita · pop · Gt/yr` line; then the
+  **EmissionsBySource** breakdown for the region; an **Energy & land levers** block (`RegionLevers.tsx`)
+  — a 2×2 grid of the four coupling variables (`Grid intensity`, `Storage built`, `Crop yield`,
+  `Power demand`), each a label + `ⓘ` tooltip, a bold value, and a mini-bar (or a "grows with GDP"
+  subtext for demand); then the per-metric rows with a `Progress` bar colored by `metricColor(value)`.
+  Empty state: dimmed "Select a region on the globe."
 - **TurnLog** — bordered `Paper` titled "Turn Log"; a `ScrollArea.Autosize` (max-height ~340) of
   per-turn entries, **newest first**. Each entry is a `dark-6` sub-card (`dark-4` border, radius 4)
   with a `Turn N · year` header, a **Planet** block (Warming/CO₂/Emissions/Damage) always, and the

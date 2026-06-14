@@ -12,6 +12,22 @@ export const theme = createTheme({
   fontFamily: 'system-ui, sans-serif',
 });
 
+/**
+ * Emission-source colors for the by-source breakdown (Dashboard + RegionPanel stacked bar).
+ * All reused from existing palette hues so the breakdown reads as native; `sink` is the one
+ * new accent, used when `landUse` goes negative (a carbon sink). Keep in sync with
+ * docs/design/DESIGN-SYSTEM.md.
+ */
+export const SOURCE_COLORS = {
+  electricity: '#f59f00',      // energy category (⚡)
+  transport: '#4dabf7',        // north-america region blue
+  aviationShipping: '#66d9e8', // oceania region cyan
+  industry: '#868e96',         // industry category (🏭)
+  agriculture: '#a9e34b',      // southeast-asia region lime
+  landUse: '#2f9e44',          // land category (🌳)
+  sink: '#1098ad',             // land-use when negative (a carbon sink)
+} as const;
+
 /** Placeholder card-art colors per policy category (real art drops in later). */
 export const CATEGORY_COLOR: Record<PolicyCategory, string> = {
   energy: '#f59f00',

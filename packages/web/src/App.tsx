@@ -47,7 +47,7 @@ export default function App() {
           <Grid.Col span={{ base: 12, md: 5 }}>
             <Box style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <Dashboard temperature={game.state.climate.temperatureAnomaly} co2={game.state.climate.co2Concentration}
-                annualEmissions={game.state.climate.annualEmissions} history={game.history} />
+                annualEmissions={game.state.climate.annualEmissions} regions={game.state.regions} history={game.history} />
               <RegionPanel region={selectedRegion} />
             </Box>
           </Grid.Col>
