@@ -451,11 +451,18 @@ These hold across the engine and are guarded by the test suite. Treat them as lo
   `test/integration.test.ts` locks the terminal point; `test/data.test.ts` locks the anchor
   values + the "East Asia is the largest emitter" structural invariant). It moved earlier (from
   ~2105) when the **sectoral-emissions** model removed the old flat autonomous-decarbonization
-  cushion — with no free decarb, do-nothing emissions rise faster. The per-source remap deltas
-  (e.g. renewables/nuclear → `gridCarbonIntensity`) are provisional. Re-tuning
-  `DEFAULT_PARAMS` to this new baseline is a **separate, deferred balance pass**; the
-  region-scaled policy economy (build/upkeep, buildout rates, baselines, starting budget) is
-  tuned for meaningful tradeoffs but remains a playtesting surface.
+  cushion — with no free decarb, do-nothing emissions rise faster.
+  **Sectoral balance pass (done):** the binding constraint on the player is *money throughput*
+  (you can't fund every buildout in every region), so the decarbonization ceiling is set by tax
+  income, which **never feeds climate** — raising `TAX_RATE` (now `0.03`) lifts the win ceiling
+  without moving the do-nothing floor. At `0.03`, near-maximal well-sequenced decarbonization
+  reaches a **green-utopia win** by 2200 (~0.74 °C, equity just over the 60 gate), while moderate
+  play muddles through and do-nothing still collapses ~2095. `test/scenarios.test.ts` locks both
+  ends (a *winnability* guard + the doom guard). Two correctness floors back the balance: the five
+  activity sources are clamped `≥ 0` at finalization (a sector can't emit negative — only `landUse`
+  is a sink), and the coupling stocks are range-clamped; `test/invariants.test.ts` asserts all of
+  this (sources finite + `≥ 0`, `Σ sources == regionalEmissions`, stocks in range) over 200 random
+  playthroughs. Policy costs/deltas remain a playtesting surface for finer tuning.
 - **Disaster/random events.** The RNG is threaded through every turn but only a
   `turn-advanced` event is emitted today; seeded disaster/milestone events are reserved.
 - **Art & audio.** Card art is referenced by asset *key* and SFX are synthesized in-browser;

@@ -33,7 +33,10 @@ export const DEFAULT_PARAMS: ModelParams = Object.freeze({
   SUPPORT_ECON_W: 20,
   SUPPORT_EQUITY_W: 0.1,
   INEQUALITY_DRIFT: 5,
-  TAX_RATE: 0.02,
+  // Tax income funds policy. Tuned (sectoral-emissions balance pass) so near-maximal, well-sequenced
+  // decarbonization can reach a green-utopia win by 2200, while moderate play muddles through and
+  // do-nothing still collapses ~2095 (income never feeds climate, so it doesn't move the floor).
+  TAX_RATE: 0.03,
   MONEY_SCALE: 1e9,
   // --- Sectoral-emissions model (used from CP2/CP3 onward) ---
   STORAGE_FLOOR: 0.6,        // renewables deliver 60% of their grid-cleaning benefit with zero storage

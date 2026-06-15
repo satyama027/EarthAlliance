@@ -21,6 +21,25 @@ function assertSane(state: WorldState): void {
     }
     expect(finite(r.gdpPerCapita)).toBe(true);
     expect(finite(r.regionalEmissions)).toBe(true);
+
+    // Sectoral emissions: every source is finite; the five activity sources cannot be negative
+    // (only land-use may be a sink); the six sources sum to the derived regional total.
+    const sources = [r.electricity, r.transport, r.aviationShipping, r.industry, r.agriculture, r.landUse];
+    for (const v of sources) expect(finite(v)).toBe(true);
+    for (const v of [r.electricity, r.transport, r.aviationShipping, r.industry, r.agriculture]) {
+      expect(v).toBeGreaterThanOrEqual(0);
+    }
+    expect(sources.reduce((a, v) => a + v, 0)).toBeCloseTo(r.regionalEmissions, 6);
+
+    // Coupling stocks stay in their valid ranges.
+    for (const idx of [r.gridCarbonIntensity, r.energyStorageCapacity]) {
+      expect(idx).toBeGreaterThanOrEqual(0);
+      expect(idx).toBeLessThanOrEqual(1);
+    }
+    expect(r.agriculturalProductivity).toBeGreaterThanOrEqual(0);
+    expect(r.electricityDemand).toBeGreaterThanOrEqual(0);
+    expect(finite(r.agriculturalProductivity)).toBe(true);
+    expect(finite(r.electricityDemand)).toBe(true);
   }
 }
 

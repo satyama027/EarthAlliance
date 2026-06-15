@@ -57,6 +57,11 @@ export function createSimulation(
         r.energyStorageCapacity = clamp(r.energyStorageCapacity, 0, 1);
         r.electricityDemand = Math.max(0, r.electricityDemand);
         r.agriculturalProductivity = Math.max(0, r.agriculturalProductivity);
+        // A sector cannot emit negative, so clamp the activity sources at 0. Only `landUse`
+        // may go negative (a forest carbon sink) — it is the sole route to net-negative.
+        r.transport = Math.max(0, r.transport);
+        r.industry = Math.max(0, r.industry);
+        r.agriculture = Math.max(0, r.agriculture);
         // Aviation/shipping cannot be policy-driven below its hard-to-abate floor for the turn.
         r.aviationShipping = Math.max(r.aviationShipping, ctx.scratch.aviationFloorByRegion[r.id] ?? 0);
         r.electricity = r.electricityDemand * r.gridCarbonIntensity;

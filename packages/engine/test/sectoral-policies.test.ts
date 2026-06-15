@@ -76,6 +76,22 @@ describe('aviation/shipping hard-to-abate floor', () => {
   });
 });
 
+describe('activity sources cannot go negative (only land-use is a sink)', () => {
+  it('clamps an over-cut activity source at zero, but lets land-use go negative', () => {
+    const region = () => makeRegion({ id: 'r1', transport: 1.0, landUse: 0.5 });
+    const big = (target: 'transport' | 'landUse'): ActiveEffect => ({
+      policyId: target, regionId: 'r1',
+      effect: { target, delta: -10, duration: 'ongoing' },
+      turnsRemaining: Number.POSITIVE_INFINITY,
+    });
+    const r = advanceTurn(
+      makeState({ regions: [region()], activeEffects: [big('transport'), big('landUse')] }), [],
+    ).state.regions[0]!;
+    expect(r.transport).toBe(0);        // a sector cannot emit negative — clamped
+    expect(r.landUse).toBeLessThan(0);  // land-use CAN be a carbon sink
+  });
+});
+
 describe('policy catalog integrity', () => {
   it('gives every buildout policy a buildout spec and a positive cost', () => {
     for (const p of POLICY_CATALOG) {
