@@ -4,7 +4,7 @@ import {
   ScrollArea, Stack, Text,
 } from '@mantine/core';
 import { motion } from 'framer-motion';
-import { CATEGORY_COLOR } from '../theme.js';
+import { CATEGORY_COLOR, Z_LAYERS } from '../theme.js';
 import type { CardVM } from '../game/policyView.js';
 import { effectLines, fundingBlurb, cardAction, type EffectLine } from '../game/policyDetails.js';
 
@@ -72,7 +72,7 @@ export function PolicyDetailOverlay({ vm, regionName, onPrimary, onClose }: Poli
   const pctInstalled = Math.round((vm.capacity ?? 0) * 100);
 
   return (
-    <Overlay color="#000" backgroundOpacity={0.85} fixed zIndex={1100} onClick={onClose}>
+    <Overlay color="#000" backgroundOpacity={0.85} fixed zIndex={Z_LAYERS.overlayRaised} onClick={onClose}>
       <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 24 }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}

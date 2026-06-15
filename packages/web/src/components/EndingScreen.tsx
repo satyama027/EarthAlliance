@@ -1,5 +1,6 @@
 import { Overlay, Center, Stack, Title, Text, Button, Badge } from '@mantine/core';
 import { motion } from 'framer-motion';
+import { Z_LAYERS } from '../theme.js';
 import type { Ending } from '@earth-alliance/engine';
 
 const KIND_COLOR: Record<Ending['kind'], string> = { win: 'teal', loss: 'red', ambiguous: 'yellow' };
@@ -12,7 +13,7 @@ interface EndingScreenProps {
 
 export function EndingScreen({ ending, year, onPlayAgain }: EndingScreenProps) {
   return (
-    <Overlay color="#000" backgroundOpacity={0.85} fixed zIndex={1000}>
+    <Overlay color="#000" backgroundOpacity={0.85} fixed zIndex={Z_LAYERS.overlay}>
       <Center h="100%">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <Stack align="center" gap="md" maw={520} p="xl">

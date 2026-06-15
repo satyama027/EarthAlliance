@@ -392,6 +392,11 @@ the dashboard sparkline.
   a per-entry **"More"** toggle revealing a `Collapse`d CALC section of the engine's `TurnDiagnostics`
   calc internals), `PolicyBoard` of `PolicyCard`s (with the single-click `PolicyDetailOverlay`),
   and `EndingScreen` (shown when `game.ending` is non-null).
+- **Stacking order** (`Z_LAYERS` in `theme.ts`): overlays render at `overlay` (1000:
+  `DataOverlay`, `EndingScreen`) / `overlayRaised` (1100: `PolicyDetailOverlay`). Mantine portals
+  tooltips to `document.body` as siblings of those overlays, so the theme lifts the **Tooltip**
+  default `zIndex` to `tooltip` (2000) — otherwise hover help (e.g. the `RegionLevers` /
+  `EmissionsBySource` tooltips) paints *behind* an open overlay's backdrop.
 
 ### Events → sound
 

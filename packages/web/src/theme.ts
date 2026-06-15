@@ -1,4 +1,4 @@
-import { createTheme, type MantineColorsTuple } from '@mantine/core';
+import { createTheme, Tooltip, type MantineColorsTuple } from '@mantine/core';
 import type { PolicyCategory } from '@earth-alliance/engine';
 
 const earth: MantineColorsTuple = [
@@ -6,10 +6,26 @@ const earth: MantineColorsTuple = [
   '#20c997', '#12b886', '#0ca678', '#099268', '#087f5b',
 ];
 
+/**
+ * App-wide stacking order. Overlays (`DataOverlay`, `EndingScreen`,
+ * `PolicyDetailOverlay`) sit at 1000–1100; tooltips portal to `document.body` as
+ * siblings of those overlays, so they MUST out-rank them or hover help paints
+ * behind the backdrop. Mantine's tooltip default (300) is below the overlays —
+ * hence `tooltip` here, wired into the theme's Tooltip defaults below.
+ */
+export const Z_LAYERS = {
+  overlay: 1000,
+  overlayRaised: 1100,
+  tooltip: 2000,
+} as const;
+
 export const theme = createTheme({
   primaryColor: 'earth',
   colors: { earth },
   fontFamily: 'system-ui, sans-serif',
+  components: {
+    Tooltip: Tooltip.extend({ defaultProps: { zIndex: Z_LAYERS.tooltip } }),
+  },
 });
 
 /**

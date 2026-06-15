@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import type { Region } from '@earth-alliance/engine';
 import { Dashboard } from './Dashboard.js';
 import { RegionPanel } from './RegionPanel.js';
+import { Z_LAYERS } from '../theme.js';
 import type { ClimatePoint } from '../game/useGame.js';
 
 interface DataOverlayProps {
@@ -37,7 +38,7 @@ export function DataOverlay({
   if (!opened) return null;
 
   return (
-    <Overlay color="#000" backgroundOpacity={0.85} fixed zIndex={1000} onClick={onClose}>
+    <Overlay color="#000" backgroundOpacity={0.85} fixed zIndex={Z_LAYERS.overlay} onClick={onClose}>
       <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 24 }}>
         {/* stopPropagation so clicks inside the window don't fall through to the backdrop. */}
         <motion.div
