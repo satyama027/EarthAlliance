@@ -70,7 +70,7 @@ EarthAlliance/
 │        ├─ game/useGame.ts  # the React hook wrapping the engine (holds WorldState)
 │        ├─ scene/           # WorldMap (inlines world-map.svg) + metricColor
 │        ├─ assets/          # world-map.svg — baked HD region map (generated, committed)
-│        ├─ components/      # Mantine DOM HUD (ResourceBar, Dashboard, RegionPanel,
+│        ├─ components/      # Mantine DOM HUD (ResourceBar, DataOverlay, Dashboard, RegionPanel,
 │        │                   #   EmissionsBySource, RegionLevers, PolicyTray, PolicyCard,
 │        │                   #   EndingScreen, Sparkline)
 │        └─ audio/           # useSfx + sound (Web Audio SFX, event-driven)
@@ -357,17 +357,22 @@ the dashboard sparkline.
   painted on top. The geometry is baked offline by `scripts/generate-map.mjs` — **no D3/TopoJSON
   ships at runtime** (the former R3F globe and `three` are gone).
   The page is laid out top→bottom so the action sits above the fold: a **sticky `ResourceBar`
-  header** (`position: sticky; top: 0`) → map (`span md=7`, `height: 100%` / `minHeight: 440` in a
-  stretched `Grid` row, so it **fills the row and leaves no dead space** beside the taller info
-  column; the inline SVG's `preserveAspectRatio="meet"` keeps the whole world centered) + info
-  column (`span md=5`: `Dashboard` + `RegionPanel`) → full-width `PolicyBoard` → full-width
-  `TurnLog` (demoted to bottom as reference/history).
-- **HUD** (`components/`, Mantine DOM overlay): `ResourceBar` (shows what is **remaining** to spend
-  this turn — `resources − costNow` — going red with an `⚠ over budget` `role="alert"` when a staged
-  selection exceeds the budget; rendered as the sticky top header), `Dashboard` (+ `Sparkline`
-  trend + a global **emissions-by-source** breakdown), `RegionPanel` (the selected region — its
-  per-source breakdown via the shared `EmissionsBySource` stacked bar, the four coupling-variable
-  **levers** via `RegionLevers` with hover tooltips, then the metric bars), `TurnLog` (a scrollable, newest-first history of
+  header** (`position: sticky; top: 0`) → **full-width map** (`Grid.Col span={12}`, fixed
+  `height: 480`; the inline SVG's `preserveAspectRatio="meet"` keeps the whole world centered) →
+  full-width `PolicyBoard` → full-width `TurnLog` (demoted to bottom as reference/history). The
+  per-region/per-planet **emissions detail is no longer inline** — it lives in the `DataOverlay`,
+  opened from the resource-bar 📊 button. (This replaced the earlier two-column `Grid align="stretch"`
+  layout, where a tall selected-region panel stretched the map container and letterboxed the SVG.)
+- **HUD** (`components/`, Mantine DOM overlay): `ResourceBar` (left: year/turn + an inline climate
+  cluster — **Warming** colored by `temperatureColor`, **CO₂**, **Emissions**; right: the **remaining**
+  money badge — `resources − costNow`, going red with an `⚠ over budget` `role="alert"` when a staged
+  selection exceeds the budget — plus an icon-only **📊 `ActionIcon`** that opens the `DataOverlay`;
+  rendered as the sticky top header), `DataOverlay` (the emissions data window — a full-screen
+  `Overlay` following the `EndingScreen` pattern that **hosts `RegionPanel` when a region is selected,
+  else `Dashboard`**; closes on ✕ / `Escape` / backdrop), `Dashboard` (+ `Sparkline` trend + a global
+  **emissions-by-source** breakdown), `RegionPanel` (the selected region — its per-source breakdown via
+  the shared `EmissionsBySource` stacked bar, the four coupling-variable **levers** via `RegionLevers`
+  with hover tooltips, then the metric bars), `TurnLog` (a scrollable, newest-first history of
   every per-turn data point — a global "Planet" block plus the selected region's full block, each
   value carrying a good/bad-colored change chip vs. the prior turn; each non-baseline entry also has
   a per-entry **"More"** toggle revealing a `Collapse`d CALC section of the engine's `TurnDiagnostics`

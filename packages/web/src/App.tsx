@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react';
 import { AppShell, Grid, Box } from '@mantine/core';
 import { WorldMap } from './scene/WorldMap.js';
 import { ResourceBar } from './components/ResourceBar.js';
-import { Dashboard } from './components/Dashboard.js';
 import { PolicyBoard } from './components/PolicyBoard.js';
-import { RegionPanel } from './components/RegionPanel.js';
 import { TurnLog } from './components/TurnLog.js';
+import { DataOverlay } from './components/DataOverlay.js';
 import { EndingScreen } from './components/EndingScreen.js';
 import { useGame } from './game/useGame.js';
 import { useSfx } from './audio/useSfx.js';
@@ -15,6 +14,7 @@ export default function App() {
   const game = useGame();
   const sfx = useSfx();
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null);
+  const [dataOpen, setDataOpen] = useState(false);
 
   // Play a sound for each event produced by the last turn.
   useEffect(() => {
@@ -31,27 +31,24 @@ export default function App() {
             REMAINING to spend (balance − this turn's staged cost). */}
         <Box style={{ position: 'sticky', top: 0, zIndex: 200, background: 'var(--mantine-color-body)', paddingBottom: 8 }}>
           <ResourceBar year={game.state.year} turn={game.state.turn}
-            money={game.state.resources.money} costNow={game.costNow} />
+            money={game.state.resources.money} costNow={game.costNow}
+            temperature={game.state.climate.temperatureAnomaly} co2={game.state.climate.co2Concentration}
+            annualEmissions={game.state.climate.annualEmissions}
+            onOpenData={() => setDataOpen(true)} />
         </Box>
-        <Grid gutter="md" align="stretch">
-          <Grid.Col span={{ base: 12, md: 7 }}>
-            {/* Map fills its grid row so it is as tall as the info column — no dead space beneath it.
-                The inline SVG (preserveAspectRatio "meet") always shows the whole world, centered. */}
-            <Box style={{ height: '100%', minHeight: 440, borderRadius: 8, overflow: 'hidden', background: '#05080f' }}>
+        <Grid gutter="md">
+          <Grid.Col span={12}>
+            {/* Map is full-width now that the Planet/Region panels live in the data overlay; emissions
+                data is reached via the resource-bar 📊 button. The inline SVG (preserveAspectRatio
+                "meet") always shows the whole world, centered. */}
+            <Box style={{ height: 480, borderRadius: 8, overflow: 'hidden', background: '#05080f' }}>
               <WorldMap
                 selectedRegionId={selectedRegionId}
                 onSelectRegion={setSelectedRegionId}
               />
             </Box>
           </Grid.Col>
-          <Grid.Col span={{ base: 12, md: 5 }}>
-            <Box style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <Dashboard temperature={game.state.climate.temperatureAnomaly} co2={game.state.climate.co2Concentration}
-                annualEmissions={game.state.climate.annualEmissions} regions={game.state.regions} history={game.history} />
-              <RegionPanel region={selectedRegion} />
-            </Box>
-          </Grid.Col>
-          {/* Policy board raised directly under the map/info row so policies can be set and the
+          {/* Policy board raised directly under the map so policies can be set and the
               turn ended without scrolling. */}
           <Grid.Col span={12}>
             <PolicyBoard
@@ -76,6 +73,13 @@ export default function App() {
           </Grid.Col>
         </Grid>
       </AppShell.Main>
+      <DataOverlay
+        opened={dataOpen} onClose={() => setDataOpen(false)}
+        region={selectedRegion}
+        temperature={game.state.climate.temperatureAnomaly} co2={game.state.climate.co2Concentration}
+        annualEmissions={game.state.climate.annualEmissions}
+        regions={game.state.regions} history={game.history}
+      />
       {game.ending && (
         <EndingScreen ending={game.ending} year={game.state.year} onPlayAgain={() => { game.reset(); setSelectedRegionId(null); }} />
       )}

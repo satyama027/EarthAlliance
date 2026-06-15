@@ -29,6 +29,7 @@ Mockups are self-contained HTML — open them directly in a browser (`file://`).
 
 | Date | Topic | Status | Proposal |
 |------|-------|--------|----------|
+| 2026-06-15 | Emissions data overlay — remove inline Planet/Region panels, full-width map, icon-only 📊 header button opens an overlay (region if selected, else planet); headline climate stats move into the resource bar (Variant A) | **Implemented** | [proposal](./proposals/2026-06-15-emissions-data-overlay/design.md) |
 | 2026-06-14 | Emissions by source — stacked bar + legend on Planet & Region panels, four energy/land levers with hover tooltips, land-use sink (negative) case | **Implemented** | [proposal](./proposals/2026-06-14-emissions-by-source/design.md) |
 | 2026-06-12 | Single-currency resource header — remove Political Capital; emphasized solo **Money** pill (Variant A) | **Implemented** | [proposal](./proposals/2026-06-12-single-currency-header/design.md) |
 | 2026-06-12 | Balanced layout (map fills its column, whole world shown, no dead space) + drag policies into **Active drop slots** (floating overlay, pointer hit-test, card stays) | **Implemented** | [proposal](./proposals/2026-06-12-policy-drag-slots-balanced-layout/design.md) |

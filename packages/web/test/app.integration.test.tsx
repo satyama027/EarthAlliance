@@ -24,6 +24,21 @@ describe('App integration', () => {
     expect(screen.getByText(/Year 2030/)).toBeInTheDocument();
   });
 
+  it('opens the emissions-data overlay from the header button (planet view) and closes it', async () => {
+    renderApp();
+    // The Planet/Region panels are no longer inline — emissions data lives behind the button.
+    // (TurnLog has its own "Planet" block label as plain text; the overlay's is a heading.)
+    expect(screen.queryByRole('heading', { name: 'Planet' })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /emissions data/i }));
+    // With no region selected, the overlay shows the planet breakdown.
+    expect(screen.getByRole('heading', { name: 'Planet' })).toBeInTheDocument();
+    expect(screen.getByText(/emissions by source/i)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /close/i }));
+    expect(screen.queryByRole('heading', { name: 'Planet' })).not.toBeInTheDocument();
+  });
+
   it('shows the ending overlay when the game ends and Play again resets it', async () => {
     renderApp();
     // Do-nothing play: keep ending turns until the ending overlay appears.

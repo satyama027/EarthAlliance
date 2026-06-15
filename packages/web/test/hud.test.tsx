@@ -1,4 +1,6 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { vi } from 'vitest';
 import { MantineProvider } from '@mantine/core';
 import { SAMPLE_REGIONS } from '@earth-alliance/engine';
 import type { ReactNode } from 'react';
@@ -33,6 +35,21 @@ describe('ResourceBar', () => {
     wrap(<ResourceBar year={2030} turn={1} money={100} costNow={{ money: 250 }} />);
     expect(screen.getByText(/Money:\s*-150(?!\d)/)).toBeInTheDocument(); // 100 − 250
     expect(screen.getByRole('alert')).toHaveTextContent(/over budget/i);
+  });
+
+  it('renders the emissions-data button and calls onOpenData when clicked', async () => {
+    const onOpenData = vi.fn();
+    wrap(<ResourceBar year={2030} turn={1} money={45} onOpenData={onOpenData} />);
+    await userEvent.click(screen.getByRole('button', { name: /emissions data/i }));
+    expect(onOpenData).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the headline climate stats in the bar when provided (Variant A)', () => {
+    wrap(<ResourceBar year={2030} turn={1} money={45}
+      temperature={1.84} co2={431.2} annualEmissions={35.5} />);
+    expect(screen.getByText(/\+1\.84/)).toBeInTheDocument();
+    expect(screen.getByText(/431/)).toBeInTheDocument();
+    expect(screen.getByText(/35\.5/)).toBeInTheDocument();
   });
 });
 

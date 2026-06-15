@@ -95,16 +95,15 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
 - Mantine spacing scale (`xs`, `sm`, `md`, `xl`). Panels pad `p="sm"`; ending screen `p="xl"`.
 - App frame: `AppShell` with `padding="md"`. A **sticky ResourceBar header** sits at the top of
   `AppShell.Main` (`position: sticky; top: 0; zIndex: 200`), above the grid.
-- Main layout (top→bottom, so the action sits above the fold): sticky resource header → 2-column
-  `Grid` (`align="stretch"`; scene `span md=7`, info column `span md=5` holding **Dashboard +
-  RegionPanel**) → full-width **PolicyBoard** (`span 12`) → full-width **TurnLog** (`span 12`, demoted
-  to bottom as reference/history). Stacks to single column on `base` (mobile).
-- Scene viewport: `height: 100%`, `minHeight: 440` — the map **fills its grid row** so it is as tall as
-  the info column, leaving **no dead space** beneath it (a stretched `Grid` row sizes both columns to
-  the taller one). The inline `world-map.svg` uses `preserveAspectRatio="xMidYMid meet"`, so the **whole
-  world is always shown**, centered; the slim top/bottom bands fall back to the scene's `#05080f` ocean.
-  (Replaces the earlier `clamp(220px, 38vh, 340px)`, which under-filled the column and looked tiny.)
-- Right info column gap: `12px`.
+- Main layout (top→bottom, so the action sits above the fold): sticky resource header → **full-width
+  map** (`Grid.Col span={12}`) → full-width **PolicyBoard** (`span 12`) → full-width **TurnLog**
+  (`span 12`, demoted to bottom as reference/history). The **Planet (Dashboard) and Region
+  (RegionPanel) detail are no longer inline** — they live in the **emissions data overlay**
+  (`DataOverlay`), opened from the resource-bar 📊 button. This removes the old `align="stretch"`
+  height-coupling that let a tall Region panel stretch the map container and letterbox the SVG.
+- Scene viewport: fixed `height: 480` (full-width), radius `8`. The inline `world-map.svg` uses
+  `preserveAspectRatio="xMidYMid meet"`, so the **whole world is always shown**, centered; the slim
+  top/bottom bands fall back to the scene's `#05080f` ocean.
 
 ---
 
@@ -116,9 +115,13 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   partition lines. Realistic ocean (gradient + graticule). Click a region to select it (others dim
   to 0.32; hover brightens). India follows the Government-of-India depiction (J&K incl. Azad
   Kashmir, Gilgit-Baltistan, Shaksgam, Aksai Chin). Replaces the former 3D R3F globe.
-- **ResourceBar** — bordered `Paper`, year/turn on the left (`fw={700}`), and a single **Money**
-  (`teal`) `Badge` (`size="lg"`, `leftSection="💰"`) on the right (the game's only spendable
-  resource). The badge shows what is **REMAINING** to spend this turn — balance minus the staged
+- **ResourceBar** — bordered `Paper`. Left: year/turn (`fw={700}`) followed by an inline **climate
+  cluster** (Variant A) — **Warming** (colored by `temperatureColor`, with a 🌡 glyph), **CO₂**, and
+  **Emissions** — so the central climate metric stays glanceable without opening anything (`visibleFrom
+  "sm"`; hidden on narrow widths). Right: the single **Money** (`teal`) `Badge` (`size="lg"`,
+  `leftSection="💰"`) plus an **icon-only 📊 `ActionIcon`** (`color="earth"`, `variant="filled"`,
+  `aria-label="Emissions data"`) that opens the **DataOverlay**. The badge shows what is **REMAINING**
+  to spend this turn — balance minus the staged
   `costNow.money` — not the raw balance, so staging a policy immediately drops the number. `costNow`
   counts **every** staged policy's first-turn GDP-scaled charge (one-time enactment *and*
   recurring/buildout first upkeep, which is charged on the enactment turn), so committing any policy
@@ -129,7 +132,8 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   player works the policy board.
 - **Dashboard** — bordered `Paper`, title "Planet", warming/CO₂/emissions rows, temperature value
   colored by `temperatureColor`, then an **Emissions by source** block (the per-source totals summed
-  across all regions), trailed by a `Sparkline` (240×40) of temperature history.
+  across all regions), trailed by a `Sparkline` (240×40) of temperature history. **Now rendered inside
+  the `DataOverlay`** (planet view, when no region is selected), not inline.
 - **EmissionsBySource** (`EmissionsBySource.tsx`, shared by Dashboard + RegionPanel) — a horizontal
   **stacked bar** (`dark-8` track, each source a `SOURCE_COLORS` segment) over a 3-column **legend**
   grid (`source · Gt · %`), sources **ordered by size** (descending). Each legend label carries a
@@ -142,7 +146,15 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   — a 2×2 grid of the four coupling variables (`Grid intensity`, `Storage built`, `Crop yield`,
   `Power demand`), each a label + `ⓘ` tooltip, a bold value, and a mini-bar (or a "grows with GDP"
   subtext for demand); then the per-metric rows with a `Progress` bar colored by `metricColor(value)`.
-  Empty state: dimmed "Select a region on the globe."
+  Empty state: dimmed "Select a region on the globe." **Now rendered inside the `DataOverlay`** (region
+  view), not inline.
+- **DataOverlay** (`DataOverlay.tsx`) — the emissions data window opened from the resource-bar 📊
+  button. Full-screen `Overlay` (`color="#000"`, `backgroundOpacity={0.85}`, `fixed`, `zIndex={1000}`)
+  with a centered, framer-motion (fade + 20px rise) window ~560px wide; content scrolls in a
+  `ScrollArea.Autosize` (`mah="86vh"`). It **hosts the existing components**: `RegionPanel` when a
+  region is selected, otherwise `Dashboard` (the planet) — no emissions logic is duplicated. Closes on
+  the ✕ `ActionIcon` (top-right), `Escape`, or a backdrop click. Reuses the `EndingScreen` overlay
+  pattern; adds **no new tokens**.
 - **TurnLog** — bordered `Paper` titled "Turn Log"; a `ScrollArea.Autosize` (max-height ~340) of
   per-turn entries, **newest first**. Each entry is a `dark-6` sub-card (`dark-4` border, radius 4)
   with a `Turn N · year` header, a **Planet** block (Warming/CO₂/Emissions/Damage) always, and the

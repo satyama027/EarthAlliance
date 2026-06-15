@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Earth Alliance — Emissions Data Overlay (proposal mockup)</title>
+<style>
+  /* ── Design tokens (mirror of packages/web/src/theme.ts, Mantine dark scheme) ── */
+  :root {
+    --earth-3:#63e6be; --earth-5:#20c997; --earth-6:#12b886; --earth-7:#0ca678;
+    --teal:#20c997; --teal-light:#163a33;
+    --red:#ff6b6b; --yellow:#ffd43b; --orange:#ffa94d;
+    --bg:#1a1b1e; --surface:#25262b; --surface-2:#2c2e33; --border:#373a40;
+    --text:#c1c2c5; --text-strong:#f1f3f5; --dimmed:#909296;
+    --scene-bg:#05080f;
+    --radius:8px; --radius-sm:4px;
+    font-family: system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); padding:16px;
+         -webkit-font-smoothing:antialiased; }
+
+  .note { max-width:1100px; margin:0 auto 16px; padding:10px 14px;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    font-size:13px; color:var(--dimmed); line-height:1.5; }
+  .note strong { color:var(--text-strong); }
+  .note code { background:#141517; padding:1px 5px; border-radius:3px; font-size:12px; }
+
+  h2.section { max-width:1100px; margin:30px auto 8px; color:var(--text-strong);
+    font-size:13px; text-transform:uppercase; letter-spacing:.08em; }
+  .variant-tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 9px;
+    border-radius:999px; margin-left:8px; vertical-align:middle; }
+  .vt-rec { background:#11342a; color:var(--earth-3); }
+  .vt-alt { background:#33363c; color:#aeb3ba; }
+
+  .frame { max-width:1100px; margin:0 auto; }
+  .paper { background:var(--surface); border:1px solid var(--border);
+           border-radius:var(--radius); padding:12px; }
+
+  /* ── ResourceBar variants ── */
+  .rbar { display:flex; align-items:center; gap:14px; }
+  .rbar .yt { font-weight:700; color:var(--text-strong); white-space:nowrap; }
+  .rbar .spacer { flex:1; }
+  .climate { display:flex; gap:14px; align-items:center; font-size:13px; }
+  .climate .stat { display:flex; gap:5px; align-items:baseline; }
+  .climate .stat .v { font-weight:700; color:var(--text-strong); }
+  .climate .sep { width:1px; height:16px; background:var(--border); }
+  .badge { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:999px;
+    font-size:13px; font-weight:700; background:var(--earth-7); color:#fff; white-space:nowrap; }
+  /* Icon-only Data button (Mantine ActionIcon equivalent). */
+  .data-btn { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px;
+    border:none; border-radius:var(--radius-sm); background:var(--earth-6); color:#fff;
+    font-size:16px; cursor:pointer; font-family:inherit; }
+  .data-btn:hover { background:var(--earth-5); }
+  .data-btn.wide { width:auto; gap:8px; padding:0 16px; font-size:13px; font-weight:700; }
+
+  /* ── Full-width map ── */
+  .scene { margin-top:16px; height:480px; border-radius:var(--radius); overflow:hidden;
+    background: radial-gradient(circle at 50% 45%, #0b1830 0%, var(--scene-bg) 70%);
+    position:relative; display:flex; align-items:center; justify-content:center; }
+  .scene .worldmap { width:100%; height:100%; object-fit:contain; display:block; }
+  .scene-caption { position:absolute; bottom:10px; left:12px; font-size:11px; color:#5b6b86; }
+  .scene-hint { position:absolute; top:12px; right:14px; font-size:11px; color:#5b6b86;
+    background:rgba(5,8,15,.6); padding:4px 9px; border-radius:999px; }
+
+  /* ── Generic content bits (shared by overlay) ── */
+  .h4 { font-size:16px; font-weight:700; color:var(--text-strong); margin:0; }
+  .row { display:flex; justify-content:space-between; align-items:center; }
+  .sm { font-size:13px; } .xs { font-size:11px; }
+  .dimmed { color:var(--dimmed); } .strong { color:var(--text-strong); font-weight:700; }
+  .caplbl { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--earth-7);
+    font-weight:600; margin:0; }
+  .stack-bar { display:flex; height:18px; border-radius:4px; overflow:hidden; background:#141517; }
+  .legend { display:grid; grid-template-columns:1fr auto auto; gap:4px 10px; font-size:12.5px; }
+  .legend .dot { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; }
+  .legend .num { text-align:right; } .legend .pct { text-align:right; color:var(--dimmed); }
+  .prog { height:8px; border-radius:999px; background:var(--surface-2); overflow:hidden; }
+  .prog > span { display:block; height:100%; border-radius:999px; }
+  .spark { width:100%; height:40px; }
+  .divider { border-top:1px solid var(--border); margin:4px 0; }
+
+  /* ── Overlay (EndingScreen pattern: dark backdrop, centered Paper, fade/slide) ── */
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:1000;
+    display:flex; align-items:center; justify-content:center; padding:24px; }
+  .overlay[hidden] { display:none; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    width:560px; max-width:100%; max-height:86vh; overflow:hidden; position:relative;
+    box-shadow:0 24px 60px rgba(0,0,0,.6);
+    animation: rise .35s ease both; }
+  @keyframes rise { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+  .modal-head { display:flex; align-items:center; gap:10px; padding:16px 18px 12px;
+    border-bottom:1px solid var(--border); }
+  .modal-head .rdot { width:12px; height:12px; border-radius:3px; }
+  .modal-body { padding:16px 18px; overflow-y:auto; max-height:calc(86vh - 58px);
+    display:flex; flex-direction:column; gap:10px; }
+  .x { position:absolute; top:12px; right:12px; width:28px; height:28px; border-radius:6px; border:none;
+    background:var(--surface-2); color:var(--text); font-size:16px; cursor:pointer; line-height:1;
+    display:flex; align-items:center; justify-content:center; }
+  .x:hover { background:#3a3d44; color:var(--text-strong); }
+  .levers { display:grid; grid-template-columns:1fr 1fr; gap:12px 14px; font-size:12.5px; }
+  .levers .v { font-size:15px; font-weight:700; color:var(--text-strong); }
+  .metrics { display:flex; flex-direction:column; gap:8px; }
+</style>
+</head>
+<body>
+
+<div class="note">
+  <strong>APPROVED proposal — Emissions data overlay.</strong> The region tile and planet panel move
+  off the page; the map goes <strong>full-width</strong>; an <strong>icon-only 📊 button</strong> in the
+  sticky header opens an <strong>overlay</strong> showing the selected region's emissions — or the
+  planet's when no region is selected. Headline climate stats move into the bar (Variant A). Built from
+  the live tokens. <strong>Click the 📊 button</strong> below to open the overlay, and toggle the region
+  selection to see both states.
+</div>
+
+<!-- ════════════ HEADER (approved) ════════════ -->
+<h2 class="section">Resource header <span class="variant-tag vt-rec">approved · Variant A · icon-only button</span></h2>
+<div class="note" style="margin-bottom:8px;">
+  Headline climate stats (<strong>Warming · CO₂ · Emissions</strong>) move <strong>into the bar</strong>
+  so warming stays glanceable at all times; the full by-source detail lives in the overlay. The Data
+  trigger is an <strong>icon-only</strong> button (📊).
+</div>
+<div class="frame">
+  <div class="paper">
+    <div class="rbar">
+      <span class="yt">Year 2025 · Turn 1</span>
+      <span class="sep" style="width:1px;height:16px;background:var(--border);"></span>
+      <span class="climate">
+        <span class="stat"><span>🌡</span><span class="v" style="color:var(--yellow);">+1.30 °C</span></span>
+        <span class="sep"></span>
+        <span class="stat"><span class="dimmed">CO₂</span><span class="v">420 ppm</span></span>
+        <span class="sep"></span>
+        <span class="stat"><span class="dimmed">Emissions</span><span class="v">35.5 Gt/yr</span></span>
+      </span>
+      <span class="spacer"></span>
+      <span class="badge">💰 Money: 1,448</span>
+      <button class="data-btn" onclick="openData()" aria-label="Show emissions data" title="Emissions data">📊</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ FULL-WIDTH MAP ════════════ -->
+<h2 class="section">Full-width world map (freed space — no more side panels)</h2>
+<div class="frame">
+  <div class="scene">
+    <img class="worldmap" src="../../../../packages/web/src/assets/world-map.svg" alt="World map of the 10 regions" />
+    <div class="scene-hint">click a region, then 📊 Data</div>
+    <div class="scene-caption">WorldMap — 10 regions · selecting a region no longer stretches the layout</div>
+  </div>
+  <div class="note" style="margin-top:8px;">
+    Below the map, the <strong>PolicyBoard</strong> and <strong>TurnLog</strong> stay exactly as they are
+    (full-width rows). Only the right-hand Planet + Region panels are removed.
+  </div>
+</div>
+
+<div style="max-width:1100px;margin:14px auto 0;display:flex;gap:10px;align-items:center;">
+  <button class="data-btn wide" onclick="openData()">📊 Open the Data overlay</button>
+  <label class="sm dimmed" style="display:flex;gap:6px;align-items:center;cursor:pointer;">
+    <input type="checkbox" id="regSel" onchange="render()" /> a region is selected (North America)
+  </label>
+</div>
+
+<!-- ════════════ OVERLAY ════════════ -->
+<div class="overlay" id="overlay" hidden onclick="if(event.target===this)closeData()">
+
+  <!-- PLANET state -->
+  <div class="modal" id="planetModal">
+    <button class="x" onclick="closeData()">✕</button>
+    <div class="modal-head"><span class="h4">Planet</span></div>
+    <div class="modal-body">
+      <div class="row sm"><span>Warming</span><span class="strong" style="color:var(--yellow);">+1.30 °C</span></div>
+      <div class="row sm"><span>CO₂</span><span class="strong">420 ppm</span></div>
+      <div class="row sm"><span>Emissions</span><span class="strong">35.5 Gt/yr</span></div>
+      <p class="caplbl">Emissions by source</p>
+      <div class="stack-bar">
+        <span style="width:39.2%;background:#f59f00;"></span><span style="width:26.4%;background:#868e96;"></span>
+        <span style="width:17.4%;background:#4dabf7;"></span><span style="width:8.0%;background:#a9e34b;"></span>
+        <span style="width:4.9%;background:#66d9e8;"></span><span style="width:4.1%;background:#2f9e44;"></span>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:#f59f00;"></span>Electricity</span><span class="num strong">13.9</span><span class="pct">39%</span>
+        <span><span class="dot" style="background:#868e96;"></span>Industry</span><span class="num strong">9.4</span><span class="pct">26%</span>
+        <span><span class="dot" style="background:#4dabf7;"></span>Transport</span><span class="num strong">6.2</span><span class="pct">17%</span>
+        <span><span class="dot" style="background:#a9e34b;"></span>Agriculture</span><span class="num strong">2.8</span><span class="pct">8%</span>
+        <span><span class="dot" style="background:#66d9e8;"></span>Aviation &amp; Shipping</span><span class="num strong">1.7</span><span class="pct">5%</span>
+        <span><span class="dot" style="background:#2f9e44;"></span>Land-use</span><span class="num strong">1.5</span><span class="pct">4%</span>
+      </div>
+      <svg class="spark" viewBox="0 0 240 40" preserveAspectRatio="none" style="margin-top:4px;">
+        <polyline fill="none" stroke="var(--earth-5)" stroke-width="2"
+          points="0,30 40,28 80,25 120,22 160,18 200,15 240,12" />
+      </svg>
+    </div>
+  </div>
+
+  <!-- REGION state -->
+  <div class="modal" id="regionModal" hidden>
+    <button class="x" onclick="closeData()">✕</button>
+    <div class="modal-head">
+      <span class="rdot" style="background:#4dabf7;"></span>
+      <span class="h4">North America</span>
+    </div>
+    <div class="modal-body">
+      <div class="xs dimmed">GDP/capita $65,000 · pop 520M · 5.9 Gt/yr</div>
+      <p class="caplbl">Emissions by source</p>
+      <div class="stack-bar">
+        <span style="width:37.9%;background:#f59f00;"></span><span style="width:28.0%;background:#4dabf7;"></span>
+        <span style="width:20.0%;background:#868e96;"></span><span style="width:6.9%;background:#66d9e8;"></span>
+        <span style="width:5.1%;background:#a9e34b;"></span><span style="width:2.0%;background:#2f9e44;"></span>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:#f59f00;"></span>Electricity</span><span class="num strong">2.24</span><span class="pct">38%</span>
+        <span><span class="dot" style="background:#4dabf7;"></span>Transport</span><span class="num strong">1.65</span><span class="pct">28%</span>
+        <span><span class="dot" style="background:#868e96;"></span>Industry</span><span class="num strong">1.18</span><span class="pct">20%</span>
+      </div>
+      <div class="divider"></div>
+      <p class="caplbl">Energy &amp; land levers</p>
+      <div class="levers">
+        <div><div class="dimmed">Grid intensity ⓘ</div><div class="v">0.37</div><div class="prog" style="margin-top:4px;"><span style="width:37%;background:#f59f00;"></span></div></div>
+        <div><div class="dimmed">Storage built ⓘ</div><div class="v">4%</div><div class="prog" style="margin-top:4px;"><span style="width:4%;background:var(--earth-6);"></span></div></div>
+        <div><div class="dimmed">Crop yield ⓘ</div><div class="v">100</div><div class="prog" style="margin-top:4px;"><span style="width:100%;background:#a9e34b;"></span></div></div>
+        <div><div class="dimmed">Power demand ⓘ</div><div class="v">6.05</div><div class="xs dimmed" style="margin-top:2px;">grows with GDP</div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="metrics">
+        <div><div class="row sm"><span>Public support</span><span class="strong">58</span></div><div class="prog"><span style="width:58%;background:var(--earth-5);"></span></div></div>
+        <div><div class="row sm"><span>Equity</span><span class="strong">55</span></div><div class="prog"><span style="width:55%;background:var(--earth-5);"></span></div></div>
+        <div><div class="row sm"><span>Biodiversity</span><span class="strong">48</span></div><div class="prog"><span style="width:48%;background:var(--yellow);"></span></div></div>
+        <div><div class="row sm"><span>Water</span><span class="strong">71</span></div><div class="prog"><span style="width:71%;background:var(--earth-5);"></span></div></div>
+        <div><div class="row sm"><span>Land</span><span class="strong">66</span></div><div class="prog"><span style="width:66%;background:var(--earth-5);"></span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function render() {
+    const sel = document.getElementById('regSel').checked;
+    document.getElementById('planetModal').hidden = sel;
+    document.getElementById('regionModal').hidden = !sel;
+  }
+  function openData() { render(); document.getElementById('overlay').hidden = false; }
+  function closeData() { document.getElementById('overlay').hidden = true; }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeData(); });
+</script>
+</body>
+</html>

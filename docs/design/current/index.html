@@ -28,14 +28,19 @@
     font-size:13px; color:var(--dimmed); }
   .gallery-note strong { color:var(--text-strong); }
 
-  /* App frame: 7/5 grid + full-width tray (AppShell padding md). Row stretches so the map column
-     fills its height (no dead space) and is as tall as the info column. */
-  .app { max-width:1100px; margin:0 auto; display:grid; gap:16px;
-         grid-template-columns: 7fr 5fr; align-items:stretch; }
-  .col-scene { grid-column: 1; }
-  .col-info  { grid-column: 2; display:flex; flex-direction:column; gap:12px; }
+  /* App frame: single full-width column (AppShell padding md). The Planet/Region panels moved into
+     the emissions data overlay, so the map spans the full width with the action rows beneath it. */
+  .app { max-width:1100px; margin:0 auto; display:grid; gap:16px; grid-template-columns: 1fr; }
   .col-full  { grid-column: 1 / -1; }
-  @media (max-width:820px){ .app{ grid-template-columns:1fr; } .col-scene,.col-info,.col-full{ grid-column:1; } }
+
+  /* Icon-only Data button in the resource header (Mantine ActionIcon, earth-filled). */
+  .data-btn { width:34px; height:34px; border:none; border-radius:var(--radius-sm);
+    background:var(--earth-6); color:#fff; font-size:16px; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; }
+  .data-btn:hover { background:var(--earth-5); }
+  /* Resource-header climate cluster (Variant A — warming stays glanceable). */
+  .climate { display:flex; gap:12px; align-items:center; }
+  .climate .vsep { width:1px; height:16px; background:var(--border); }
 
   .paper { background:var(--surface); border:1px solid var(--border);
            border-radius:var(--radius); padding:12px; }
@@ -165,6 +170,14 @@
   .foot .v { font-size:15px; font-weight:700; color:var(--text-strong); }
   .foot .btn { margin-left:auto; width:auto; padding:11px 26px; }
 
+  /* Emissions data overlay (boxed here so it sits in the gallery; live it is a fixed dark overlay,
+     EndingScreen pattern: rgba(0,0,0,.85) backdrop, centered Paper, framer-motion fade + rise). */
+  .modal-doc { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    width:560px; max-width:100%; margin:0 auto; position:relative; }
+  .modal-doc .x { position:absolute; top:10px; right:10px; width:28px; height:28px; border-radius:6px;
+    border:none; background:var(--surface-2); color:var(--text); font-size:15px; cursor:pointer; }
+  .modal-doc .body { padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+
   /* Ending screen mock (boxed, not full-overlay, so it sits in the gallery) */
   .ending-wrap { grid-column:1/-1; }
   .ending { background:rgba(0,0,0,.85); border:1px solid var(--border); border-radius:var(--radius);
@@ -185,40 +198,55 @@
   <code>/implement</code> step keeps this file in sync with the real UI. Open in any browser.
 </div>
 
-<!-- ── Sticky resource header — always visible; shows REMAINING to spend ── -->
+<!-- ── Sticky resource header — always visible; climate stats + REMAINING to spend + 📊 Data ── -->
 <div style="max-width:1100px; margin:0 auto 16px;">
   <div class="paper" style="position:sticky; top:0;">
     <div class="row">
-      <span class="strong">Year 2025 · Turn 1</span>
+      <span class="climate">
+        <span class="strong">Year 2025 · Turn 1</span>
+        <span class="vsep"></span>
+        <span class="sm" style="font-weight:700;color:var(--yellow);white-space:nowrap;">🌡 +1.30 °C</span>
+        <span class="sm"><span class="dimmed">CO₂</span> <span class="strong">420 ppm</span></span>
+        <span class="sm"><span class="dimmed">Emissions</span> <span class="strong">35.5 Gt/yr</span></span>
+      </span>
       <span style="display:flex; gap:8px; align-items:center;">
         <span class="badge badge-lg badge-teal-solid">💰 Money: 1,448</span>
+        <button class="data-btn" title="Emissions data" aria-label="Emissions data">📊</button>
       </span>
     </div>
   </div>
   <div class="xs dimmed" style="margin:6px 2px 0;">
-    Sticky header. The single <strong>Money</strong> badge shows what is <strong>remaining</strong> to
-    spend this turn (balance − staged cost; the 1 staged policy below = −$52, so 1,500 → 1,448).
-    Money is the game's only spendable resource. Over budget → badge turns red with an
-    <span style="color:var(--red)">⚠ over budget</span> alert and End&nbsp;Turn is disabled, e.g.:
-    <span class="badge badge-red" style="margin-left:4px;">💰 Money: -85</span>
+    Sticky header. Headline climate stats (<strong>Warming · CO₂ · Emissions</strong>) sit inline so
+    warming stays glanceable (Variant A). The single <strong>Money</strong> badge shows what is
+    <strong>remaining</strong> to spend this turn (balance − staged cost; the 1 staged policy below =
+    −$52, so 1,500 → 1,448). The <strong>📊</strong> icon button opens the
+    <strong>emissions data overlay</strong> (region if one is selected, else the planet). Over budget →
+    badge turns red with an <span style="color:var(--red)">⚠ over budget</span> alert and
+    End&nbsp;Turn is disabled, e.g.: <span class="badge badge-red" style="margin-left:4px;">💰 Money: -85</span>
   </div>
 </div>
 
 <!-- ── Main app layout ───────────────────────────────────────────── -->
 <div class="app">
-  <!-- Scene -->
-  <div class="col-scene">
-    <div class="scene">
+  <!-- Scene — now full-width (the Planet/Region panels moved into the data overlay below). -->
+  <div class="col-full">
+    <div class="scene" style="height:480px; min-height:0;">
       <img class="worldmap" src="../../../packages/web/src/assets/world-map.svg" alt="World map of the 10 regions" />
-      <div class="scene-caption">WorldMap — 10 regions on real geography · click to select</div>
+      <div class="scene-caption">WorldMap — 10 regions on real geography · click to select (selecting no longer stretches the layout)</div>
     </div>
   </div>
 
-  <!-- Info column -->
-  <div class="col-info">
-    <!-- Dashboard -->
-    <div class="paper">
-      <div class="h4">Planet</div>
+  <!-- Emissions data overlay (📊). The Planet/Region detail moved off the page into this overlay,
+       opened from the resource-bar 📊 button. Live: a fixed dark overlay (rgba(0,0,0,.85)), a centered
+       window, framer-motion fade + rise, closed by ✕ / Esc / backdrop. `order:9` keeps it visually last
+       (scene → PolicyBoard → TurnLog → this) without reordering the DOM. Boxed here with both states. -->
+  <div class="col-full" style="order:9;">
+    <h2 class="section" style="margin:0 0 8px;">Emissions data overlay — 📊 region if selected, else planet</h2>
+    <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
+      <!-- Planet window (shown when no region is selected) -->
+      <div class="paper" style="flex:1 1 340px; position:relative;">
+        <button class="data-btn" title="Close" style="position:absolute;top:8px;right:8px;width:28px;height:28px;background:var(--surface-2);color:var(--text);font-size:14px;">✕</button>
+        <div class="h4">Planet</div>
       <div class="row sm"><span>Warming</span><span style="color:var(--yellow)" class="strong">+1.30 °C</span></div>
       <div class="row sm" style="margin-top:4px;"><span>CO₂</span><span class="strong">420 ppm</span></div>
       <div class="row sm" style="margin-top:4px;"><span>Emissions</span><span class="strong">35.5 Gt/yr</span></div>
@@ -243,9 +271,10 @@
       </svg>
     </div>
 
-    <!-- RegionPanel -->
-    <div class="paper">
-      <div class="h4">North America</div>
+      <!-- Region window (shown when a region is selected) -->
+      <div class="paper" style="flex:1 1 340px; position:relative;">
+        <button class="data-btn" title="Close" style="position:absolute;top:8px;right:8px;width:28px;height:28px;background:var(--surface-2);color:var(--text);font-size:14px;">✕</button>
+        <div class="h4">North America</div>
       <div class="xs dimmed" style="margin-bottom:6px;">GDP/capita $65,000 · pop 520M · 5.9 Gt/yr</div>
       <!-- Emissions by source (region) -->
       <div class="xs" style="text-transform:uppercase;letter-spacing:.05em;color:var(--earth-7);margin:0 0 6px;">Emissions by source</div>
@@ -289,6 +318,7 @@
           <div class="row sm"><span>Land</span><span class="strong">66</span></div>
           <div class="prog"><span style="width:66%; background:var(--earth-5);"></span></div>
         </div>
+      </div>
       </div>
     </div>
   </div>
