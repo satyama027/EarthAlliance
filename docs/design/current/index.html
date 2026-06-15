@@ -440,7 +440,7 @@
       </div>
 
       <!-- Active lane (with empty drop slots showing where a dragged card lands) -->
-      <div class="lane-label">Active · North America · 3 <span class="hint">— drag a card here to enact (or ✕ to remove)</span></div>
+      <div class="lane-label">Active · North America · 3 <span class="hint">— single-click a card for details · double-click or drag to remove</span></div>
       <div class="lane-drop">
         <div class="tray">
           <!-- committed building (cancellable) -->
@@ -461,6 +461,8 @@
             <div class="name">Climate Adaptation</div>
             <span class="fund fund-recurring">Recurring</span>
             <div class="cstate a">Funded each turn</div>
+            <!-- Recurring policies have no fixed end — say so honestly (earth-3 when active). -->
+            <div class="cstate a" style="color:var(--earth-3);">♾︎ Runs until cancelled</div>
             <div class="costs"><span class="badge badge-teal">$104/turn</span></div>
           </div>
           <!-- staged this turn (removable) -->
@@ -481,7 +483,7 @@
       <hr style="border:none; border-top:1px solid var(--border); margin:10px 0;" />
 
       <!-- Available lane -->
-      <div class="lane-label">Available · 3 <span class="hint">— drag a card up to enact in North America ↑</span></div>
+      <div class="lane-label">Available · 3 <span class="hint">— single-click for details · double-click or drag up to enact in North America ↑</span></div>
       <div class="lane-drop">
         <div class="tray">
           <div class="card">
@@ -512,6 +514,55 @@
         <div><div class="k">Cost now</div><div class="v">$52</div></div>
         <div><div class="k">Upkeep next turn</div><div class="v">$406 / turn</div></div>
         <button class="btn">End Turn ▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Policy detail overlay (opened by single-click / Enter) ──────── -->
+<h2 class="section">Policy detail overlay (single-click a card · double-click / drag to enact-or-stop)</h2>
+<div class="app">
+  <div style="grid-column:1/-1; background:rgba(0,0,0,.85); border-radius:var(--radius); padding:28px;
+              display:flex; align-items:center; justify-content:center;">
+    <div style="width:520px; max-width:100%; background:var(--surface); border:1px solid var(--border);
+                border-radius:var(--radius); overflow:hidden; position:relative;">
+      <div style="position:absolute; top:10px; right:10px; width:26px; height:26px; border-radius:6px;
+                  background:var(--surface-2); color:var(--text); display:flex; align-items:center;
+                  justify-content:center;">✕</div>
+      <!-- big category art-band header -->
+      <div style="background:var(--cat-land); height:80px; display:flex; align-items:center;
+                  justify-content:center; font-size:44px;">🌳</div>
+      <div style="padding:16px 18px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:20px; font-weight:700; color:var(--text-strong);">Anti-Deforestation Enforcement</span>
+          <span class="fund fund-recurring">Recurring</span>
+        </div>
+        <p style="font-size:14px; line-height:1.5; margin:12px 0 0;">Protect standing forests: stops
+          land-use emissions and restores habitat.</p>
+
+        <div style="text-transform:uppercase; letter-spacing:.06em; color:var(--earth-7); font-size:11px;
+                    font-weight:600; margin:14px 0 7px;">What it does</div>
+        <div style="display:flex; flex-direction:column; gap:7px; font-size:13px;">
+          <div><span class="d-good" style="font-weight:700;">▲</span> <b>Land-use emissions</b> −0.20 Gt/yr <span class="dimmed xs">· each turn</span></div>
+          <div><span class="d-good" style="font-weight:700;">▲</span> <b>Biodiversity</b> +1 <span class="dimmed xs">· each turn</span></div>
+          <div><span class="d-bad" style="font-weight:700;">▼</span> <b>GDP per capita</b> −$500 <span class="dimmed xs">· one-time</span></div>
+        </div>
+
+        <hr style="border:none; border-top:1px solid var(--border); margin:14px 0;" />
+        <div style="display:flex; justify-content:space-between; font-size:13px;">
+          <span class="dimmed">Cost</span><span style="font-weight:700;">$210 / turn</span>
+        </div>
+        <div class="dimmed xs" style="margin-top:3px;">Charged every turn while active; never completes — runs until you stop it.</div>
+
+        <div style="display:flex; gap:8px; align-items:center; margin-top:12px; padding:8px 11px;
+                    background:var(--teal-light); border-radius:6px; color:var(--earth-3); font-size:12px;">
+          ♾︎ <span>Runs every turn until you stop it — there is no fixed end.</span>
+        </div>
+      </div>
+      <!-- footer action (same effect as double-click / drag) -->
+      <div style="padding:14px 18px; border-top:1px solid var(--border); display:flex; gap:12px; align-items:center;">
+        <button class="btn" style="flex:1; background:#3a1f22; color:var(--red);">Stop funding</button>
+        <span class="dimmed xs" style="flex:1;">Or double-click / drag the card.</span>
       </div>
     </div>
   </div>

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Earth Alliance — Policy detail overlay (proposal mockup)</title>
+<style>
+  /* ── Design tokens (mirror of packages/web/src/theme.ts, Mantine dark scheme) ── */
+  :root {
+    --earth-3:#63e6be; --earth-4:#38d9a9; --earth-5:#20c997; --earth-6:#12b886; --earth-7:#0ca678; --earth-9:#087f5b;
+    --teal:#20c997; --teal-light:#163a33;
+    --red:#ff6b6b; --red-4:#ff8787; --yellow:#ffd43b; --orange:#ffa94d;
+    --bg:#1a1b1e; --surface:#25262b; --surface-2:#2c2e33; --border:#373a40; --dark-4:#4a4d55;
+    --text:#c1c2c5; --text-strong:#f1f3f5; --dimmed:#909296;
+    /* category band colors */
+    --cat-energy:#f59f00; --cat-industry:#868e96; --cat-land:#2f9e44; --cat-social:#1971c2; --cat-frontier:#9c36b5;
+    --radius:8px; --radius-sm:4px;
+    font-family: system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); padding:16px;
+         -webkit-font-smoothing:antialiased; }
+
+  .note { max-width:1100px; margin:0 auto 16px; padding:10px 14px;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    font-size:13px; color:var(--dimmed); line-height:1.55; }
+  .note strong { color:var(--text-strong); }
+  .note code { background:#141517; padding:1px 5px; border-radius:3px; font-size:12px; }
+  .note kbd { background:#141517; border:1px solid var(--border); border-bottom-width:2px;
+    padding:1px 6px; border-radius:4px; font-size:11px; color:var(--text-strong); }
+
+  h2.section { max-width:1100px; margin:30px auto 8px; color:var(--text-strong);
+    font-size:13px; text-transform:uppercase; letter-spacing:.08em; }
+  .variant-tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 9px;
+    border-radius:999px; margin-left:8px; vertical-align:middle; }
+  .vt-new { background:#11342a; color:var(--earth-3); }
+
+  .frame { max-width:1100px; margin:0 auto; }
+  .paper { background:var(--surface); border:1px solid var(--border);
+           border-radius:var(--radius); padding:12px; }
+
+  /* ── Policy board lanes (mini, for context) ── */
+  .lane-label { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--dimmed);
+    margin:4px 2px 6px; }
+  .lane { display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; }
+  .divider { border-top:1px solid var(--border); margin:12px 0; }
+
+  /* ── Policy card (CardFace) ── */
+  .card { width:180px; flex:0 0 180px; background:var(--surface-2); border:1px solid var(--border);
+    border-radius:var(--radius); padding:10px; position:relative; cursor:pointer; user-select:none; }
+  .card:hover { border-color:var(--dark-4); }
+  .card.staged { outline:2px solid var(--earth-5); outline-offset:-1px; }
+  .card .band { height:34px; border-radius:4px; display:flex; align-items:center; justify-content:center;
+    font-size:20px; }
+  .card .name { font-weight:700; font-size:13px; color:var(--text-strong); margin-top:8px; line-height:1.2; }
+  .pill { display:inline-block; font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px;
+    margin-top:5px; }
+  .pill.recurring { background:var(--teal-light); color:var(--earth-3); }
+  .pill.buildout { background:#0c2c24; color:var(--earth-4); }
+  .pill.onetime { background:#33363c; color:#aeb3ba; }
+  .card .desc { font-size:11px; color:var(--dimmed); margin-top:5px; line-height:1.35;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .card .stateline { font-size:10px; font-weight:700; margin-top:6px; }
+  .card .stateline.active { color:var(--earth-4); }
+  /* NEW: duration line on recurring cards */
+  .card .duration { font-size:10px; font-weight:700; margin-top:5px; color:var(--earth-3);
+    display:flex; align-items:center; gap:4px; }
+  .card .duration.dim { color:var(--dimmed); }
+  .money { display:inline-block; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px;
+    margin-top:8px; background:var(--teal-light); color:var(--earth-3); }
+  .tap-hint { position:absolute; top:8px; right:9px; font-size:10px; color:var(--dimmed);
+    background:#141517; border:1px solid var(--border); border-radius:4px; padding:1px 5px; }
+
+  /* ── Overlay (DataOverlay / EndingScreen pattern) ── */
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:1000;
+    display:flex; align-items:center; justify-content:center; padding:24px; }
+  .overlay[hidden] { display:none; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    width:520px; max-width:100%; max-height:88vh; overflow:hidden; position:relative;
+    box-shadow:0 24px 60px rgba(0,0,0,.6); animation: rise .35s ease both; }
+  @keyframes rise { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+  .x { position:absolute; top:12px; right:12px; width:28px; height:28px; border-radius:6px; border:none;
+    background:var(--surface-2); color:var(--text); font-size:16px; cursor:pointer; line-height:1;
+    display:flex; align-items:center; justify-content:center; z-index:3; }
+  .x:hover { background:#3a3d44; color:var(--text-strong); }
+
+  /* Big card-art header */
+  .modal-head { padding:18px 18px 14px; border-bottom:1px solid var(--border); }
+  .head-band { height:80px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+    font-size:44px; }
+  .head-title { display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap; }
+  .head-title .ht { font-size:20px; font-weight:700; color:var(--text-strong); margin:0; }
+
+  .modal-body { padding:16px 18px; overflow-y:auto; max-height:calc(88vh - 270px);
+    display:flex; flex-direction:column; gap:14px; }
+  .full-desc { font-size:14px; line-height:1.5; color:var(--text); }
+  .caplbl { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--earth-7);
+    font-weight:600; margin:0 0 6px; }
+
+  /* effect breakdown */
+  .fx { display:flex; flex-direction:column; gap:7px; }
+  .fx li { list-style:none; display:flex; align-items:flex-start; gap:9px; font-size:13px; line-height:1.4; }
+  .fx .arrow { font-weight:700; width:16px; text-align:center; flex:0 0 16px; }
+  .fx .good { color:var(--earth-3); } .fx .bad { color:var(--red-4); } .fx .neutral { color:var(--dimmed); }
+  .fx .fx-txt .scope { color:var(--dimmed); font-size:12px; }
+  .fx .tag { display:inline-block; font-size:10px; padding:1px 6px; border-radius:999px; margin-left:6px;
+    background:#0c2c24; color:var(--earth-4); vertical-align:middle; }
+
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:6px 12px; font-size:13px; }
+  .kv dt { color:var(--dimmed); } .kv dd { margin:0; color:var(--text-strong); font-weight:600; }
+  .blurb { font-size:12px; color:var(--dimmed); line-height:1.45; margin-top:2px; }
+
+  .prog { height:8px; border-radius:999px; background:var(--surface-2); overflow:hidden; margin-top:6px; }
+  .prog > span { display:block; height:100%; border-radius:999px; background:var(--earth-6); }
+
+  .callout { font-size:12.5px; padding:8px 11px; border-radius:6px; display:flex; gap:8px; align-items:center; }
+  .callout.recurring { background:var(--teal-light); color:var(--earth-3); }
+
+  /* footer / action */
+  .modal-foot { padding:14px 18px; border-top:1px solid var(--border); display:flex; gap:10px;
+    align-items:center; }
+  .btn { border:none; border-radius:var(--radius-sm); padding:0 18px; height:38px; font-size:14px;
+    font-weight:700; cursor:pointer; font-family:inherit; }
+  .btn.primary { background:var(--earth-6); color:#fff; flex:1; }
+  .btn.primary:hover { background:var(--earth-5); }
+  .btn.danger { background:#3a1f22; color:var(--red-4); flex:1; }
+  .btn.danger:hover { background:#4a2629; }
+  .btn.ghost { background:var(--surface-2); color:var(--text); }
+  .btn.ghost:hover { background:#3a3d44; }
+  .btn[disabled] { opacity:.45; cursor:not-allowed; }
+  .foot-note { font-size:11px; color:var(--dimmed); flex:1; }
+
+  .switcher { max-width:1100px; margin:14px auto 0; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .switcher .btn-sm { background:var(--surface-2); color:var(--text); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:7px 12px; font-size:12.5px; cursor:pointer; font-family:inherit; }
+  .switcher .btn-sm:hover { border-color:var(--earth-6); color:var(--text-strong); }
+
+  /* drag + activation demo */
+  .card.dragging { opacity:.3; }
+  .card.flash { animation: flash .5s ease; }
+  @keyframes flash { 0%{ box-shadow:0 0 0 0 var(--earth-5); } 50%{ box-shadow:0 0 0 3px var(--earth-5); } 100%{ box-shadow:0 0 0 0 transparent; } }
+  .lane.armed { outline:2px dashed var(--earth-5); outline-offset:3px; border-radius:var(--radius); }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(10px);
+    background:var(--earth-9); color:#fff; padding:10px 18px; border-radius:999px; font-size:13px;
+    font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,.5); opacity:0; pointer-events:none;
+    transition:opacity .2s, transform .2s; z-index:1200; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast.stop { background:#5a2327; }
+</style>
+</head>
+<body>
+
+<div class="note">
+  <strong>PROPOSAL — Policy detail overlay + click/double-click/drag semantics.</strong>
+  Today a single click on a policy card <em>activates</em> it, and the card only shows a 2-line
+  description. This proposal splits <strong>inspecting</strong> from <strong>acting</strong>:
+  <br><br>
+  &nbsp;•&nbsp; <strong>Single click</strong> (or <kbd>Enter</kbd>/<kbd>Space</kbd>) → open the
+  <strong>detail overlay</strong> below (full breakdown + an explicit action button).<br>
+  &nbsp;•&nbsp; <strong>Double-click</strong> or <strong>drag to the other lane</strong> → enact /
+  stop the policy (drag already works this way; double-click is the new shortcut).<br>
+  &nbsp;•&nbsp; <strong>Recurring</strong> cards now show their lifespan honestly:
+  <strong>"Runs until cancelled"</strong> (recurring policies have no fixed end in the engine).
+  <br><br>
+  Built from the live tokens. All three gestures are <strong>live in this mockup</strong>:
+  <strong>single-click</strong> a card to open its overlay, <strong>double-click</strong> it to
+  enact/stop (moves it to the other lane), or <strong>drag</strong> it across the divider. The
+  buttons under the lanes preview each overlay state directly.
+</div>
+
+<!-- ════════════ POLICY BOARD CONTEXT (cards with the new duration line) ════════════ -->
+<h2 class="section">Policy board — cards <span class="variant-tag vt-new">new: recurring duration line</span></h2>
+<div class="frame">
+  <div class="paper">
+    <div class="lane-label">Active in North America</div>
+    <div class="lane" id="lane-active" data-lane="active">
+      <!-- active recurring -->
+      <div class="card" data-key="active-recurring" draggable="true">
+        <span class="tap-hint">click ⓘ</span>
+        <div class="band" style="background:var(--cat-land);">🌳</div>
+        <div class="name">Anti-Deforestation Enforcement</div>
+        <span class="pill recurring">Recurring</span>
+        <div class="stateline active">Funded each turn</div>
+        <div class="duration">♾︎ Runs until cancelled</div>
+        <span class="money">$210/turn</span>
+      </div>
+      <!-- active buildout -->
+      <div class="card" data-key="active-buildout" draggable="true">
+        <span class="tap-hint">click ⓘ</span>
+        <div class="band" style="background:var(--cat-energy);">⚡</div>
+        <div class="name">Renewable Subsidy</div>
+        <span class="pill buildout">Buildout</span>
+        <div class="stateline active">Building · +10%/turn</div>
+        <div class="prog" style="margin-top:6px;"><span style="width:40%;"></span></div>
+        <span class="money">$480/turn</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="lane-label">Available in North America</div>
+    <div class="lane" id="lane-available" data-lane="available">
+      <!-- available recurring -->
+      <div class="card" data-key="available-recurring" draggable="true">
+        <span class="tap-hint">click ⓘ</span>
+        <div class="band" style="background:var(--cat-social);">🤝</div>
+        <div class="name">Climate Adaptation Fund</div>
+        <span class="pill recurring">Recurring</span>
+        <div class="desc">Buffer communities against climate shocks; funded continuously.</div>
+        <div class="duration dim">♾︎ Runs until cancelled</div>
+        <span class="money">$165/turn</span>
+      </div>
+      <!-- available one-time -->
+      <div class="card" data-key="available-onetime" draggable="true">
+        <span class="tap-hint">click ⓘ</span>
+        <div class="band" style="background:var(--cat-industry);">🏭</div>
+        <div class="name">Carbon Tax</div>
+        <span class="pill onetime">One-time</span>
+        <div class="desc">Price carbon to clean the power grid; unpopular up front.</div>
+        <span class="money">$18</span>
+      </div>
+      <!-- locked -->
+      <div class="card" style="opacity:.5;" data-key="locked">
+        <span class="tap-hint">click ⓘ</span>
+        <div class="band" style="background:var(--cat-frontier);">🚀</div>
+        <div class="name">Off-World Colonies</div>
+        <span class="pill onetime">One-time</span>
+        <div class="desc">🔒 Requires orbital-infrastructure here</div>
+        <span class="money">$45</span>
+      </div>
+    </div>
+  </div>
+  <div class="note" style="margin-top:8px;">
+    The only card change is the <strong>"♾︎ Runs until cancelled"</strong> line on recurring policies
+    (earth-3 when active, dimmed when available) and a small <strong>ⓘ tap affordance</strong> on hover.
+    Everything else (art band, name, funding pill, money badge, buildout bar, state line) is unchanged.
+    <strong>Locked / unaffordable</strong> cards are now clickable too — they open a read-only overlay so
+    players can read what they'd unlock.
+  </div>
+</div>
+
+<div class="switcher">
+  <span class="sm dimmed" style="font-size:12px;">Preview overlay state:</span>
+  <button class="btn-sm" onclick="openCard('available-recurring')">Available · recurring</button>
+  <button class="btn-sm" onclick="openCard('active-recurring')">Active · recurring</button>
+  <button class="btn-sm" onclick="openCard('active-buildout')">Active · buildout</button>
+  <button class="btn-sm" onclick="openCard('available-onetime')">Available · one-time</button>
+  <button class="btn-sm" onclick="openCard('locked')">Locked</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ════════════ DETAIL OVERLAY ════════════ -->
+<div class="overlay" id="overlay" hidden onclick="if(event.target===this)closeCard()">
+  <div class="modal">
+    <button class="x" onclick="closeCard()">✕</button>
+
+    <div class="modal-head">
+      <div class="head-band" id="band">🌳</div>
+      <div class="head-title">
+        <h3 class="ht" id="title">Anti-Deforestation Enforcement</h3>
+        <span class="pill recurring" id="fundpill">Recurring</span>
+      </div>
+    </div>
+
+    <div class="modal-body" id="body"><!-- filled by JS --></div>
+
+    <div class="modal-foot" id="foot"><!-- filled by JS --></div>
+  </div>
+</div>
+
+<script>
+  // Each state mirrors a real POLICY_CATALOG entry + its CardVM lane/state.
+  const STATES = {
+    'available-recurring': {
+      band:'🤝', bandColor:'var(--cat-social)', title:'Climate Adaptation Fund', fund:'recurring',
+      desc:'Buffer communities against climate shocks; funded continuously.',
+      effects:[
+        {dir:'good', text:'Health index', mag:'+2', scope:'each turn'},
+        {dir:'good', text:'Water availability', mag:'+1', scope:'each turn'},
+      ],
+      cost:'$165 / turn', fundBlurb:'Recurring — charged every turn while active; never completes.',
+      recurring:true, region:'North America',
+      action:{kind:'primary', label:'Enact in North America'},
+    },
+    'active-recurring': {
+      band:'🌳', bandColor:'var(--cat-land)', title:'Anti-Deforestation Enforcement', fund:'recurring',
+      desc:'Protect standing forests: stops land-use emissions and restores habitat.',
+      effects:[
+        {dir:'good', text:'Land-use emissions', mag:'−0.20 Gt/yr', scope:'each turn'},
+        {dir:'good', text:'Biodiversity', mag:'+1', scope:'each turn'},
+        {dir:'bad', text:'GDP per capita', mag:'−$500', scope:'one-time'},
+      ],
+      cost:'$210 / turn', fundBlurb:'Recurring — charged every turn while active; never completes.',
+      recurring:true, region:'North America', state:'Funded each turn',
+      action:{kind:'danger', label:'Stop funding'},
+    },
+    'active-buildout': {
+      band:'⚡', bandColor:'var(--cat-energy)', title:'Renewable Subsidy', fund:'buildout',
+      desc:'Fund wind and solar deployment until the grid is built out.',
+      effects:[
+        {dir:'good', text:'Grid carbon intensity', mag:'−0.08', scope:'each turn', tag:'scales with grid storage'},
+      ],
+      cost:'$480 / turn (until built)', fundBlurb:'Buildout — charged every turn until installed capacity reaches 100%, then stops; effects ramp with capacity.',
+      installed:40, region:'North America', state:'Building · +10%/turn',
+      action:{kind:'danger', label:'Stop buildout — keeps installed %'},
+    },
+    'available-onetime': {
+      band:'🏭', bandColor:'var(--cat-industry)', title:'Carbon Tax', fund:'onetime',
+      desc:'Price carbon to clean the power grid; unpopular up front.',
+      effects:[
+        {dir:'good', text:'Grid carbon intensity', mag:'−0.04', scope:'each turn'},
+        {dir:'bad', text:'Public support', mag:'−3', scope:'one-time'},
+      ],
+      cost:'$18 once', fundBlurb:'One-time — charged once at enactment; the effect is permanent.',
+      region:'North America',
+      action:{kind:'primary', label:'Enact in North America'},
+    },
+    'locked': {
+      band:'🚀', bandColor:'var(--cat-frontier)', title:'Off-World Colonies', fund:'onetime',
+      desc:'Settle beyond Earth — a refuge for those who can leave.',
+      effects:[ {dir:'good', text:'GDP per capita', mag:'+$3,000', scope:'each turn'} ],
+      cost:'$45 once', fundBlurb:'One-time — charged once at enactment; the effect is permanent.',
+      region:'North America', prereq:'Orbital Infrastructure',
+      action:{kind:'primary', label:'Requires Orbital Infrastructure', disabled:true},
+    },
+  };
+
+  const FUND_LABEL = { recurring:'Recurring', buildout:'Buildout', onetime:'One-time' };
+
+  function fxItem(e) {
+    const sign = e.dir === 'good' ? '▲' : e.dir === 'bad' ? '▼' : '—';
+    const tag = e.tag ? `<span class="tag">${e.tag}</span>` : '';
+    return `<li><span class="arrow ${e.dir}">${sign}</span>
+      <span class="fx-txt"><strong>${e.text}</strong> ${e.mag}
+      <span class="scope">· ${e.scope}</span>${tag}</span></li>`;
+  }
+
+  function openCard(key) {
+    const s = STATES[key];
+    document.getElementById('band').textContent = s.band;
+    document.getElementById('band').style.background = s.bandColor;
+    document.getElementById('title').textContent = s.title;
+    const fp = document.getElementById('fundpill');
+    fp.textContent = FUND_LABEL[s.fund];
+    fp.className = 'pill ' + s.fund;
+
+    let body = `<p class="full-desc">${s.desc}</p>`;
+    body += `<div><p class="caplbl">What it does</p><ul class="fx" style="padding:0;margin:0;">${s.effects.map(fxItem).join('')}</ul></div>`;
+
+    // cost + funding
+    body += `<div><p class="caplbl">Cost &amp; funding</p>
+      <dl class="kv"><dt>Cost</dt><dd>${s.cost}</dd></dl>
+      <p class="blurb">${s.fundBlurb}</p></div>`;
+
+    if (s.recurring) {
+      body += `<div class="callout recurring">♾︎ <span>Runs every turn until you stop it — there is no fixed end.</span></div>`;
+    }
+    if (s.installed !== undefined) {
+      body += `<div><p class="caplbl">Installed capacity</p>
+        <div class="row" style="display:flex;justify-content:space-between;font-size:13px;">
+        <span class="dimmed">${s.state}</span><strong>${s.installed}%</strong></div>
+        <div class="prog"><span style="width:${s.installed}%;"></span></div></div>`;
+    } else if (s.state) {
+      body += `<dl class="kv"><dt>Status</dt><dd>${s.state}</dd></dl>`;
+    }
+    if (s.prereq) {
+      body += `<dl class="kv"><dt>Requires</dt><dd>🔒 ${s.prereq} (in ${s.region})</dd></dl>`;
+    }
+    document.getElementById('body').innerHTML = body;
+
+    // footer / action
+    const a = s.action;
+    const dis = a.disabled ? 'disabled' : '';
+    const note = a.disabled
+      ? `<span class="foot-note">Enact its prerequisite here first.</span>`
+      : `<span class="foot-note">Or double-click / drag the card.</span>`;
+    document.getElementById('foot').innerHTML =
+      `<button class="btn ${a.kind}" ${dis} onclick="closeCard()">${a.label}</button>` + note +
+      `<button class="btn ghost" onclick="closeCard()">Close</button>`;
+
+    document.getElementById('overlay').hidden = false;
+  }
+  function closeCard() { document.getElementById('overlay').hidden = true; }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
+
+  // ── Interaction demo: single-click = open (220ms discrimination), double-click = activate,
+  //    drag to the other lane = activate. Mirrors the real PolicyBoard handler. ──
+  const toast = document.getElementById('toast');
+  let toastTimer = null;
+  function showToast(msg, stop) {
+    toast.textContent = msg;
+    toast.classList.toggle('stop', !!stop);
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1700);
+  }
+
+  // Move a card to the opposite lane = "activate / deactivate".
+  function activate(card) {
+    const name = card.querySelector('.name').textContent;
+    const fromActive = card.closest('[data-lane]').dataset.lane === 'active';
+    const target = document.getElementById(fromActive ? 'lane-available' : 'lane-active');
+    target.appendChild(card);
+    card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
+    if (fromActive) showToast('⏹ Stopped ' + name, true);
+    else showToast('✓ Enacted ' + name + ' in North America');
+  }
+
+  let clickTimer = null;
+  document.querySelectorAll('.card').forEach(card => {
+    const key = card.dataset.key;
+    const locked = key === 'locked';
+
+    // single vs double click discrimination
+    card.addEventListener('click', () => {
+      if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+      clickTimer = setTimeout(() => { openCard(key); clickTimer = null; }, 220);
+    });
+    card.addEventListener('dblclick', () => {
+      if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+      if (locked) { showToast('🔒 Locked — enact its prerequisite first', true); return; }
+      activate(card);
+    });
+
+    // drag (HTML5 DnD); locked cards aren't draggable
+    if (locked) return;
+    card.addEventListener('dragstart', e => {
+      card.classList.add('dragging');
+      e.dataTransfer.setData('text/plain', key);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => card.classList.remove('dragging'));
+  });
+
+  document.querySelectorAll('.lane').forEach(lane => {
+    lane.addEventListener('dragover', e => { e.preventDefault(); lane.classList.add('armed'); });
+    lane.addEventListener('dragleave', () => lane.classList.remove('armed'));
+    lane.addEventListener('drop', e => {
+      e.preventDefault();
+      lane.classList.remove('armed');
+      const key = e.dataTransfer.getData('text/plain');
+      const card = document.querySelector('.card[data-key="' + key + '"]');
+      // only "act" when dropped into the OTHER lane
+      if (card && card.closest('[data-lane]') !== lane) activate(card);
+    });
+  });
+</script>
+</body>
+</html>

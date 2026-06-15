@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Paper, Group, Text, Button, ScrollArea, Box, Divider, Stack } from '@mantine/core';
 import { validateSelection, type WorldState, type PolicySelection } from '@earth-alliance/engine';
 import { REGION_COLORS } from '../theme.js';
 import { regionPolicyView, type CardVM } from '../game/policyView.js';
 import { PolicyCard, CardFace } from './PolicyCard.js';
+import { PolicyDetailOverlay } from './PolicyDetailOverlay.js';
 
 interface PolicyBoardProps {
   state: WorldState;
@@ -26,14 +27,28 @@ interface PolicyBoardProps {
 const ACTIVE_SLOTS = 2;
 /** How far the pointer must travel before a press becomes a drag (vs. a tap). */
 const DRAG_THRESHOLD = 5;
+/** Window (ms) within which a second tap on the same card counts as a double-click (= activate). */
+const DOUBLE_TAP_MS = 220;
 
 type Lane = 'active' | 'available';
 interface DragState { vm: CardVM; x: number; y: number; over: Lane | null }
+
+/** Can this card be enacted/stopped directly (vs. inspect-only, e.g. locked)? Mirrors `isActionable`. */
+function isActionableVm(vm: CardVM): boolean {
+  if (vm.lane === 'available') return vm.state === 'available';
+  return vm.state === 'staged' || vm.cancellable;
+}
 
 export function PolicyBoard(props: PolicyBoardProps) {
   const { state, regionId, staged, cancels } = props;
   const [error, setError] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
+  const [detailVm, setDetailVm] = useState<CardVM | null>(null);
+
+  // Single- vs double-click discrimination for the pointer tap (see `handleTap`).
+  const pendingTap = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTap = useRef<{ key: string; time: number } | null>(null);
+  useEffect(() => () => { if (pendingTap.current) clearTimeout(pendingTap.current); }, []);
 
   const region = regionId ? state.regions.find((r) => r.id === regionId) ?? null : null;
   const regionColor = regionId ? REGION_COLORS[regionId] ?? '#909296' : null;
@@ -57,6 +72,28 @@ export function PolicyBoard(props: PolicyBoardProps) {
     if (vm.state === 'staged') { props.onUnstage(vm.policy.id, regionId); setError(null); return true; }
     if (vm.cancellable) { props.onToggleCancel(vm.policy.id, regionId); setError(null); return true; }
     return false;
+  }
+
+  // A pointer tap. Single tap (after a 220ms wait) opens the detail overlay; a second tap on the same
+  // card within that window is a double-click and runs the enact/stop action. Locked / inspect-only
+  // cards always just open the overlay.
+  function handleTap(vm: CardVM) {
+    if (!isActionableVm(vm)) { setDetailVm(vm); return; }
+    const key = `${vm.policy.id}:${vm.lane}`;
+    const now = Date.now();
+    const isDouble = lastTap.current?.key === key && now - lastTap.current.time < DOUBLE_TAP_MS;
+    if (pendingTap.current) { clearTimeout(pendingTap.current); pendingTap.current = null; }
+    if (isDouble) {
+      lastTap.current = null;
+      performPrimary(vm);
+    } else {
+      lastTap.current = { key, time: now };
+      pendingTap.current = setTimeout(() => {
+        setDetailVm(vm);
+        pendingTap.current = null;
+        lastTap.current = null;
+      }, DOUBLE_TAP_MS);
+    }
   }
 
   // Which lane is under this viewport point? Uses the real hit-test, so it is correct regardless of
@@ -86,9 +123,9 @@ export function PolicyBoard(props: PolicyBoardProps) {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       setDrag(null);
-      if (!moved) { performPrimary(vm); return; }                 // a tap — same as a click
+      if (!moved) { handleTap(vm); return; }                      // a tap — single = inspect, double = act
       const target = laneAtPoint(ev.clientX, ev.clientY);
-      if (target && target !== vm.lane) performPrimary(vm);        // dropped in the other lane
+      if (target && target !== vm.lane && isActionableVm(vm)) performPrimary(vm); // dropped in other lane
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
@@ -129,7 +166,7 @@ export function PolicyBoard(props: PolicyBoardProps) {
             </Text>
             <LaneStrip cards={view.active} emptyText="Nothing active here yet." slots={activeSlots}
               armed={activeArmed} draggingId={draggingId}
-              onActivate={performPrimary} onDragStart={startDrag} />
+              onInspect={setDetailVm} onDragStart={startDrag} />
           </div>
 
           <Divider />
@@ -142,7 +179,7 @@ export function PolicyBoard(props: PolicyBoardProps) {
             </Text>
             <LaneStrip cards={view.available} emptyText="No more policies available here." slots={0}
               armed={false} draggingId={draggingId}
-              onActivate={performPrimary} onDragStart={startDrag} />
+              onInspect={setDetailVm} onDragStart={startDrag} />
           </div>
         </Stack>
       )}
@@ -158,6 +195,14 @@ export function PolicyBoard(props: PolicyBoardProps) {
         </Box>
       </Group>
 
+      {/* Detail overlay — opened by single click / Enter; its action button runs the same enact/stop. */}
+      <PolicyDetailOverlay
+        vm={detailVm}
+        regionName={region?.name ?? 'this region'}
+        onPrimary={performPrimary}
+        onClose={() => setDetailVm(null)}
+      />
+
       {/* Floating drag overlay — lives on <body>, above everything, never clipped by a lane. */}
       {drag && createPortal(
         <div style={{ position: 'fixed', left: drag.x, top: drag.y, width: 180, zIndex: 9999,
@@ -170,13 +215,13 @@ export function PolicyBoard(props: PolicyBoardProps) {
   );
 }
 
-function LaneStrip({ cards, emptyText, slots, armed, draggingId, onActivate, onDragStart }: {
+function LaneStrip({ cards, emptyText, slots, armed, draggingId, onInspect, onDragStart }: {
   cards: CardVM[];
   emptyText: string;
   slots: number;
   armed: boolean;
   draggingId: string | null;
-  onActivate(vm: CardVM): void;
+  onInspect(vm: CardVM): void;
   onDragStart(vm: CardVM, e: React.PointerEvent): void;
 }) {
   if (cards.length === 0 && slots === 0) {
@@ -188,7 +233,7 @@ function LaneStrip({ cards, emptyText, slots, armed, draggingId, onActivate, onD
         {cards.map((vm) => (
           <PolicyCard key={`${vm.policy.id}:${vm.lane}`} vm={vm}
             dragging={draggingId === `${vm.policy.id}:${vm.lane}`}
-            onActivate={onActivate} onDragStart={onDragStart} />
+            onInspect={onInspect} onDragStart={onDragStart} />
         ))}
         {Array.from({ length: slots }).map((_, i) => <DropSlot key={`slot-${i}`} armed={armed} />)}
       </Group>

@@ -1,6 +1,7 @@
 import { Card, Text, Badge, Box, Group, Progress } from '@mantine/core';
 import { CATEGORY_COLOR } from '../theme.js';
 import type { CardVM } from '../game/policyView.js';
+import { durationLine } from '../game/policyDetails.js';
 
 const CATEGORY_ICON: Record<string, string> = {
   energy: '⚡', industry: '🏭', land: '🌳', social: '🤝', frontier: '🚀',
@@ -11,8 +12,8 @@ const FUND_COLOR = { 'one-time': 'gray', recurring: 'teal', buildout: 'earth' } 
 
 interface PolicyCardProps {
   vm: CardVM;
-  onActivate(vm: CardVM): void;            // click / keyboard equivalent of a drop
-  onDragStart(vm: CardVM, e: React.PointerEvent): void;  // begins a pointer drag/tap
+  onInspect(vm: CardVM): void;             // single click / Enter / Space → open the detail overlay
+  onDragStart(vm: CardVM, e: React.PointerEvent): void;  // begins a pointer drag/tap (board resolves it)
   dragging?: boolean;                      // true while THIS card is the drag source
 }
 
@@ -126,6 +127,13 @@ export function CardFace({ vm, floating = false }: { vm: CardVM; floating?: bool
         </Text>
       )}
 
+      {/* Recurring policies have no fixed end — say so honestly (earth when active, dimmed when available). */}
+      {durationLine(policy) && (
+        <Text size="10px" fw={700} mt={4} c={vm.lane === 'active' ? 'earth.3' : 'dimmed'}>
+          ♾︎ {durationLine(policy)}
+        </Text>
+      )}
+
       <Group mt="xs" gap={6}>
         <Badge color="teal" variant="light"
           style={(vm.state === 'built' || vm.state === 'frozen' || vm.state === 'permanent') ? { opacity: 0.6 } : undefined}>
@@ -137,10 +145,13 @@ export function CardFace({ vm, floating = false }: { vm: CardVM; floating?: bool
 }
 
 /**
- * Interactive wrapper around `CardFace`. Pointer down starts a drag/tap (resolved by `PolicyBoard`);
- * Enter/Space is the accessible equivalent. The dragged source dims while its floating clone is lifted.
+ * Interactive wrapper around `CardFace`. Pointer down starts a drag/tap that `PolicyBoard` resolves
+ * into single-click (inspect), double-click (enact/stop), or drag (enact/stop). Enter/Space opens the
+ * detail overlay (the accessible inspect path); enacting from there uses the overlay's action button.
+ * Every card is inspectable — including locked/unaffordable ones — so players can read what they do.
+ * The dragged source dims while its floating clone is lifted.
  */
-export function PolicyCard({ vm, onActivate, onDragStart, dragging = false }: PolicyCardProps) {
+export function PolicyCard({ vm, onInspect, onDragStart, dragging = false }: PolicyCardProps) {
   const { policy } = vm;
   const actionable = isActionable(vm);
   const pressed = vm.state === 'staged' || vm.cancelling;
@@ -151,15 +162,15 @@ export function PolicyCard({ vm, onActivate, onDragStart, dragging = false }: Po
       data-policy-id={policy.id}
       data-lane={vm.lane}
       role="button"
-      tabIndex={actionable ? 0 : -1}
+      tabIndex={0}
       aria-disabled={!actionable}
       aria-pressed={pressed}
       aria-label={ariaLabel(vm)}
-      onKeyDown={(e) => { if (actionable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onActivate(vm); } }}
-      onPointerDown={(e) => { if (actionable && e.button === 0) onDragStart(vm, e); }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onInspect(vm); } }}
+      onPointerDown={(e) => { if (e.button === 0) onDragStart(vm, e); }}
       style={{
         width: 180, flex: '0 0 180px',
-        cursor: actionable ? 'grab' : 'default',
+        cursor: actionable ? 'grab' : 'pointer',
         opacity: dragging ? 0.3 : 1,
         userSelect: 'none', touchAction: 'none',
       }}

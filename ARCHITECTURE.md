@@ -71,8 +71,8 @@ EarthAlliance/
 │        ├─ scene/           # WorldMap (inlines world-map.svg) + metricColor
 │        ├─ assets/          # world-map.svg — baked HD region map (generated, committed)
 │        ├─ components/      # Mantine DOM HUD (ResourceBar, DataOverlay, Dashboard, RegionPanel,
-│        │                   #   EmissionsBySource, RegionLevers, PolicyTray, PolicyCard,
-│        │                   #   EndingScreen, Sparkline)
+│        │                   #   EmissionsBySource, RegionLevers, PolicyBoard, PolicyCard,
+│        │                   #   PolicyDetailOverlay, EndingScreen, Sparkline)
 │        └─ audio/           # useSfx + sound (Web Audio SFX, event-driven)
 └─ docs/superpowers/         # specs and implementation plans
 ```
@@ -331,13 +331,27 @@ reset()                         → createInitialState() + clear everything
 
 The `PolicyBoard` (driven by `App`'s `selectedRegionId`) derives its two lanes from
 `regionPolicyView(state, regionId, staged, cancels)` (`game/policyView.ts`, a pure, unit-tested
-selector) and calls `stage` / `unstage` / `toggleCancel`. Drag, tap/click, and keyboard all funnel to
-the same `performPrimary`; an unaffordable enact is blocked with an inline error rather than a state
-change. The Active lane shows empty **drop slots** as targets. Dragging is a custom pointer gesture:
-the lifted card is rendered as a `CardFace` clone in a **portal overlay on `document.body`** (so it
-floats above both lanes and is never clipped by a lane's `ScrollArea`), and the drop lane is resolved
-with `document.elementFromPoint` against each lane's `data-droplane` attribute — scroll-correct, unlike
-the prior `getBoundingClientRect` math. A press under a 5px threshold is treated as a tap (= click).
+selector) and calls `stage` / `unstage` / `toggleCancel` via `performPrimary`. **Inspecting and acting
+are separate gestures**: a **single click** (or `Enter`/`Space`) opens the `PolicyDetailOverlay` to
+read the policy; a **double-click** or a **drag into the other lane** runs `performPrimary` (enact /
+unstage / stop). Single-vs-double is resolved with a ~220ms timer in the board's pointer handler (a
+tap schedules "open overlay"; a second tap on the same card within the window cancels it and acts).
+Locked / inspect-only cards always just open the overlay. An unaffordable enact is blocked with an
+inline error rather than a state change. The Active lane shows empty **drop slots** as targets.
+Dragging is a custom pointer gesture: the lifted card is rendered as a `CardFace` clone in a **portal
+overlay on `document.body`** (so it floats above both lanes and is never clipped by a lane's
+`ScrollArea`), and the drop lane is resolved with `document.elementFromPoint` against each lane's
+`data-droplane` attribute — scroll-correct, unlike the prior `getBoundingClientRect` math. A press
+under a 5px threshold is treated as a tap.
+
+The `PolicyDetailOverlay` (`components/PolicyDetailOverlay.tsx`) follows the `DataOverlay` pattern
+(dark backdrop, centered surface, framer-motion fade + rise; closes on ✕ / `Escape` / backdrop). It
+shows the enlarged category header, full description, a per-effect **breakdown** (friendly label,
+signed magnitude with units, "each turn"/"one-time" scope, good/bad coloring, storage-gated tag),
+cost + funding meaning, a recurring "runs until cancelled" callout / buildout install bar, and a
+footer **action button** that runs the same `performPrimary` then closes. The presentation helpers are
+pure and unit-tested in `game/policyDetails.ts` (`effectLines`, `fundingBlurb`, `durationLine`,
+`cardAction`).
 
 `history` (a per-turn `{ year, temperature, co2 }` series) is accumulated by the hook, not
 the engine — the engine is stateless across calls, so the client keeps the trend data for
@@ -376,7 +390,7 @@ the dashboard sparkline.
   every per-turn data point — a global "Planet" block plus the selected region's full block, each
   value carrying a good/bad-colored change chip vs. the prior turn; each non-baseline entry also has
   a per-entry **"More"** toggle revealing a `Collapse`d CALC section of the engine's `TurnDiagnostics`
-  calc internals), `PolicyTray` of `PolicyCard`s,
+  calc internals), `PolicyBoard` of `PolicyCard`s (with the single-click `PolicyDetailOverlay`),
   and `EndingScreen` (shown when `game.ending` is non-null).
 
 ### Events → sound

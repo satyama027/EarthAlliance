@@ -35,7 +35,8 @@ describe('ResourceBar reflects staged cost', () => {
   it('drops remaining Money when a one-time policy is staged', async () => {
     wrap(<Harness />);
     expect(moneyBadge()).toHaveTextContent('Money: 1,500');
-    await userEvent.click(screen.getByRole('button', { name: /enact carbon tax/i }));
+    // Double-click stages the policy (single click only opens the detail overlay now).
+    await userEvent.dblClick(screen.getByRole('button', { name: /enact carbon tax/i }));
     // carbon-tax is one-time → some GDP-scaled money is charged now, so remaining < 1500
     expect(moneyBadge()).not.toHaveTextContent('Money: 1,500');
   });

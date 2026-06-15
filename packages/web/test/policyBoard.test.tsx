@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
 import { vi } from 'vitest';
@@ -41,39 +41,67 @@ describe('PolicyBoard', () => {
     expect(screen.getByText('Renewable Subsidy')).toBeInTheDocument();
   });
 
-  it('enacts a policy when an available card is clicked', async () => {
+  it('opens the detail overlay on a single click and does NOT enact', async () => {
     const h = board();
     await userEvent.click(screen.getByRole('button', { name: /enact renewable subsidy/i }));
+    // The overlay's action button is unique to the overlay; enact must not fire from a single click.
+    expect(await screen.findByRole('button', { name: /enact in north america/i })).toBeInTheDocument();
+    expect(h.onEnact).not.toHaveBeenCalled();
+  });
+
+  it('enacts a policy on double-click', async () => {
+    const h = board();
+    await userEvent.dblClick(screen.getByRole('button', { name: /enact renewable subsidy/i }));
     expect(h.onEnact).toHaveBeenCalledWith('renewable-subsidy', REGION);
   });
 
-  it('enacts via keyboard (Enter) for accessibility', async () => {
+  it('opens the detail overlay via keyboard (Enter) for accessibility', async () => {
     const h = board();
     screen.getByRole('button', { name: /enact renewable subsidy/i }).focus();
     await userEvent.keyboard('{Enter}');
-    expect(h.onEnact).toHaveBeenCalledWith('renewable-subsidy', REGION);
+    expect(await screen.findByRole('button', { name: /enact in north america/i })).toBeInTheDocument();
+    expect(h.onEnact).not.toHaveBeenCalled();
   });
 
-  it('shows an error and does not enact when an unaffordable card is clicked', async () => {
+  it('enacts from the overlay action button, then closes', async () => {
+    const h = board();
+    await userEvent.click(screen.getByRole('button', { name: /enact renewable subsidy/i }));
+    const action = await screen.findByRole('button', { name: /enact in north america/i });
+    await userEvent.click(action);
+    expect(h.onEnact).toHaveBeenCalledWith('renewable-subsidy', REGION);
+    // overlay closed: its action button is gone
+    expect(screen.queryByRole('button', { name: /enact in north america/i })).not.toBeInTheDocument();
+  });
+
+  it('shows an error and does not enact when an unaffordable card is double-clicked', async () => {
     const broke: WorldState = { ...createInitialState(), resources: { money: 0 } };
     const h = board({ state: broke });
-    await userEvent.click(screen.getByRole('button', { name: /enact renewable subsidy/i }));
+    await userEvent.dblClick(screen.getByRole('button', { name: /enact renewable subsidy/i }));
     expect(h.onEnact).not.toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent(/can't enact renewable subsidy/i);
   });
 
-  it('removes a staged policy when its card is clicked', async () => {
+  it('removes a staged policy on double-click', async () => {
     const h = board({ staged: [{ policyId: 'renewable-subsidy', regionId: REGION }] });
-    await userEvent.click(screen.getByRole('button', { name: /remove staged renewable subsidy/i }));
+    await userEvent.dblClick(screen.getByRole('button', { name: /remove staged renewable subsidy/i }));
     expect(h.onUnstage).toHaveBeenCalledWith('renewable-subsidy', REGION);
   });
 
-  it('cancels a committed recurring policy when its card is clicked', async () => {
+  it('cancels a committed recurring policy on double-click', async () => {
     const e: Enactment = { policyId: 'climate-adaptation', regionId: REGION, capacity: 1, complete: false };
     const state: WorldState = { ...createInitialState(), enactments: [e] };
     const h = board({ state });
-    await userEvent.click(screen.getByRole('button', { name: /stop climate adaptation/i }));
+    await userEvent.dblClick(screen.getByRole('button', { name: /stop climate adaptation/i }));
     expect(h.onToggleCancel).toHaveBeenCalledWith('climate-adaptation', REGION);
+  });
+
+  it('shows the "Runs until cancelled" lifespan on a recurring policy card', () => {
+    const e: Enactment = { policyId: 'climate-adaptation', regionId: REGION, capacity: 1, complete: false };
+    const state: WorldState = { ...createInitialState(), enactments: [e] };
+    board({ state });
+    const card = screen.getAllByTestId('policy-card')
+      .find((c) => c.getAttribute('data-policy-id') === 'climate-adaptation')!;
+    expect(within(card).getByText(/runs until cancelled/i)).toBeInTheDocument();
   });
 
   it('disables End Turn and shows the reason when the selection is invalid', () => {
