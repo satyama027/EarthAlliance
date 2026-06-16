@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import {
-  ActionIcon, Badge, Box, Button, Divider, Group, Overlay, Paper, Progress,
+  ActionIcon, Badge, Box, Button, Divider, Group, Overlay, Paper,
   ScrollArea, Stack, Text,
 } from '@mantine/core';
 import { motion } from 'framer-motion';
@@ -68,8 +68,6 @@ export function PolicyDetailOverlay({ vm, regionName, onPrimary, onClose }: Poli
   const { policy } = vm;
   const action = cardAction(vm, regionName);
   const lines = effectLines(policy);
-  const showBar = policy.funding === 'buildout' && vm.capacity !== undefined;
-  const pctInstalled = Math.round((vm.capacity ?? 0) * 100);
 
   return (
     <Overlay color="#000" backgroundOpacity={0.85} fixed zIndex={Z_LAYERS.overlayRaised} onClick={onClose}>
@@ -131,15 +129,6 @@ export function PolicyDetailOverlay({ vm, regionName, onPrimary, onClose }: Poli
                   </Group>
                 )}
 
-                {showBar && (
-                  <Box>
-                    <Group justify="space-between" mb={4}>
-                      <Text size="xs" c="dimmed">Installed capacity</Text>
-                      <Text size="xs" fw={700}>{pctInstalled}%</Text>
-                    </Group>
-                    <Progress value={pctInstalled} size="sm" color={vm.state === 'frozen' ? 'gray' : 'earth'} />
-                  </Box>
-                )}
               </Stack>
             </ScrollArea.Autosize>
 

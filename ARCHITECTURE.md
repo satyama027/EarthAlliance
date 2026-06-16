@@ -367,7 +367,13 @@ read the policy; a **double-click** or a **drag into the other lane** runs `perf
 unstage / stop). Single-vs-double is resolved with a ~220ms timer in the board's pointer handler (a
 tap schedules "open overlay"; a second tap on the same card within the window cancels it and acts).
 Locked / inspect-only cards always just open the overlay. An unaffordable enact is blocked with an
-inline error rather than a state change. The Active lane shows empty **drop slots** as targets.
+inline error rather than a state change. The Active lane holds only **ongoing** policies — an
+in-progress buildout or a recurring fund — each shown simply as **"Active"** (no progress bar, no
+build-rate label). A buildout/conversion that **completes**, a one-time **permanent** policy, and a
+**frozen** (cancelled) buildout are dropped from the lane by `regionPolicyView`: they stay enacted in
+engine state (their effects persist) but no longer need a card, so they leave the board entirely
+(they never re-appear in Available, being already enacted). The Active lane shows empty **drop
+slots** as targets.
 Dragging is a custom pointer gesture: the lifted card is rendered as a `CardFace` clone in a **portal
 overlay on `document.body`** (so it floats above both lanes and is never clipped by a lane's
 `ScrollArea`), and the drop lane is resolved with `document.elementFromPoint` against each lane's
@@ -378,7 +384,7 @@ The `PolicyDetailOverlay` (`components/PolicyDetailOverlay.tsx`) follows the `Da
 (dark backdrop, centered surface, framer-motion fade + rise; closes on ✕ / `Escape` / backdrop). It
 shows the enlarged category header, full description, a per-effect **breakdown** (friendly label,
 signed magnitude with units, "each turn"/"one-time" scope, good/bad coloring, storage-gated tag),
-cost + funding meaning, a recurring "runs until cancelled" callout / buildout install bar, and a
+cost + funding meaning, a recurring "runs until cancelled" callout, and a
 footer **action button** that runs the same `performPrimary` then closes. The presentation helpers are
 pure and unit-tested in `game/policyDetails.ts` (`effectLines`, `fundingBlurb`, `durationLine`,
 `cardAction`).
@@ -501,9 +507,11 @@ These hold across the engine and are guarded by the test suite. Treat them as lo
   enhancement (floating portal overlay + `elementFromPoint` drop); tap/click + Enter/Space are the
   canonical, tested actions (jsdom can't exercise the pixel-level drag, so the drag itself is verified
   manually). Keyboard-only *drag* reordering and a reduced-motion path are not yet implemented.
-- **Resuming a frozen buildout.** A cancelled buildout stays in the Active lane frozen at its
-  installed %, but there is no "resume" action to restart its rollout — it would need a small
-  engine + UI affordance.
+- **Resuming a frozen buildout.** A cancelled buildout keeps delivering its installed benefit in
+  engine state but is now dropped from the Active lane (it shows no card), so there is neither a
+  "resume" action to restart its rollout nor any UI surface for its frozen state — both would need a
+  small engine + UI affordance. (The same is true for completed buildouts and one-time permanents:
+  they are enacted and effective but no longer visible on the board.)
 - **Balance.** `data/scenario.ts` is the single tuning surface (every constant in
   `DEFAULT_PARAMS` + the starting `DEFAULT_SCENARIO`), alongside the policy costs/funding in
   `policies.ts`. The per-region starting data (`data/regions.ts`, `SAMPLE_REGIONS`) is

@@ -1,4 +1,4 @@
-import { Card, Text, Badge, Box, Group, Progress } from '@mantine/core';
+import { Card, Text, Badge, Box, Group } from '@mantine/core';
 import { CATEGORY_COLOR } from '../theme.js';
 import type { CardVM } from '../game/policyView.js';
 import { durationLine } from '../game/policyDetails.js';
@@ -24,24 +24,18 @@ function isActionable(vm: CardVM): boolean {
   return vm.state === 'staged' || vm.cancellable;
 }
 
-function pct(capacity: number): number {
-  return Math.round(capacity * 100);
-}
-
 function moneyLabel(vm: CardVM): string {
-  if (vm.state === 'permanent') return 'paid';
-  if (vm.state === 'built' || vm.state === 'frozen') return '$0';
   return `$${Math.round(vm.moneyCharge)}${vm.perTurn ? '/turn' : ''}`;
 }
 
+// Only ongoing cards reach the Active lane now (in-progress buildout or recurring fund); completed
+// buildouts, one-time permanents, and frozen buildouts are dropped upstream in `regionPolicyView`.
+// No progress/rate is shown — a running policy is simply "Active".
 function stateLine(vm: CardVM): string | null {
   switch (vm.state) {
     case 'staged': return 'Starts this turn';
-    case 'building': return vm.cancelling ? 'Will stop — keeps installed' : 'Building · +10%/turn';
-    case 'built': return '✓ Built · benefit persists';
-    case 'recurring': return vm.cancelling ? 'Will stop — ends benefit' : 'Funded each turn';
-    case 'permanent': return 'Enacted — permanent';
-    case 'frozen': return `Stopped · ${pct(vm.capacity ?? 0)}% installed`;
+    case 'building': return vm.cancelling ? 'Will stop — keeps installed' : 'Active';
+    case 'recurring': return vm.cancelling ? 'Will stop — ends benefit' : 'Active';
     default: return null;
   }
 }
@@ -64,7 +58,6 @@ function ariaLabel(vm: CardVM): string {
  */
 export function CardFace({ vm, floating = false }: { vm: CardVM; floating?: boolean }) {
   const { policy } = vm;
-  const showBar = policy.funding === 'buildout' && vm.capacity !== undefined;
   const staged = vm.state === 'staged';
   const dim = !floating && (vm.state === 'locked' || (vm.lane === 'available' && !vm.affordable));
 
@@ -107,17 +100,6 @@ export function CardFace({ vm, floating = false }: { vm: CardVM; floating?: bool
       )}
       {vm.state === 'locked' && (
         <Text size="xs" c="dimmed" mt={4}>🔒 Requires {policy.prerequisites?.[0]} here</Text>
-      )}
-
-      {showBar && (
-        <Box mt={6}>
-          <Group justify="space-between" gap={4}>
-            <Text size="10px" c="dimmed">Installed</Text>
-            <Text size="10px" fw={700}>{pct(vm.capacity ?? 0)}%</Text>
-          </Group>
-          <Progress value={pct(vm.capacity ?? 0)} size="sm" mt={2}
-            color={vm.state === 'frozen' ? 'gray' : 'earth'} />
-        </Box>
       )}
 
       {stateLine(vm) && (

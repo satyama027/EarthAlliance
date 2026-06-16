@@ -23,27 +23,33 @@ describe('regionPolicyView', () => {
     expect(find(available, 'renewable-subsidy')).toBeUndefined();
   });
 
-  it('shows a committed buildout as building, with capacity and cancellable', () => {
+  it('shows an in-progress buildout as building and cancellable', () => {
     const e: Enactment = { policyId: 'renewable-subsidy', regionId: REGION, capacity: 0.4, complete: false };
     const { active } = regionPolicyView(withEnactments([e]), REGION, [], []);
     const card = find(active, 'renewable-subsidy')!;
     expect(card.state).toBe('building');
-    expect(card.capacity).toBeCloseTo(0.4, 5);
     expect(card.cancellable).toBe(true);
   });
 
-  it('shows a committed one-time policy as permanent and not cancellable', () => {
-    const e: Enactment = { policyId: 'carbon-tax', regionId: REGION, capacity: 1, complete: true };
-    const card = find(regionPolicyView(withEnactments([e]), REGION, [], []).active, 'carbon-tax')!;
-    expect(card.state).toBe('permanent');
-    expect(card.cancellable).toBe(false);
+  it('drops a completed buildout from the Active lane (still enacted, no card)', () => {
+    const e: Enactment = { policyId: 'renewable-subsidy', regionId: REGION, capacity: 1, complete: true };
+    const { available, active } = regionPolicyView(withEnactments([e]), REGION, [], []);
+    expect(find(active, 'renewable-subsidy')).toBeUndefined();
+    expect(find(available, 'renewable-subsidy')).toBeUndefined();
   });
 
-  it('shows a cancelled buildout as frozen', () => {
+  it('drops a committed one-time policy from the Active lane', () => {
+    const e: Enactment = { policyId: 'carbon-tax', regionId: REGION, capacity: 1, complete: true };
+    const { available, active } = regionPolicyView(withEnactments([e]), REGION, [], []);
+    expect(find(active, 'carbon-tax')).toBeUndefined();
+    expect(find(available, 'carbon-tax')).toBeUndefined();
+  });
+
+  it('drops a cancelled (frozen) buildout from the Active lane', () => {
     const e: Enactment = { policyId: 'renewable-subsidy', regionId: REGION, capacity: 0.4, complete: false, cancelled: true };
-    const card = find(regionPolicyView(withEnactments([e]), REGION, [], []).active, 'renewable-subsidy')!;
-    expect(card.state).toBe('frozen');
-    expect(card.cancellable).toBe(false);
+    const { available, active } = regionPolicyView(withEnactments([e]), REGION, [], []);
+    expect(find(active, 'renewable-subsidy')).toBeUndefined();
+    expect(find(available, 'renewable-subsidy')).toBeUndefined();
   });
 
   it('flags a committed policy marked for cancel this turn', () => {

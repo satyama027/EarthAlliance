@@ -65,13 +65,20 @@ export function regionPolicyView(
       else if (policy.funding === 'one-time') cardState = 'permanent';
       else if (policy.funding === 'recurring') cardState = 'recurring';
       else cardState = enactment.complete ? 'built' : 'building';
-      const cancellable = cardState === 'building' || cardState === 'recurring';
-      active.push({
-        policy, lane: 'active', state: cardState,
-        capacity: policy.funding === 'buildout' ? enactment.capacity : undefined,
-        moneyCharge, perTurn, affordable: true, cancellable,
-        cancelling: cancellable && has(cancels, policy.id, regionId),
-      });
+      // Only *ongoing* policies stay on the board: an in-progress buildout or a recurring fund.
+      // Completed buildouts/conversions, one-time 'permanent' policies, and frozen (cancelled)
+      // buildouts are dropped from the Active lane — they remain enacted in engine state (their
+      // effects persist), they just no longer need a card. Such cards never re-appear in
+      // Available either (they are already enacted), so they simply leave the board.
+      const ongoing = cardState === 'building' || cardState === 'recurring';
+      if (ongoing) {
+        active.push({
+          policy, lane: 'active', state: cardState,
+          capacity: policy.funding === 'buildout' ? enactment.capacity : undefined,
+          moneyCharge, perTurn, affordable: true, cancellable: true,
+          cancelling: has(cancels, policy.id, regionId),
+        });
+      }
     } else if (stagedHere) {
       active.push({
         policy, lane: 'active', state: 'staged',

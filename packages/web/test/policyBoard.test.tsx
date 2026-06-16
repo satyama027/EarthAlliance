@@ -95,6 +95,17 @@ describe('PolicyBoard', () => {
     expect(h.onToggleCancel).toHaveBeenCalledWith('climate-adaptation', REGION);
   });
 
+  it('shows a committed buildout simply as "Active" — no rate label, no progress bar', () => {
+    const e: Enactment = { policyId: 'renewable-subsidy', regionId: REGION, capacity: 0.4, complete: false };
+    const state: WorldState = { ...createInitialState(), enactments: [e] };
+    board({ state });
+    const card = screen.getAllByTestId('policy-card')
+      .find((c) => c.getAttribute('data-policy-id') === 'renewable-subsidy')!;
+    expect(within(card).getByText('Active')).toBeInTheDocument();
+    expect(within(card).queryByText(/%\/turn/)).not.toBeInTheDocument();
+    expect(within(card).queryByText(/installed/i)).not.toBeInTheDocument();
+  });
+
   it('shows the "Runs until cancelled" lifespan on a recurring policy card', () => {
     const e: Enactment = { policyId: 'climate-adaptation', regionId: REGION, capacity: 1, complete: false };
     const state: WorldState = { ...createInitialState(), enactments: [e] };
