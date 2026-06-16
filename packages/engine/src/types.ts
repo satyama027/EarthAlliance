@@ -1,3 +1,5 @@
+import type { GenerationMix } from './generation.js';
+
 export type RegionId = string;
 export type GameStatus = 'playing' | 'ended';
 
@@ -41,7 +43,10 @@ export interface Region {
   landUse: number;           // land-use & forestry; negative => net sink
 
   // --- Coupling variables the new policies move (the trade-off carriers). ---
-  gridCarbonIntensity: number;     // 0–1, dirtiness per kWh (1 ≈ 1.0 kgCO2/kWh coal grid)
+  // `gridCarbonIntensity` is DERIVED from `generationMix` (Σ share × emission factor) — no policy
+  // writes it directly; renewable/nuclear policies move the mix, which moves intensity.
+  generationMix: GenerationMix;    // per-source generation shares (0–1, sum to 1)
+  gridCarbonIntensity: number;     // 0–1, dirtiness per kWh (DERIVED from generationMix)
   electricityDemand: number;       // power draw in Gt-at-reference units (grows with GDP)
   agriculturalProductivity: number;// crop/land yield index, baseline 100
   energyStorageCapacity: number;   // 0–1 installed grid storage; gates renewable effectiveness
@@ -67,7 +72,11 @@ export type EffectTarget =
   | 'industry'
   | 'agriculture'
   | 'landUse'
-  | 'gridCarbonIntensity'
+  // Generation-share targets: route into `generationMix` (grid intensity is derived, never set).
+  // Renewable/nuclear policies grow these; the generationMix submodel rebalances Σ=1.
+  | 'windShare'
+  | 'solarShare'
+  | 'nuclearShare'
   | 'electricityDemand'
   | 'agriculturalProductivity'
   | 'energyStorageCapacity';
@@ -132,6 +141,11 @@ export interface Enactment {
   capacity: number;   // 0–1 installed capacity (1 immediately for non-buildout)
   complete: boolean;  // buildout: capacity >= 1; one-time: true; recurring: false
   cancelled?: boolean; // buildout frozen by the player: stops upkeep + advance, keeps the installed benefit
+  // EV electrification bookkeeping (ev-transition only): the counterfactual road-transport baseline
+  // (grown with GDP) and the cumulative electricity demand already added, so each turn applies only
+  // the capacity-driven delta — gradual and drift-free. See models/evElectrification.ts.
+  evBaselineTransport?: number;
+  evDemandAdded?: number;
 }
 
 export interface ActiveEffect {

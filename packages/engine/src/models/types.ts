@@ -28,6 +28,7 @@ export interface ModelParams {
   STORAGE_FLOOR: number;       // renewable effectiveness floor at zero storage (0–1)
   AVIATION_FLOOR: number;      // hard-to-abate fraction of baseline aviation/shipping
   AG_YIELD_LAND_COEFF: number; // land/GDP penalty per unit of productivity shortfall
+  EV_DEMAND_FACTOR: number;    // electricity demand added per unit of road transport electrified (<1: efficiency gain net of charging losses)
 }
 
 /** Per-turn intermediate values passed between sub-models. */

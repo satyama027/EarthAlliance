@@ -44,6 +44,23 @@ export const SOURCE_COLORS = {
   sink: '#1098ad',             // land-use when negative (a carbon sink)
 } as const;
 
+/**
+ * Generation-source colors for the per-region generation-mix bar (RegionPanel). Chosen so the
+ * three bands read as distinct families: fossils = dark/grey cluster + orange oil; nuclear = violet
+ * (firm, zero-carbon, but NOT renewable); renewables = cool blue/cyan/yellow/lime. Keep in sync with
+ * docs/design/DESIGN-SYSTEM.md.
+ */
+export const GENERATION_COLORS = {
+  coal: '#495057',       // fossil — dark slate grey (dirtiest)
+  gas: '#868e96',        // fossil — grey (industry hue)
+  oil: '#e8590c',        // fossil — deep orange (orange-7)
+  nuclear: '#9775fa',    // violet (europe region hue) — firm, zero-carbon, not renewable
+  hydro: '#4dabf7',      // renewable — blue (water)
+  wind: '#3bc9db',       // renewable — cyan (air)
+  solar: '#ffd43b',      // renewable — yellow (sun)
+  geothermal: '#94d82d', // renewable — lime (earth heat)
+} as const;
+
 /** Placeholder card-art colors per policy category (real art drops in later). */
 export const CATEGORY_COLOR: Record<PolicyCategory, string> = {
   energy: '#f59f00',

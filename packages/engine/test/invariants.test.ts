@@ -3,6 +3,7 @@ import fc from 'fast-check';
 import { createInitialState } from '../src/state.js';
 import { advanceTurn } from '../src/simulation.js';
 import { getAvailablePolicies, validateSelection } from '../src/policies.js';
+import { GENERATION_SOURCE_IDS, gridIntensityFromMix } from '../src/generation.js';
 import type { WorldState } from '../src/types.js';
 
 function assertSane(state: WorldState): void {
@@ -30,6 +31,15 @@ function assertSane(state: WorldState): void {
       expect(v).toBeGreaterThanOrEqual(0);
     }
     expect(sources.reduce((a, v) => a + v, 0)).toBeCloseTo(r.regionalEmissions, 6);
+
+    // Generation mix: shares are non-negative and sum to 1; grid intensity is DERIVED from it.
+    let mixSum = 0;
+    for (const s of GENERATION_SOURCE_IDS) {
+      expect(r.generationMix[s]).toBeGreaterThanOrEqual(0);
+      mixSum += r.generationMix[s];
+    }
+    expect(mixSum).toBeCloseTo(1, 6);
+    expect(r.gridCarbonIntensity).toBeCloseTo(gridIntensityFromMix(r.generationMix), 6);
 
     // Coupling stocks stay in their valid ranges.
     for (const idx of [r.gridCarbonIntensity, r.energyStorageCapacity]) {

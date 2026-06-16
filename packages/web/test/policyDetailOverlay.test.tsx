@@ -31,8 +31,8 @@ describe('PolicyDetailOverlay', () => {
 
   it('shows the full description and a per-effect breakdown', () => {
     wrap(<PolicyDetailOverlay vm={vm()} regionName="North America" onPrimary={() => {}} onClose={() => {}} />);
-    expect(screen.getByText(/price carbon to clean the power grid/i)).toBeInTheDocument();
-    expect(screen.getByText('Grid carbon intensity')).toBeInTheDocument();
+    expect(screen.getByText(/price carbon to curb power demand/i)).toBeInTheDocument();
+    expect(screen.getByText('Electricity demand')).toBeInTheDocument();
     expect(screen.getByText('Public support')).toBeInTheDocument();
   });
 

@@ -2,6 +2,7 @@ import { Paper, Stack, Text, Title, Progress, Group, Divider } from '@mantine/co
 import type { Region } from '@earth-alliance/engine';
 import { metricColor } from '../scene/metricColor.js';
 import { EmissionsBySource } from './EmissionsBySource.js';
+import { GenerationMix } from './GenerationMix.js';
 import { RegionLevers } from './RegionLevers.js';
 
 function Metric({ label, value }: { label: string; value: number }) {
@@ -31,6 +32,10 @@ export function RegionPanel({ region }: { region: Region | null }) {
 
         <CapLabel>Emissions by source</CapLabel>
         <EmissionsBySource sources={region} precision={2} />
+
+        <Divider my={4} />
+        <CapLabel>Generation mix</CapLabel>
+        <GenerationMix region={region} />
 
         <Divider my={4} />
         <CapLabel>Energy &amp; land levers</CapLabel>

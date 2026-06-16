@@ -10,11 +10,15 @@ import { biodiversity } from './biodiversity.js';
 import { support } from './support.js';
 import { resources } from './resources.js';
 import { programs } from './programs.js';
+import { evElectrification } from './evElectrification.js';
+import { generationMix } from './generationMix.js';
 
 /** The default world-model pipeline, run in order each turn. Swap entries to change fidelity. */
-// `programs` runs last so this turn's regenerated tax income (from `resources`) is
-// available to fund policy upkeep before the turn closes.
+// `programs` runs after `resources` so this turn's regenerated tax income is available to fund
+// policy upkeep. `evElectrification` then converts road transport to electricity demand at the
+// EV buildout's capacity. `generationMix` runs last (after programs grows renewable/nuclear
+// shares) to conserve the mix and derive grid carbon intensity before emissions are finalized.
 export const DEFAULT_MODELS: readonly SubModel[] = [
   carbonCycle, climate, damage, economy, demography,
-  emissions, constraints, biodiversity, support, resources, programs,
+  emissions, constraints, biodiversity, support, resources, programs, evElectrification, generationMix,
 ];

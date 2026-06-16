@@ -58,6 +58,27 @@ so the breakdown reads as native; `sink` is the one new accent, used when `landU
 | landUse | `#2f9e44` | land category (🌳) |
 | sink (landUse < 0) | `#1098ad` (dashed `earth-3` border) | new accent — the one negative case |
 
+### Generation-source colors (`GENERATION_COLORS` in `theme.ts`)
+
+The per-region generation-mix bar (RegionPanel). Chosen so the three **bands** read as distinct
+families at a glance: fossils = dark/grey cluster + orange oil; nuclear = violet (firm, zero-carbon,
+but **not** renewable); renewables = cool blue/cyan/yellow/lime. Band accent dots: Fossil = oil
+orange, Nuclear = violet, Renewable = hydro blue.
+
+| Source | Color | Band |
+|--------|-------|------|
+| coal | `#495057` | fossil — dark slate grey (dirtiest) |
+| gas | `#868e96` | fossil — grey (industry hue) |
+| oil | `#e8590c` | fossil — deep orange (orange-7) |
+| nuclear | `#9775fa` | **violet** (europe hue) — firm, zero-carbon, not renewable |
+| hydro | `#4dabf7` | renewable — blue (water) |
+| wind | `#3bc9db` | renewable — cyan (air) |
+| solar | `#ffd43b` | renewable — yellow (sun) |
+| geothermal | `#94d82d` | renewable — lime (earth heat) |
+
+The **grid-intensity gauge** uses a fixed green→amber→red gradient (`#2f9e44` → `#fab005` →
+`#e03131`) with a white marker at the derived `gridCarbonIntensity` (0 = clean, 1 ≈ coal).
+
 ### World-map region colors (`REGION_COLORS` in `theme.ts`)
 
 Distinct fixed fill per map region (keyed by engine region id). The map generator
@@ -141,13 +162,22 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   source that can go negative (`landUse` after reforestation) renders as a dashed-teal **sink**
   segment left of a thin zero divider, with positives stacked to its right; its legend value shows a
   `−` sign in `teal.4` and reads `sink` instead of a %.
+- **GenerationMix** (`GenerationMix.tsx`, RegionPanel) — the region's electricity generation split.
+  A **derived grid-intensity readout** (`Grid carbon intensity (derived)` + value) over a thin
+  green→amber→red **gauge** with a white marker at `gridCarbonIntensity` (`0 · clean` … `coal · 1.0`);
+  then an 18px **banded stacked bar** (`dark-8` track) split into **fossil | nuclear | renewable**
+  blocks separated by 2px `dark-8` gaps (sources size-ordered within a band, `GENERATION_COLORS`
+  segments, `title` tooltips); then a **band-grouped legend** (`1fr auto`) — each band a subheader
+  (accent dot + name + **subtotal %**) followed by its sources (swatch · dotted-underline name ·
+  share %, each name a Mantine `Tooltip`). The lone Nuclear band repeats its name as its single row.
 - **RegionPanel** — bordered `Paper`; region name + a `GDP/capita · pop · Gt/yr` line; then the
-  **EmissionsBySource** breakdown for the region; an **Energy & land levers** block (`RegionLevers.tsx`)
-  — a 2×2 grid of the four coupling variables (`Grid intensity`, `Storage built`, `Crop yield`,
-  `Power demand`), each a label + `ⓘ` tooltip, a bold value, and a mini-bar (or a "grows with GDP"
-  subtext for demand); then the per-metric rows with a `Progress` bar colored by `metricColor(value)`.
-  Empty state: dimmed "Select a region on the globe." **Now rendered inside the `DataOverlay`** (region
-  view), not inline.
+  **EmissionsBySource** breakdown for the region; the **Generation mix** block (`GenerationMix.tsx`);
+  an **Energy & land levers** block (`RegionLevers.tsx`)
+  — a 2×2 grid of the four coupling variables (`Grid intensity` — now a *derived* read-out, `Storage
+  built`, `Crop yield`, `Power demand`), each a label + `ⓘ` tooltip, a bold value, and a mini-bar (or
+  a "grows with GDP" subtext for demand); then the per-metric rows with a `Progress` bar colored by
+  `metricColor(value)`. Empty state: dimmed "Select a region on the globe." **Now rendered inside the
+  `DataOverlay`** (region view), not inline.
 - **DataOverlay** (`DataOverlay.tsx`) — the emissions data window opened from the resource-bar 📊
   button. Full-screen `Overlay` (`color="#000"`, `backgroundOpacity={0.85}`, `fixed`, `zIndex={1000}`)
   with a centered, framer-motion (fade + 20px rise) window ~560px wide; content scrolls in a

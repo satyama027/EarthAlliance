@@ -1,4 +1,5 @@
 import type { ActiveEffect, EffectTarget, Enactment, PolicySelection, Region, WorldState } from './types.js';
+import type { GenerationSource } from './generation.js';
 import { clamp } from './math.js';
 import { getPolicy, regionCharge } from './policies.js';
 
@@ -29,9 +30,24 @@ const CLAMPED_TARGETS: ReadonlySet<EffectTarget> = new Set([
   'waterAvailability', 'landAvailability', 'educationIndex', 'healthIndex',
 ]);
 
+// Generation-share targets add into `generationMix`; the generationMix submodel rebalances Σ=1
+// and derives grid intensity. (Grid intensity itself is never a target.)
+const SHARE_TARGET_SOURCE: Partial<Record<EffectTarget, GenerationSource>> = {
+  windShare: 'wind', solarShare: 'solar', nuclearShare: 'nuclear',
+};
+
+// Region fields a non-share effect target may write (everything except the share targets).
+type RegionNumericTarget = Exclude<EffectTarget, 'windShare' | 'solarShare' | 'nuclearShare'>;
+
 export function applyToRegion(region: Region, target: EffectTarget, delta: number): void {
-  const next = region[target] + delta;
-  region[target] = CLAMPED_TARGETS.has(target) ? clamp(next, 0, 100) : next;
+  const source = SHARE_TARGET_SOURCE[target];
+  if (source) {
+    region.generationMix[source] += delta;
+    return;
+  }
+  const field = target as RegionNumericTarget;
+  const next = region[field] + delta;
+  region[field] = CLAMPED_TARGETS.has(target) ? clamp(next, 0, 100) : next;
 }
 
 function buildoutBaseline(state: WorldState, policy: ReturnType<typeof getPolicy>, regionId: string): number {

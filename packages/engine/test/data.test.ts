@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { SAMPLE_REGIONS } from '../src/data/regions.js';
 import { DEFAULT_PARAMS, DEFAULT_SCENARIO, END_YEAR } from '../src/data/scenario.js';
+import { GENERATION_SOURCE_IDS, gridIntensityFromMix } from '../src/generation.js';
 
 describe('sample regions', () => {
   it('has ten regions with unique ids', () => {
@@ -67,6 +68,30 @@ describe('sample regions', () => {
       for (const r of SAMPLE_REGIONS) {
         expect(r.electricity).toBeCloseTo(r.electricityDemand * r.gridCarbonIntensity, 2);
       }
+    });
+
+    it('gives every region a generation mix whose shares sum to 1', () => {
+      for (const r of SAMPLE_REGIONS) {
+        const sum = GENERATION_SOURCE_IDS.reduce((s, k) => s + r.generationMix[k], 0);
+        expect(sum).toBeCloseTo(1, 6);
+        for (const k of GENERATION_SOURCE_IDS) {
+          expect(r.generationMix[k]).toBeGreaterThanOrEqual(0);
+          expect(r.generationMix[k]).toBeLessThanOrEqual(1);
+        }
+      }
+    });
+
+    it('seeds gridCarbonIntensity as the value derived from the generation mix', () => {
+      for (const r of SAMPLE_REGIONS) {
+        expect(r.gridCarbonIntensity).toBeCloseTo(gridIntensityFromMix(r.generationMix), 6);
+      }
+    });
+
+    it('reflects real ~2024 profiles (East Asia coal-heavy, Latin America hydro-heavy)', () => {
+      const byId = (id: string) => SAMPLE_REGIONS.find((x) => x.id === id)!;
+      expect(byId('east-asia').generationMix.coal).toBeGreaterThan(0.5);
+      expect(byId('latin-america').generationMix.hydro).toBeGreaterThan(0.4);
+      expect(byId('mena').generationMix.gas).toBeGreaterThan(0.5);
     });
 
     it('keeps the new coupling variables in valid ranges', () => {

@@ -25,16 +25,18 @@ const TARGET_LABEL: Record<EffectTarget, string> = {
   industry: 'Industry emissions',
   agriculture: 'Agriculture emissions',
   landUse: 'Land-use emissions',
-  gridCarbonIntensity: 'Grid carbon intensity',
+  windShare: 'Wind share',
+  solarShare: 'Solar share',
+  nuclearShare: 'Nuclear share',
   electricityDemand: 'Electricity demand',
   agriculturalProductivity: 'Crop yield',
   energyStorageCapacity: 'Grid storage',
 };
 
-/** Targets where a DECREASE is the good outcome (emissions + the dirty/demand couplings). */
+/** Targets where a DECREASE is the good outcome (emissions + the demand coupling). */
 const LOWER_IS_BETTER = new Set<EffectTarget>([
   'transport', 'aviationShipping', 'industry', 'agriculture', 'landUse',
-  'gridCarbonIntensity', 'electricityDemand',
+  'electricityDemand',
 ]);
 
 /** Per-source emission targets are flows in GtCO₂/yr. */
@@ -74,8 +76,25 @@ function toLine(effect: PolicyEffect): EffectLine {
   };
 }
 
+/**
+ * Synthesized effect lines for policies whose mechanics live in a simulation submodel rather than
+ * declared `effects` (so the detail overlay still explains what they do). EV Subsidies converts
+ * road transport to electricity demand gradually via buildout capacity (see evElectrification).
+ */
+const SYNTHESIZED_EFFECTS: Record<string, EffectLine[]> = {
+  'ev-transition': [
+    { label: 'Transport emissions', magnitude: `${MINUS}falls to 0`, scope: 'each turn',
+      direction: 'good', note: 'fleet electrifies as the buildout ramps' },
+    { label: 'Electricity demand', magnitude: '+rises', scope: 'each turn',
+      direction: 'bad', note: 'oil demand shifts to power (~35% after EV efficiency)' },
+  ],
+};
+
 /** Display-ready breakdown of what a policy does, one line per effect. */
 export function effectLines(policy: Policy): EffectLine[] {
+  if (policy.effects.length === 0 && SYNTHESIZED_EFFECTS[policy.id]) {
+    return SYNTHESIZED_EFFECTS[policy.id]!;
+  }
   return policy.effects.map(toLine);
 }
 

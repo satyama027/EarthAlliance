@@ -42,6 +42,10 @@ export const DEFAULT_PARAMS: ModelParams = Object.freeze({
   STORAGE_FLOOR: 0.6,        // renewables deliver 60% of their grid-cleaning benefit with zero storage
   AVIATION_FLOOR: 0.2,       // fraction of a region's baseline aviation/shipping that is hard-to-abate
   AG_YIELD_LAND_COEFF: 0.1,  // how strongly a productivity shortfall (below 100) erodes land/GDP
+  // EV electrification: 1.0 would be a naive 1:1 energy swap. EVs are ~3.5× more efficient
+  // tank-to-wheel (→ ~0.28), but battery charging + round-trip losses (~12%) raise grid draw back
+  // up (0.28/0.88 ≈ 0.32), rounded to 0.35 for transmission/upstream overhead. Net gain, well < 1.
+  EV_DEMAND_FACTOR: 0.35,
 });
 
 export const DEFAULT_SCENARIO: Scenario = {

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Generation Mix — approved mockup (Variant A, Banded)</title>
+<style>
+  :root {
+    --body: #1a1b1e; --panel: #1a1b1e; --panel-border: #2c2e33;
+    --track: #141517; --dimmed: #909296; --text: #c1c2c5;
+    --earth5: #20c997; --earth3: #63e6be;
+    /* Generation-source palette (approved 2026-06-16). Fossils = dark/grey + orange oil;
+       nuclear = violet (firm, zero-carbon, NOT renewable); renewables = cool green/blue/cyan/yellow. */
+    --coal: #495057; --gas: #868e96; --oil: #e8590c;
+    --nuclear: #9775fa;
+    --hydro: #4dabf7; --wind: #3bc9db; --solar: #ffd43b; --geothermal: #94d82d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 32px; background: #101113; color: var(--text); font-family: system-ui, sans-serif; font-size: 14px; }
+  h1 { font-size: 16px; font-weight: 700; margin: 0 0 4px; }
+  .sub { color: var(--dimmed); font-size: 12px; margin: 0 0 24px; max-width: 640px; line-height: 1.5; }
+  .row { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+
+  .panel { width: 380px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px; padding: 14px 16px; }
+  .panel-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+  .panel-title { font-size: 13px; font-weight: 700; }
+  .region { font-size: 12px; color: var(--dimmed); }
+
+  .gi { margin: 4px 0 12px; }
+  .gi-top { display: flex; align-items: baseline; justify-content: space-between; font-size: 12px; color: var(--dimmed); }
+  .gi-val { font-size: 13px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .gi-gauge { position: relative; height: 6px; border-radius: 3px; margin-top: 6px;
+    background: linear-gradient(90deg, #2f9e44 0%, #fab005 55%, #e03131 100%); }
+  .gi-marker { position: absolute; top: -3px; width: 2px; height: 12px; background: #fff; border-radius: 1px; box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+  .gi-ends { display: flex; justify-content: space-between; font-size: 10px; color: var(--dimmed); margin-top: 3px; }
+
+  .bar { display: flex; height: 18px; border-radius: 4px; overflow: hidden; background: var(--track); }
+  .seg { height: 100%; }
+  .band-gap { width: 2px; background: var(--track); }
+
+  .legend { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; margin-top: 10px; }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+  .name { font-size: 12px; border-bottom: 1px dotted var(--dimmed); }
+  .lbl { display: flex; align-items: center; gap: 7px; cursor: help; }
+  .pct { font-size: 12px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  .band-head { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; margin-top: 8px; padding-bottom: 2px; border-bottom: 1px solid var(--panel-border); }
+  .band-head.first { margin-top: 2px; }
+  .band-name { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--dimmed); display: flex; align-items: center; gap: 6px; }
+  .band-dot { width: 8px; height: 8px; border-radius: 2px; }
+  .band-sub { font-size: 11px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <h1>Generation mix — RegionPanel (approved: Variant A, Banded)</h1>
+  <p class="sub">Sits beneath “Emissions by source”, above the levers, in the emissions data overlay. A derived grid-intensity gauge over an 18px stacked bar (fossil | nuclear | renewable blocks separated by 2px gaps) and a band-grouped legend with subtotals. Matches the EmissionsBySource visual language. Hover a source name for its tooltip.</p>
+  <div class="row" id="root"></div>
+
+<script>
+  const BANDS = [
+    { name: 'Fossil',    color: 'var(--oil)',     sources: ['coal','gas','oil'] },
+    { name: 'Nuclear',   color: 'var(--nuclear)', sources: ['nuclear'] },
+    { name: 'Renewable', color: 'var(--hydro)',   sources: ['hydro','wind','solar','geothermal'] },
+  ];
+  const META = {
+    coal:       { label: 'Coal',       color: 'var(--coal)',       tip: 'Coal — the dirtiest source (emission factor 1.0). Renewable/nuclear buildout retires it first.' },
+    gas:        { label: 'Gas',        color: 'var(--gas)',        tip: 'Natural gas — ~0.45× coal’s carbon per unit. Retired after coal.' },
+    oil:        { label: 'Oil',        color: 'var(--oil)',        tip: 'Oil-fired power — ~0.70× coal. Significant only in a few oil-rich grids.' },
+    nuclear:    { label: 'Nuclear',    color: 'var(--nuclear)',    tip: 'Nuclear — firm, zero-carbon baseload (but not “renewable”). Grown by Nuclear Buildout; not storage-gated.' },
+    hydro:      { label: 'Hydro',      color: 'var(--hydro)',      tip: 'Hydropower — renewable, zero-carbon. Geographically fixed (seeded, not policy-grown).' },
+    wind:       { label: 'Wind',       color: 'var(--wind)',       tip: 'Wind — renewable, intermittent. Grown by Renewable Subsidy (storage-gated).' },
+    solar:      { label: 'Solar',      color: 'var(--solar)',      tip: 'Solar — renewable, intermittent. Grown by Renewable Subsidy (storage-gated).' },
+    geothermal: { label: 'Geothermal', color: 'var(--geothermal)', tip: 'Geothermal — renewable, firm. Seeded; matters in a few volcanic grids.' },
+  };
+  // Real ~2024 seed data (engine data/regions.ts).
+  const REGIONS = {
+    'East Asia': { intensity: 0.58, mix: { coal:.54, gas:.07, oil:.01, nuclear:.06, hydro:.13, wind:.09, solar:.09, geothermal:.01 } },
+    'MENA': { intensity: 0.49, mix: { coal:.03, gas:.68, oil:.22, nuclear:.01, hydro:.02, wind:.01, solar:.03, geothermal:0 } },
+    'Latin America': { intensity: 0.18, mix: { coal:.04, gas:.24, oil:.05, nuclear:.02, hydro:.49, wind:.10, solar:.05, geothermal:.01 } },
+  };
+  const pct = (v) => Math.round(v * 100);
+  const bandTotal = (mix, b) => b.sources.reduce((s,k)=> s + (mix[k]||0), 0);
+
+  function panel(regionName) {
+    const { intensity, mix } = REGIONS[regionName];
+    const p = document.createElement('div'); p.className = 'panel';
+    p.innerHTML = '<div class="panel-head"><span class="panel-title">Generation mix</span><span class="region">'+regionName+'</span></div>' +
+      '<div class="gi"><div class="gi-top"><span>Grid carbon intensity <span style="opacity:.7">(derived)</span></span><span class="gi-val">'+intensity.toFixed(2)+'</span></div>' +
+      '<div class="gi-gauge"><div class="gi-marker" style="left:calc('+(intensity*100)+'% - 1px)"></div></div>' +
+      '<div class="gi-ends"><span>0 · clean</span><span>coal · 1.0</span></div></div>';
+
+    const bar = document.createElement('div'); bar.className = 'bar';
+    BANDS.forEach((b, bi) => {
+      if (bi > 0) { const g = document.createElement('div'); g.className='band-gap'; bar.appendChild(g); }
+      [...b.sources].filter(k=>(mix[k]||0)>0).sort((a,c)=>mix[c]-mix[a]).forEach(k => {
+        const s = document.createElement('div'); s.className='seg'; s.style.width=(mix[k]*100)+'%'; s.style.background=META[k].color; s.title=META[k].label+' · '+pct(mix[k])+'%'; bar.appendChild(s);
+      });
+    });
+    p.appendChild(bar);
+
+    const lg = document.createElement('div'); lg.className='legend';
+    BANDS.forEach((b, bi) => {
+      const h = document.createElement('div'); h.className='band-head'+(bi===0?' first':'');
+      h.innerHTML='<span class="band-name"><span class="band-dot" style="background:'+b.color+'"></span>'+b.name+'</span><span class="band-sub">'+pct(bandTotal(mix,b))+'%</span>';
+      lg.appendChild(h);
+      [...b.sources].filter(k=>(mix[k]||0)>0).sort((a,c)=>mix[c]-mix[a]).forEach(k => {
+        const lbl=document.createElement('div'); lbl.className='lbl'; lbl.title=META[k].tip;
+        lbl.innerHTML='<span class="swatch" style="background:'+META[k].color+'"></span><span class="name">'+META[k].label+'</span>';
+        const pp=document.createElement('div'); pp.className='pct'; pp.textContent=pct(mix[k])+'%';
+        lg.appendChild(lbl); lg.appendChild(pp);
+      });
+    });
+    p.appendChild(lg);
+    return p;
+  }
+
+  const root = document.getElementById('root');
+  ['East Asia','MENA','Latin America'].forEach(r => root.appendChild(panel(r)));
+</script>
+</body>
+</html>

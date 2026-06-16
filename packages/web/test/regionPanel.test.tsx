@@ -28,6 +28,10 @@ describe('RegionPanel', () => {
     expect(screen.getByText(/emissions by source/i)).toBeInTheDocument();
     expect(screen.getByText('Transport')).toBeInTheDocument();
     expect(screen.getByText('Land-use')).toBeInTheDocument();
+    // The generation-mix block (bands + derived intensity).
+    expect(screen.getByText(/generation mix/i)).toBeInTheDocument();
+    expect(screen.getByText('Fossil')).toBeInTheDocument();
+    expect(screen.getByText(/grid carbon intensity/i)).toBeInTheDocument();
     // The four coupling levers.
     expect(screen.getByText(/grid intensity/i)).toBeInTheDocument();
     expect(screen.getByText(/storage built/i)).toBeInTheDocument();

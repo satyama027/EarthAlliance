@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { advanceTurn } from '../src/simulation.js';
 import { createInitialState } from '../src/state.js';
-import { POLICY_CATALOG, validateSelection } from '../src/policies.js';
+import { POLICY_CATALOG, validateSelection, getPolicy } from '../src/policies.js';
 import { makeState, makeRegion } from './fixtures.js';
 import { DEFAULT_PARAMS } from '../src/data/scenario.js';
 import type { ActiveEffect } from '../src/types.js';
@@ -20,7 +20,7 @@ function withAndWithout(policyId: string, regionId = REGION) {
 }
 
 describe('new sectoral policies — trade-offs', () => {
-  it('EV transition cuts transport but raises electricity demand', () => {
+  it('EV Subsidies cuts transport but raises electricity demand', () => {
     const { withPol, without } = withAndWithout('ev-transition');
     expect(withPol.transport).toBeLessThan(without.transport);
     expect(withPol.electricityDemand).toBeGreaterThan(without.electricityDemand);
@@ -57,6 +57,70 @@ describe('new sectoral policies — trade-offs', () => {
   it('fuel-efficiency standards cut transport', () => {
     const { withPol, without } = withAndWithout('fuel-efficiency');
     expect(withPol.transport).toBeLessThan(without.transport);
+  });
+});
+
+describe('generation-mix policies', () => {
+  it('renames ev-transition to "EV Subsidies"', () => {
+    expect(getPolicy('ev-transition')?.name).toBe('EV Subsidies');
+  });
+
+  it('EV Subsidies grows electricity demand turn-over-turn (not a one-shot jump)', () => {
+    let s = createInitialState();
+    s = advanceTurn(s, [{ policyId: 'ev-transition', regionId: REGION }]).state;
+    const d1 = s.regions.find((r) => r.id === REGION)!.electricityDemand;
+    s = advanceTurn(s, []).state; // buildout capacity keeps ramping
+    const d2 = s.regions.find((r) => r.id === REGION)!.electricityDemand;
+    s = advanceTurn(s, []).state;
+    const d3 = s.regions.find((r) => r.id === REGION)!.electricityDemand;
+    expect(d2).toBeGreaterThan(d1);
+    expect(d3).toBeGreaterThan(d2);
+  });
+
+  it('renewable subsidy raises renewable share and lowers derived grid intensity over turns', () => {
+    let s = createInitialState();
+    const before = s.regions.find((r) => r.id === REGION)!;
+    const renewBefore = before.generationMix.wind + before.generationMix.solar;
+    const intBefore = before.gridCarbonIntensity;
+    s = advanceTurn(s, [
+      { policyId: 'renewable-subsidy', regionId: REGION },
+      { policyId: 'grid-storage', regionId: REGION },
+    ]).state;
+    for (let i = 0; i < 5; i++) s = advanceTurn(s, []).state;
+    const after = s.regions.find((r) => r.id === REGION)!;
+    expect(after.generationMix.wind + after.generationMix.solar).toBeGreaterThan(renewBefore);
+    expect(after.gridCarbonIntensity).toBeLessThan(intBefore);
+  });
+
+  it('retires coal before touching gas (renewable subsidy in a coal-heavy grid)', () => {
+    const SA = 'south-asia';
+    let s = createInitialState();
+    const coalBefore = s.regions.find((r) => r.id === SA)!.generationMix.coal;
+    const gasBefore = s.regions.find((r) => r.id === SA)!.generationMix.gas;
+    s = advanceTurn(s, [{ policyId: 'renewable-subsidy', regionId: SA }]).state;
+    s = advanceTurn(s, []).state;
+    const after = s.regions.find((r) => r.id === SA)!;
+    expect(after.generationMix.coal).toBeLessThan(coalBefore); // coal retired first
+    expect(after.generationMix.gas).toBeCloseTo(gasBefore, 9); // gas untouched while coal remains
+  });
+});
+
+describe('effect-target hygiene', () => {
+  it('no policy targets the now-derived gridCarbonIntensity', () => {
+    for (const p of POLICY_CATALOG) {
+      for (const e of p.effects) expect(e.target).not.toBe('gridCarbonIntensity');
+    }
+  });
+
+  it('only buildout policies grow generation shares, and only via ongoing effects', () => {
+    const shareTargets = new Set(['windShare', 'solarShare', 'nuclearShare']);
+    for (const p of POLICY_CATALOG) {
+      for (const e of p.effects) {
+        if (!shareTargets.has(e.target)) continue;
+        expect(p.funding).toBe('buildout'); // share writes must flow through programs (preserves Σ=1)
+        expect(e.duration).toBe('ongoing');
+      }
+    }
   });
 });
 

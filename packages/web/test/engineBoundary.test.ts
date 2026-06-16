@@ -1,4 +1,4 @@
-import { createInitialState } from '@earth-alliance/engine';
+import { createInitialState, GENERATION_SOURCE_IDS } from '@earth-alliance/engine';
 
 // Guards the engine↔web boundary: the web client must see the *current* engine
 // source, not a stale compiled `dist`. A stale build once shipped only the
@@ -23,6 +23,13 @@ describe('engine ↔ web boundary', () => {
       expect(Number.isFinite(r.publicSupport)).toBe(true);
       expect(r.publicSupport).toBeGreaterThanOrEqual(0);
       expect(r.publicSupport).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it('exposes a generation mix summing to 1 for every region (not a stale dist)', () => {
+    for (const r of createInitialState().regions) {
+      const sum = GENERATION_SOURCE_IDS.reduce((s, k) => s + r.generationMix[k], 0);
+      expect(sum).toBeCloseTo(1, 6);
     }
   });
 });

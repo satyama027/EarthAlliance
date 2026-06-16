@@ -15,6 +15,8 @@ export function makeRegion(overrides: Partial<Region> = {}): Region {
     // Sectoral emissions: six sources summing to regionalEmissions (10).
     electricity: 4, transport: 2, aviationShipping: 0.5, industry: 2,
     agriculture: 1, landUse: 0.5,
+    // mix → Σ share × factor = 0.5 (matches gridCarbonIntensity; electricity = 8 × 0.5 = 4)
+    generationMix: { coal: 0.5, gas: 0, oil: 0, nuclear: 0, hydro: 0, wind: 0.3, solar: 0.2, geothermal: 0 },
     gridCarbonIntensity: 0.5, electricityDemand: 8,
     agriculturalProductivity: 100, energyStorageCapacity: 0,
     ...overrides,

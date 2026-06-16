@@ -150,24 +150,33 @@ of truth for what is enacted where, and how far each buildout has progressed), `
 **Sectoral emissions.** Each `Region` carries a six-source emissions breakdown — `electricity`,
 `transport`, `aviationShipping`, `industry`, `agriculture`, `landUse` (Gt CO₂/yr; `landUse` may
 be negative = a forest sink) — that **sums to** `regionalEmissions` (the derived total).
-`electricity` is itself derived as `electricityDemand × gridCarbonIntensity`. Four **coupling
-variables** carry the policy trade-offs: `gridCarbonIntensity` (0–1), `electricityDemand`,
+`electricity` is itself derived as `electricityDemand × gridCarbonIntensity`.
+
+**Generation mix.** Each region carries a `generationMix` — per-source shares (summing to 1) across
+eight sources: fossil `coal`/`gas`/`oil`, zero-carbon-but-not-renewable `nuclear`, and renewable
+`hydro`/`wind`/`solar`/`geothermal` (`generation.ts`; emission factors normalized to coal = 1.0:
+gas 0.45, oil 0.70, others 0). **`gridCarbonIntensity` is DERIVED** from the mix
+(`Σ share × factor`) by the `generationMix` sub-model — it is **no longer a policy lever**.
+Renewable/nuclear policies instead grow generation shares (`windShare`/`solarShare`/`nuclearShare`
+`EffectTarget`s, routed into `generationMix` by `applyToRegion`); the `generationMix` sub-model then
+conserves Σ = 1 by retiring the **dirtiest fossils first** (coal → gas → oil) and re-derives
+intensity. Mixes are seeded from real ~2024 generation data (Ember/EIA/IEA), with `electricityDemand`
+set so `demand × intensity` preserves each region's real electricity CO₂.
+
+Three remaining **coupling variables** carry the other trade-offs: `electricityDemand`,
 `agriculturalProductivity` (index, baseline 100), and `energyStorageCapacity` (0–1, gates renewable
-effectiveness). All ten are seeded from real ~2025 sectoral data in `data/regions.ts` and the eight
-policy-addressable ones are members of `EffectTarget` (`electricity` is not — policies reach it via
-the two coupling variables). The `emissions` sub-model re-derives the activity-driven sources from
-their drivers each turn with **no autonomous decarbonization** (replacing the old flat `AUTON_DECARB`);
-policy cuts and the `electricity`/total derivations are layered at finalization (see §4). The six
-existing emission policies are remapped onto the new targets, the coupling mechanics (storage-gated
-renewables in `programs`; agricultural-productivity→land in `constraints`) are wired in, and the
-catalog is expanded with the new sectoral policies (grid-storage, EV, fuel-efficiency, sustainable
-fuels, flight/freight levy, industrial electrification, green steel & cement, CCS, circular economy,
-organic & precision farming, plant-rich diet, anti-deforestation). **Level-shift couplings**
-(`electricityDemand` from electrification, `agriculturalProductivity` from farming) are modelled as
-`immediate` one-time shifts that hold, *not* per-turn flows — otherwise a sustained ongoing effect
-would make them drift without bound; emission cuts stay `ongoing` flows. Aviation/shipping has a
-hard-to-abate **floor** (`AVIATION_FLOOR` of its activity-driven level, stashed by `emissions` and
-enforced at finalization). All deltas/costs are provisional pending a balance pass.
+effectiveness). The `emissions` sub-model re-derives the activity-driven sources from their drivers
+each turn with **no autonomous decarbonization** (replacing the old flat `AUTON_DECARB`); policy cuts
+and the `electricity`/total derivations are layered at finalization (see §4). **Level-shift couplings**
+that would otherwise drift (`agriculturalProductivity` from farming) are modelled as `immediate`
+one-time shifts; emission cuts stay `ongoing` flows. **EV Subsidies** (`ev-transition`) is special:
+its transport→electricity conversion is a per-turn flow driven by buildout capacity in the
+`evElectrification` sub-model — each turn a capacity-driven slice of road transport is electrified
+(tailpipe → 0 at full buildout) and added to electricity demand at `EV_DEMAND_FACTOR` (0.35, the
+EV efficiency gain net of battery-charging losses), tracked drift-free against a GDP-grown baseline.
+Aviation/shipping has a hard-to-abate **floor** (`AVIATION_FLOOR` of its activity-driven level,
+stashed by `emissions` and enforced at finalization). All deltas/costs are provisional pending a
+balance pass.
 
 ---
 
@@ -207,10 +216,14 @@ interface SimContext {
 | G | `biodiversity` | per-region ecosystem health                                          |
 | H | `support`      | per-region public support + equity drift                            |
 | I | `resources`    | global money regeneration from taxed GDP (the single spendable resource) |
-| J | `programs`     | charge recurring/buildout policy upkeep (GDP-scaled), advance buildout capacity, apply ramped buildout effects |
+| J | `programs`     | charge recurring/buildout policy upkeep (GDP-scaled), advance buildout capacity, apply ramped buildout effects (incl. share growth) |
+| K | `evElectrification` | for each EV-Subsidies enactment, convert a capacity-driven slice of road transport into electricity demand (tailpipe → 0 at full buildout), drift-free against a GDP-grown baseline |
+| L | `generationMix` | rebalance each region's mix to Σ = 1 (retiring dirtiest fossils first) and **derive** `gridCarbonIntensity` from it |
 
-`programs` runs **last** so this turn's regenerated tax income (from `resources`) is available
-to fund policy upkeep before the turn closes. See §4.2 for the policy funding model.
+`programs` runs after `resources` so this turn's regenerated tax income is available to fund policy
+upkeep; `evElectrification` then runs (capacity already advanced), and `generationMix` runs **last**
+so it sees this turn's share growth before grid intensity is derived and emissions are finalized.
+See §4.2 for the policy funding model.
 
 **Swapping fidelity:** `createSimulation(models?, params?)` assembles a pipeline from any
 ordered `SubModel[]` and any `ModelParams`. Replace one entry (e.g. a multi-gas carbon
@@ -229,9 +242,12 @@ inside the pipeline, that re-derivation would overwrite them. By layering ongoin
 (and the coupling-variable moves — grid intensity, electricity demand, ag productivity) on top
 afterward, they persist — which is what makes the multi-decade, policy-only decarbonization (the
 "redemption arc") possible. `electricity` is special: it is **not** a stored stock the pipeline
-grows but a value **derived at turn finalization** as `electricityDemand × gridCarbonIntensity`,
-*after* policy has moved both — so the player decarbonizes power by cleaning the grid or curbing
-demand, never by writing an electricity number directly (`electricity` is not an `EffectTarget`).
+grows but a value **derived at turn finalization** as `electricityDemand × gridCarbonIntensity`.
+`gridCarbonIntensity` is itself **derived** (by the in-pipeline `generationMix` sub-model) from the
+generation mix that renewable/nuclear policies grow — so the player decarbonizes power by shifting
+the mix toward clean sources or curbing demand, never by writing electricity or grid intensity
+directly (neither is an `EffectTarget`). Share-growth effects flow only through `programs` (buildout
+ongoing effects), keeping the mix conserved; nothing writes shares in the post-pipeline `applyEffects`.
 
 (Buildout policies are the one exception to the `applyEffects` seam: their ramped ongoing
 effects are applied by the `programs` sub-model — also after stage E — because the magnitude
@@ -293,8 +309,8 @@ advanceTurn(state, selections, cancellations):       // selections/cancellations
   2b. applyCancellations(draft, cancellations)        // freeze cancelled buildouts / end recurring funds
   3. spendAndRegister(draft, selections)             // charge one-time money, push Enactments,
      →  queue NON-buildout ONGOING effects into activeEffects, return this turn's IMMEDIATE effects
-  4. run DEFAULT_MODELS over a fresh SimContext       // the natural pipeline (§4); `programs` (last)
-     →  charges recurring/buildout upkeep, advances capacity, applies ramped buildout effects
+  4. run DEFAULT_MODELS over a fresh SimContext       // the natural pipeline (§4); `programs`,
+     →  then `evElectrification` (transport→demand), then `generationMix` (rebalance + derive intensity)
   5. applyEffects(draft, immediate)                   // layer non-buildout policy deltas on top; tick/expire ongoing
   6. finalize emissions: per region, clamp coupling stocks (gridCarbonIntensity/energyStorageCapacity
      → [0,1]; electricityDemand/agriculturalProductivity → ≥0) and the aviation floor; then
@@ -428,13 +444,17 @@ These hold across the engine and are guarded by the test suite. Treat them as lo
    early-returns when ended — so the UI shows the `EndingScreen` instead of advancing. Once
    a turn returns an ended state, stop calling the engine.
 
-4. **Emissions totals are derived, never set.** At turn finalization, each region's `electricity`
-   is recomputed as `electricityDemand × gridCarbonIntensity`, `regionalEmissions` as the sum of
-   the six per-source fields, and `climate.annualEmissions` as `Σ regionalEmissions`. None of
+4. **Emissions totals and grid intensity are derived, never set.** Each region's `gridCarbonIntensity`
+   is derived from its `generationMix` (`Σ share × factor`, shares kept conserved to 1 with renewable
+   growth retiring coal→gas→oil); at finalization `electricity` is recomputed as
+   `electricityDemand × gridCarbonIntensity`, `regionalEmissions` as the sum of the six per-source
+   fields, and `climate.annualEmissions` as `Σ regionalEmissions`. None of `gridCarbonIntensity`/
    `electricity`/`regionalEmissions`/`annualEmissions` is a valid `EffectTarget`; policies move
    emissions only via the five activity-driven source fields (`transport`, `aviationShipping`,
-   `industry`, `agriculture`, `landUse`) and the coupling variables (`gridCarbonIntensity`,
-   `electricityDemand`, `agriculturalProductivity`).
+   `industry`, `agriculture`, `landUse`), the generation-share targets (`windShare`, `solarShare`,
+   `nuclearShare`), and the coupling variables (`electricityDemand`, `agriculturalProductivity`).
+   Property tests assert each `generationMix` sums to 1 and that `gridCarbonIntensity` equals the
+   value derived from it after any valid `advanceTurn`.
 
 5. **Index clamping.** All 0–100 indices (support, equity, biodiversity, water, land,
    education, health) are clamped to `[0, 100]` both in their sub-models and when policy

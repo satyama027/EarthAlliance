@@ -1,7 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { spendAndRegister, applyEffects } from '../src/effects.js';
+import { spendAndRegister, applyEffects, applyToRegion } from '../src/effects.js';
 import { makeRegion, makeState } from './fixtures.js';
 import type { ActiveEffect } from '../src/types.js';
+
+describe('applyToRegion — generation-share targets', () => {
+  it('routes windShare / solarShare / nuclearShare into the generation mix', () => {
+    const r = makeRegion({ id: 'r1' });
+    const w0 = r.generationMix.wind;
+    const s0 = r.generationMix.solar;
+    const n0 = r.generationMix.nuclear;
+    applyToRegion(r, 'windShare', 0.05);
+    applyToRegion(r, 'solarShare', 0.03);
+    applyToRegion(r, 'nuclearShare', 0.07);
+    expect(r.generationMix.wind).toBeCloseTo(w0 + 0.05, 9);
+    expect(r.generationMix.solar).toBeCloseTo(s0 + 0.03, 9);
+    expect(r.generationMix.nuclear).toBeCloseTo(n0 + 0.07, 9);
+  });
+});
 
 describe('spendAndRegister', () => {
   const singleRegion = () => ({
@@ -16,9 +31,9 @@ describe('spendAndRegister', () => {
     expect(state.enactments).toContainEqual(
       expect.objectContaining({ policyId: 'carbon-tax', regionId: 'r1', complete: true }),
     );
-    // ongoing grid-intensity cut registered, scoped to the region; immediate support hit returned
+    // ongoing demand cut registered, scoped to the region; immediate support hit returned
     expect(state.activeEffects).toHaveLength(1);
-    expect(state.activeEffects[0]!.effect.target).toBe('gridCarbonIntensity');
+    expect(state.activeEffects[0]!.effect.target).toBe('electricityDemand');
     expect(state.activeEffects[0]!.regionId).toBe('r1');
     expect(immediate).toHaveLength(1);
     expect(immediate[0]!.effect.target).toBe('publicSupport');

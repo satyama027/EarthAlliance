@@ -12,11 +12,12 @@ const RENEWABLE_BASELINE: Record<string, number> = {
 export const POLICY_CATALOG: readonly Policy[] = [
   {
     id: 'carbon-tax', name: 'Carbon Tax', category: 'industry',
-    description: 'Price carbon to clean the power grid; unpopular up front.',
+    description: 'Price carbon to curb power demand; unpopular up front.',
     art: 'carbon-tax', cost: { money: 50 }, funding: 'one-time',
     effects: [
-      // Prices fossil power → grid carbon intensity falls each turn (provisional; tuned in CP5 balance).
-      { target: 'gridCarbonIntensity', delta: -0.04, duration: 'ongoing' },
+      // Grid intensity is now derived from the generation mix, so the tax instead curbs power
+      // DEMAND (efficiency + price response), lowering electricity = demand × intensity each turn.
+      { target: 'electricityDemand', delta: -0.15, duration: 'ongoing' },
       { target: 'publicSupport', delta: -3, duration: 'immediate' },
     ],
   },
@@ -25,16 +26,21 @@ export const POLICY_CATALOG: readonly Policy[] = [
     description: 'Fund wind and solar deployment until the grid is built out.',
     art: 'renewable-subsidy', cost: { money: 1200 }, funding: 'buildout',
     buildout: { ratePerTurn: 0.10, baselineByRegion: RENEWABLE_BASELINE, defaultBaseline: 0 },
-    // Intermittent: storage-gated (full grid-cleaning benefit only once storage is built — CP3).
-    effects: [{ target: 'gridCarbonIntensity', delta: -0.08, duration: 'ongoing', storageGated: true }],
+    // Grows wind+solar share of the generation mix (the generationMix submodel retires coal first,
+    // so derived grid intensity falls). Intermittent → storage-gated: full deployment lands only
+    // once grid storage is built.
+    effects: [
+      { target: 'windShare', delta: 0.05, duration: 'ongoing', storageGated: true },
+      { target: 'solarShare', delta: 0.05, duration: 'ongoing', storageGated: true },
+    ],
   },
   {
     id: 'nuclear-buildout', name: 'Nuclear Buildout', category: 'energy',
     description: 'Large baseload decarbonization; reactors come online over years.',
     art: 'nuclear-buildout', cost: { money: 800 }, funding: 'buildout',
     buildout: { ratePerTurn: 0.08, defaultBaseline: 0 },
-    // Firm baseload: NOT storage-gated — delivers full grid-cleaning benefit immediately.
-    effects: [{ target: 'gridCarbonIntensity', delta: -0.10, duration: 'ongoing' }],
+    // Grows nuclear share of the mix. Firm baseload → NOT storage-gated (delivers in full).
+    effects: [{ target: 'nuclearShare', delta: 0.08, duration: 'ongoing' }],
   },
   {
     id: 'reforestation', name: 'Reforestation', category: 'land',
@@ -68,14 +74,13 @@ export const POLICY_CATALOG: readonly Policy[] = [
     effects: [{ target: 'energyStorageCapacity', delta: 0.15, duration: 'ongoing' }],
   },
   {
-    id: 'ev-transition', name: 'EV Transition', category: 'industry',
-    description: 'Electrify the vehicle fleet: cuts tailpipe emissions, adds electricity demand.',
+    id: 'ev-transition', name: 'EV Subsidies', category: 'industry',
+    description: 'Subsidize electric vehicles: each turn more of the fleet converts, shifting oil demand into a growing electricity load until tailpipe emissions reach zero.',
     art: 'ev-transition', cost: { money: 900 }, funding: 'buildout',
     buildout: { ratePerTurn: 0.10, defaultBaseline: 0 },
-    effects: [
-      { target: 'transport', delta: -0.25, duration: 'ongoing' },
-      { target: 'electricityDemand', delta: 0.5, duration: 'immediate' }, // one-time demand shift
-    ],
+    // Transport cut + electricity-demand growth are driven gradually by buildout capacity in the
+    // evElectrification submodel (not one-shot effects), so there are no declared effects here.
+    effects: [],
   },
   {
     id: 'fuel-efficiency', name: 'Fuel Efficiency Standards', category: 'industry',

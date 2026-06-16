@@ -6,6 +6,8 @@ export { DEFAULT_MODELS } from './models/pipeline.js';
 export { DEFAULT_PARAMS, DEFAULT_SCENARIO, END_YEAR } from './data/scenario.js';
 export type { Scenario } from './data/scenario.js';
 export { SAMPLE_REGIONS } from './data/regions.js';
+export { GENERATION_SOURCES, GENERATION_SOURCE_IDS, gridIntensityFromMix } from './generation.js';
+export type { GenerationSource, GenerationMix, GenerationSourceSpec } from './generation.js';
 
 export { createInitialState } from './state.js';
 export { createRng } from './rng.js';

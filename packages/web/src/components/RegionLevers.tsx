@@ -44,7 +44,7 @@ export function RegionLevers({ region }: { region: Region }) {
     <Box style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 14px' }}>
       <Lever
         label="Grid intensity"
-        tip="Grid intensity (0–1) — CO₂ per unit of electricity. 1 ≈ coal, 0 = clean. Power emissions = grid intensity × power demand. Lowered by renewables, nuclear & carbon pricing — the master lever for the power sector."
+        tip="Grid intensity (0–1) — CO₂ per unit of electricity. 1 ≈ coal, 0 = clean. Power emissions = grid intensity × power demand. DERIVED from the generation mix: renewables & nuclear push out coal first, lowering it."
         value={region.gridCarbonIntensity.toFixed(2)}
         barPct={region.gridCarbonIntensity * 100}
         barColor={SOURCE_COLORS.electricity}

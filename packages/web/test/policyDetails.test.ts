@@ -22,14 +22,22 @@ describe('effectLines', () => {
     expect(gdp.direction).toBe('bad'); // losing GDP is bad
   });
 
-  it('marks a storage-gated grid effect and formats a 0–1 delta plainly', () => {
-    // renewable-subsidy: gridCarbonIntensity -0.08 ongoing storageGated
+  it('marks a storage-gated renewable share effect and formats a 0–1 delta plainly', () => {
+    // renewable-subsidy: windShare/solarShare +0.05 ongoing storageGated
     const lines = effectLines(policy('renewable-subsidy'));
-    const grid = lines[0]!;
-    expect(grid.label).toBe('Grid carbon intensity');
-    expect(grid.magnitude).toBe('−0.08');
-    expect(grid.direction).toBe('good'); // lowering grid intensity is good
-    expect(grid.note).toMatch(/storage/i);
+    const wind = lines.find((l) => l.label === 'Wind share')!;
+    expect(wind.magnitude).toBe('+0.05');
+    expect(wind.direction).toBe('good'); // growing renewable share is good
+    expect(wind.note).toMatch(/storage/i);
+  });
+
+  it('synthesizes EV Subsidies mechanics (effects live in a submodel, not declared)', () => {
+    const lines = effectLines(policy('ev-transition'));
+    const transport = lines.find((l) => l.label === 'Transport emissions')!;
+    const demand = lines.find((l) => l.label === 'Electricity demand')!;
+    expect(transport.direction).toBe('good'); // tailpipe falls toward zero
+    expect(demand.direction).toBe('bad');     // power load grows
+    expect(transport.scope).toBe('each turn');
   });
 
   it('treats an index gain as good with a + sign', () => {
