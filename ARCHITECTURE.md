@@ -70,8 +70,8 @@ EarthAlliance/
 │        ├─ game/useGame.ts  # the React hook wrapping the engine (holds WorldState)
 │        ├─ scene/           # WorldMap (inlines world-map.svg) + metricColor
 │        ├─ assets/          # world-map.svg — baked HD region map (generated, committed)
-│        ├─ components/      # Mantine DOM HUD (ResourceBar, DataOverlay, Dashboard, RegionPanel,
-│        │                   #   EmissionsBySource, RegionLevers, PolicyBoard, PolicyCard,
+│        ├─ components/      # Mantine DOM HUD (ResourceBar, RegionInfoBox, DataOverlay, Dashboard,
+│        │                   #   RegionPanel, EmissionsBySource, RegionLevers, PolicyBoard, PolicyCard,
 │        │                   #   PolicyDetailOverlay, EndingScreen, Sparkline)
 │        └─ audio/           # useSfx + sound (Web Audio SFX, event-driven)
 └─ docs/superpowers/         # specs and implementation plans
@@ -401,17 +401,23 @@ the dashboard sparkline.
   painted on top. The geometry is baked offline by `scripts/generate-map.mjs` — **no D3/TopoJSON
   ships at runtime** (the former R3F globe and `three` are gone).
   The page is laid out top→bottom so the action sits above the fold: a **sticky `ResourceBar`
-  header** (`position: sticky; top: 0`) → **full-width map** (`Grid.Col span={12}`, fixed
-  `height: 480`; the inline SVG's `preserveAspectRatio="meet"` keeps the whole world centered) →
-  full-width `PolicyBoard` → full-width `TurnLog` (demoted to bottom as reference/history). The
-  per-region/per-planet **emissions detail is no longer inline** — it lives in the `DataOverlay`,
-  opened from the resource-bar 📊 button. (This replaced the earlier two-column `Grid align="stretch"`
-  layout, where a tall selected-region panel stretched the map container and letterboxed the SVG.)
+  header** (`position: sticky; top: 0`) → a **map row** (map `Grid.Col span={{ base: 12, md: 9 }}`,
+  fixed `height: 480`; the inline SVG's `preserveAspectRatio="meet"` keeps the whole world centered)
+  beside a compact **`RegionInfoBox`** (`span={{ base: 12, md: 3 }}`, stacking on narrow) →
+  full-width `PolicyBoard` → full-width `TurnLog` (demoted to bottom as reference/history). The map's
+  height is fixed independent of the info box, so a short/tall info box never letterboxes the SVG.
+  The **full** per-region/per-planet emissions detail is not inline — it lives in the `DataOverlay`,
+  now opened from the `RegionInfoBox` 📊 button. (This replaced the earlier two-column
+  `Grid align="stretch"` layout, where a tall selected-region panel stretched the map container and
+  letterboxed the SVG.)
 - **HUD** (`components/`, Mantine DOM overlay): `ResourceBar` (left: year/turn + an inline climate
-  cluster — **Warming** colored by `temperatureColor`, **CO₂**, **Emissions**; right: the **remaining**
-  money badge — `resources − costNow`, going red with an `⚠ over budget` `role="alert"` when a staged
-  selection exceeds the budget — plus an icon-only **📊 `ActionIcon`** that opens the `DataOverlay`;
-  rendered as the sticky top header), `DataOverlay` (the emissions data window — a full-screen
+  cluster — **Warming** colored by `temperatureColor` and **CO₂** (emissions lives in the
+  `RegionInfoBox`/`DataOverlay`, not duplicated here); right: just the **remaining** money badge —
+  `resources − costNow`, going red with an `⚠ over budget` `role="alert"` when a staged selection
+  exceeds the budget; rendered as the sticky top header), `RegionInfoBox` (the compact glance-card
+  beside the map — a single region click surfaces its headline **GDP/capita · emissions · public
+  support**, or planet **warming · CO₂ · emissions** when none is selected, each state with a **📊**
+  button that opens the `DataOverlay`), `DataOverlay` (the emissions data window — a full-screen
   `Overlay` following the `EndingScreen` pattern that **hosts `RegionPanel` when a region is selected,
   else `Dashboard`**; closes on ✕ / `Escape` / backdrop), `Dashboard` (+ `Sparkline` trend + a global
   **emissions-by-source** breakdown), `RegionPanel` (the selected region — its per-source breakdown via

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Earth Alliance — Region info box beside the map</title>
+<style>
+  :root {
+    --earth-3:#63e6be; --earth-5:#20c997; --earth-6:#12b886; --earth-7:#0ca678;
+    --teal:#20c997; --teal-light:#163a33; --red:#ff6b6b; --yellow:#ffd43b; --orange:#ffa94d;
+    --bg:#1a1b1e; --surface:#25262b; --surface-2:#2c2e33; --border:#373a40;
+    --text:#c1c2c5; --text-strong:#f1f3f5; --dimmed:#909296; --scene-bg:#05080f;
+    --radius:8px; --radius-sm:4px; font-family: system-ui, sans-serif;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); padding:16px; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1100px; margin:0 auto; }
+  .note { padding:10px 14px; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); font-size:13px; color:var(--dimmed); margin-bottom:16px; }
+  .note strong { color:var(--text-strong); }
+  h2.section { color:var(--text-strong); font-size:13px; text-transform:uppercase;
+    letter-spacing:.08em; margin:24px 0 8px; }
+  .paper { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px; }
+  .dimmed { color:var(--dimmed); } .strong { color:var(--text-strong); font-weight:700; }
+  .xs { font-size:11px; } .sm { font-size:13px; }
+  .row { display:flex; justify-content:space-between; align-items:center; }
+
+  /* Sticky resource header — note the 📊 button is GONE (the info box owns data drill-down now). */
+  .header { position:sticky; top:0; margin-bottom:16px; }
+  .climate { display:flex; gap:12px; align-items:center; }
+  .climate .vsep { width:1px; height:16px; background:var(--border); }
+  .badge { display:inline-flex; align-items:center; padding:5px 12px; border-radius:999px;
+    font-size:13px; font-weight:600; background:var(--earth-7); color:#fff; }
+
+  /* Map + info-box row. Map fixed 480 height (no letterbox); info box is its own column, sized to
+     its content and top-aligned — deliberately compact, far shorter than the map. Stacks on narrow. */
+  .maprow { display:grid; grid-template-columns: 1fr 232px; gap:16px; align-items:start; }
+  .scene { height:480px; border-radius:var(--radius); overflow:hidden;
+    background: radial-gradient(circle at 50% 45%, #0b1830 0%, var(--scene-bg) 70%);
+    position:relative; display:flex; align-items:center; justify-content:center; }
+  .scene-caption { position:absolute; bottom:10px; left:12px; font-size:11px; color:#5b6b86; }
+  .worldmap { width:100%; height:100%; object-fit:contain; display:block; }
+
+  /* Info box — compact: content-height, tight spacing, smaller numbers. */
+  .infobox { display:flex; flex-direction:column; padding:11px 12px; }
+  .ib-head { display:flex; align-items:center; gap:7px; }
+  .ib-dot { width:10px; height:10px; border-radius:3px; flex:0 0 auto; }
+  .ib-name { font-size:14px; font-weight:700; color:var(--text-strong); }
+  .ib-sub { margin-top:1px; }
+  .ib-stats { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .ib-stat .k { font-size:11px; color:var(--dimmed); }
+  .ib-stat .v { font-size:16px; font-weight:700; color:var(--text-strong);
+    font-variant-numeric:tabular-nums; line-height:1.15; }
+  .ib-stat .v small { font-size:11px; font-weight:600; color:var(--dimmed); margin-left:2px; }
+  .prog { height:6px; border-radius:999px; background:var(--surface-2); overflow:hidden; margin-top:4px; }
+  .prog > span { display:block; height:100%; border-radius:999px; }
+  .ib-hint { font-size:11px; color:var(--dimmed); font-style:italic; margin:2px 0 8px; text-align:center; }
+  .btn { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; padding:8px;
+    margin-top:11px; border:none; border-radius:var(--radius-sm); background:var(--earth-6); color:#fff;
+    font-weight:600; font-size:12.5px; cursor:pointer; }
+  .btn:hover { background:var(--earth-5); }
+
+  /* Climate value colors for the planet (empty) state. */
+  .v-warm { color:var(--yellow); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="note">
+    <strong>Proposed: region info box beside the map.</strong> A single click on a region now shows
+    its headline data (GDP/capita · public support · emissions) in a box to the right of the map.
+    The box's <strong>📊 Full data</strong> button opens the existing emissions overlay for drill-down.
+    With no region selected the box shows <strong>planet</strong> quick-stats + the same button, so the
+    redundant <strong>resource-bar 📊 is removed</strong>. Map keeps its 480px height (no letterbox).
+  </div>
+
+  <!-- Resource header (no 📊 button anymore) -->
+  <div class="paper header">
+    <div class="row">
+      <span class="climate">
+        <span class="strong">Year 2025 · Turn 1</span>
+        <span class="vsep"></span>
+        <span class="sm" style="font-weight:700;color:var(--yellow);white-space:nowrap;">🌡 +1.30 °C</span>
+        <span class="sm"><span class="dimmed">CO₂</span> <span class="strong">420 ppm</span></span>
+      </span>
+      <span class="badge">💰 Money: 1,448</span>
+    </div>
+  </div>
+
+  <!-- STATE 1: a region is selected -->
+  <h2 class="section">Region selected — single click surfaces the headline stats</h2>
+  <div class="maprow">
+    <div class="scene">
+      <img class="worldmap" src="../../../../packages/web/src/assets/world-map.svg" alt="World map of the 10 regions" />
+      <div class="scene-caption">WorldMap — click a region to select (North America selected) →</div>
+    </div>
+    <div class="paper infobox">
+      <div class="ib-head"><span class="ib-dot" style="background:#4dabf7;"></span><span class="ib-name">North America</span></div>
+      <div class="ib-sub dimmed xs">pop 372M</div>
+      <div class="ib-stats">
+        <div class="ib-stat">
+          <div class="k">GDP per capita</div>
+          <div class="v">$65,000</div>
+        </div>
+        <div class="ib-stat">
+          <div class="k">Emissions</div>
+          <div class="v">5.9 <small>Gt/yr</small></div>
+        </div>
+        <div class="ib-stat">
+          <div class="row"><span class="k">Public support</span><span class="v" style="font-size:14px;">58</span></div>
+          <div class="prog"><span style="width:58%; background:var(--earth-5);"></span></div>
+        </div>
+      </div>
+      <button class="btn">📊 Full region data</button>
+    </div>
+  </div>
+
+  <!-- STATE 2: no region selected → planet quick-stats -->
+  <h2 class="section">No region selected — planet quick-stats + drill-down</h2>
+  <div class="maprow">
+    <div class="scene">
+      <img class="worldmap" src="../../../../packages/web/src/assets/world-map.svg" alt="World map of the 10 regions" />
+      <div class="scene-caption">WorldMap — nothing selected</div>
+    </div>
+    <div class="paper infobox">
+      <div class="ib-head"><span class="ib-name">🌍 Planet</span></div>
+      <div class="ib-stats">
+        <div class="ib-stat">
+          <div class="k">Warming</div>
+          <div class="v v-warm">+1.30 <small>°C</small></div>
+        </div>
+        <div class="ib-stat">
+          <div class="k">CO₂</div>
+          <div class="v">420 <small>ppm</small></div>
+        </div>
+        <div class="ib-stat">
+          <div class="k">Emissions</div>
+          <div class="v">35.5 <small>Gt/yr</small></div>
+        </div>
+      </div>
+      <div class="ib-hint">Click a region for its data</div>
+      <button class="btn">📊 Full planet data</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

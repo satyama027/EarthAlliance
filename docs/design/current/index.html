@@ -53,6 +53,22 @@
   .scene-caption { position:absolute; bottom:10px; left:12px; font-size:11px; color:#5b6b86; }
   .worldmap { width:100%; height:100%; object-fit:contain; display:block; }
 
+  /* Map row: map + compact RegionInfoBox side column (map keeps fixed height, no letterbox). */
+  .maprow { display:grid; grid-template-columns: 1fr 232px; gap:16px; align-items:start; }
+  .infobox { padding:11px 12px; }
+  .ib-head { display:flex; align-items:center; gap:7px; }
+  .ib-dot { width:10px; height:10px; border-radius:3px; flex:0 0 auto; }
+  .ib-name { font-size:14px; font-weight:700; color:var(--text-strong); }
+  .ib-stats { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .ib-stat .k { font-size:11px; color:var(--dimmed); }
+  .ib-stat .v { font-size:16px; font-weight:700; color:var(--text-strong);
+    font-variant-numeric:tabular-nums; line-height:1.15; }
+  .ib-stat .v small { font-size:11px; font-weight:600; color:var(--dimmed); margin-left:2px; }
+  .ib-hint { font-size:11px; color:var(--dimmed); font-style:italic; margin:2px 0 0; text-align:center; }
+  .ib-btn { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; padding:8px;
+    margin-top:11px; border:none; border-radius:var(--radius-sm); background:var(--earth-6); color:#fff;
+    font-weight:600; font-size:12.5px; cursor:pointer; }
+
   /* Generic bits */
   .row { display:flex; justify-content:space-between; align-items:center; }
   .badge { display:inline-flex; align-items:center; padding:3px 10px; border-radius:999px;
@@ -207,37 +223,54 @@
         <span class="vsep"></span>
         <span class="sm" style="font-weight:700;color:var(--yellow);white-space:nowrap;">🌡 +1.30 °C</span>
         <span class="sm"><span class="dimmed">CO₂</span> <span class="strong">420 ppm</span></span>
-        <span class="sm"><span class="dimmed">Emissions</span> <span class="strong">35.5 Gt/yr</span></span>
       </span>
       <span style="display:flex; gap:8px; align-items:center;">
         <span class="badge badge-lg badge-teal-solid">💰 Money: 1,448</span>
-        <button class="data-btn" title="Emissions data" aria-label="Emissions data">📊</button>
       </span>
     </div>
   </div>
   <div class="xs dimmed" style="margin:6px 2px 0;">
-    Sticky header. Headline climate stats (<strong>Warming · CO₂ · Emissions</strong>) sit inline so
-    warming stays glanceable (Variant A). The single <strong>Money</strong> badge shows what is
-    <strong>remaining</strong> to spend this turn (balance − staged cost; the 1 staged policy below =
-    −$52, so 1,500 → 1,448). The <strong>📊</strong> icon button opens the
-    <strong>emissions data overlay</strong> (region if one is selected, else the planet). Over budget →
-    badge turns red with an <span style="color:var(--red)">⚠ over budget</span> alert and
+    Sticky header. Headline climate stats (<strong>Warming · CO₂</strong>) sit inline so warming stays
+    glanceable (Variant A). <strong>Emissions moved out of the bar</strong> — it now lives in the
+    RegionInfoBox / data overlay, so the always-on bar doesn't duplicate it. The single
+    <strong>Money</strong> badge shows what is <strong>remaining</strong> to spend this turn (balance −
+    staged cost; the 1 staged policy below = −$52, so 1,500 → 1,448). The old <strong>📊</strong> header
+    button was <strong>removed</strong> — data drill-down is now the RegionInfoBox button beside the map.
+    Over budget → badge turns red with an <span style="color:var(--red)">⚠ over budget</span> alert and
     End&nbsp;Turn is disabled, e.g.: <span class="badge badge-red" style="margin-left:4px;">💰 Money: -85</span>
   </div>
 </div>
 
 <!-- ── Main app layout ───────────────────────────────────────────── -->
 <div class="app">
-  <!-- Scene — now full-width (the Planet/Region panels moved into the data overlay below). -->
+  <!-- Map row — map (≈75%) + compact RegionInfoBox side column. A single region click surfaces the
+       headline stats here; the 📊 button drills into the data overlay. (North America selected, to
+       match the PolicyBoard/TurnLog below.) Map keeps its fixed 480px height, so the info box's
+       height never letterboxes the SVG. -->
   <div class="col-full">
-    <div class="scene" style="height:480px; min-height:0;">
-      <img class="worldmap" src="../../../packages/web/src/assets/world-map.svg" alt="World map of the 10 regions" />
-      <div class="scene-caption">WorldMap — 10 regions on real geography · click to select (selecting no longer stretches the layout)</div>
+    <div class="maprow">
+      <div class="scene" style="height:480px; min-height:0;">
+        <img class="worldmap" src="../../../packages/web/src/assets/world-map.svg" alt="World map of the 10 regions" />
+        <div class="scene-caption">WorldMap — 10 regions on real geography · click to select →</div>
+      </div>
+      <div class="paper infobox">
+        <div class="ib-head"><span class="ib-dot" style="background:#4dabf7;"></span><span class="ib-name">North America</span></div>
+        <div class="xs dimmed" style="margin-top:1px;">pop 372M</div>
+        <div class="ib-stats">
+          <div class="ib-stat"><div class="k">GDP per capita</div><div class="v">$65,000</div></div>
+          <div class="ib-stat"><div class="k">Emissions</div><div class="v">5.9 <small>Gt/yr</small></div></div>
+          <div class="ib-stat">
+            <div class="row"><span class="k">Public support</span><span class="v" style="font-size:14px;">58</span></div>
+            <div class="prog" style="margin-top:4px;"><span style="width:58%; background:var(--earth-5);"></span></div>
+          </div>
+        </div>
+        <button class="ib-btn">📊 Full region data</button>
+      </div>
     </div>
   </div>
 
-  <!-- Emissions data overlay (📊). The Planet/Region detail moved off the page into this overlay,
-       opened from the resource-bar 📊 button. Live: a fixed dark overlay (rgba(0,0,0,.85)), a centered
+  <!-- Emissions data overlay (📊). The full Planet/Region detail lives in this overlay,
+       opened from the RegionInfoBox 📊 button. Live: a fixed dark overlay (rgba(0,0,0,.85)), a centered
        window, framer-motion fade + rise, closed by ✕ / Esc / backdrop. `order:9` keeps it visually last
        (scene → PolicyBoard → TurnLog → this) without reordering the DOM. Boxed here with both states. -->
   <div class="col-full" style="order:9;">

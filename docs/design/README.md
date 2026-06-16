@@ -29,6 +29,7 @@ Mockups are self-contained HTML — open them directly in a browser (`file://`).
 
 | Date | Topic | Status | Proposal |
 |------|-------|--------|----------|
+| 2026-06-16 | Region info box — single click shows GDP/capita · emissions · public support in a compact side box right of the map (planet quick-stats when nothing selected); 📊 drills into the existing DataOverlay; removes the resource-bar 📊 + duplicate Emissions stat | **Implemented** | [proposal](./proposals/2026-06-16-region-info-box/design.md) |
 | 2026-06-16 | Generation mix — per-region RegionPanel block: derived grid-intensity gauge + banded stacked bar (fossil/nuclear/renewable) + band-grouped legend with subtotals (Variant A) | **Implemented** | [proposal](./proposals/2026-06-16-generation-mix/design.md) |
 | 2026-06-15 | Policy detail overlay — single-click opens a full-breakdown overlay (description, per-effect lines, cost/funding, action button); double-click/drag enact-or-stop; recurring cards show "Runs until cancelled" | **Implemented** | [proposal](./proposals/2026-06-15-policy-detail-overlay/design.md) |
 | 2026-06-15 | Emissions data overlay — remove inline Planet/Region panels, full-width map, icon-only 📊 header button opens an overlay (region if selected, else planet); headline climate stats move into the resource bar (Variant A) | **Implemented** | [proposal](./proposals/2026-06-15-emissions-data-overlay/design.md) |

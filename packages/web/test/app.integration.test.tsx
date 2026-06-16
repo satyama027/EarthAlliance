@@ -24,14 +24,15 @@ describe('App integration', () => {
     expect(screen.getByText(/Year 2030/)).toBeInTheDocument();
   });
 
-  it('opens the emissions-data overlay from the header button (planet view) and closes it', async () => {
+  it('opens the emissions-data overlay from the info-box button (planet view) and closes it', async () => {
     renderApp();
-    // The Planet/Region panels are no longer inline — emissions data lives behind the button.
-    // (TurnLog has its own "Planet" block label as plain text; the overlay's is a heading.)
+    // The full Planet/Region panels live in the overlay; the inline RegionInfoBox shows only the
+    // compact planet header (plain text), not the overlay's "Planet" heading.
     expect(screen.queryByRole('heading', { name: 'Planet' })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: /emissions data/i }));
-    // With no region selected, the overlay shows the planet breakdown.
+    // With no region selected (the map is stubbed), the info box shows planet quick-stats + drill-down.
+    await userEvent.click(screen.getByRole('button', { name: /full planet data/i }));
+    // The overlay shows the full planet breakdown.
     expect(screen.getByRole('heading', { name: 'Planet' })).toBeInTheDocument();
     expect(screen.getByText(/emissions by source/i)).toBeInTheDocument();
 

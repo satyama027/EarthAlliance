@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AppShell, Grid, Box } from '@mantine/core';
 import { WorldMap } from './scene/WorldMap.js';
 import { ResourceBar } from './components/ResourceBar.js';
+import { RegionInfoBox } from './components/RegionInfoBox.js';
 import { PolicyBoard } from './components/PolicyBoard.js';
 import { TurnLog } from './components/TurnLog.js';
 import { DataOverlay } from './components/DataOverlay.js';
@@ -32,21 +33,29 @@ export default function App() {
         <Box style={{ position: 'sticky', top: 0, zIndex: 200, background: 'var(--mantine-color-body)', paddingBottom: 8 }}>
           <ResourceBar year={game.state.year} turn={game.state.turn}
             money={game.state.resources.money} costNow={game.costNow}
-            temperature={game.state.climate.temperatureAnomaly} co2={game.state.climate.co2Concentration}
-            annualEmissions={game.state.climate.annualEmissions}
-            onOpenData={() => setDataOpen(true)} />
+            temperature={game.state.climate.temperatureAnomaly} co2={game.state.climate.co2Concentration} />
         </Box>
         <Grid gutter="md">
-          <Grid.Col span={12}>
-            {/* Map is full-width now that the Planet/Region panels live in the data overlay; emissions
-                data is reached via the resource-bar 📊 button. The inline SVG (preserveAspectRatio
-                "meet") always shows the whole world, centered. */}
+          <Grid.Col span={{ base: 12, md: 9 }}>
+            {/* Map shares the row with the RegionInfoBox now. The inline SVG (preserveAspectRatio
+                "meet") always shows the whole world, centered; height stays fixed so it never
+                letterboxes regardless of the info box's height. */}
             <Box style={{ height: 480, borderRadius: 8, overflow: 'hidden', background: '#05080f' }}>
               <WorldMap
                 selectedRegionId={selectedRegionId}
                 onSelectRegion={setSelectedRegionId}
               />
             </Box>
+          </Grid.Col>
+          {/* Single-click headline data beside the map; its 📊 button drills into the DataOverlay. */}
+          <Grid.Col span={{ base: 12, md: 3 }}>
+            <RegionInfoBox
+              region={selectedRegion}
+              temperature={game.state.climate.temperatureAnomaly}
+              co2={game.state.climate.co2Concentration}
+              annualEmissions={game.state.climate.annualEmissions}
+              onOpenData={() => setDataOpen(true)}
+            />
           </Grid.Col>
           {/* Policy board raised directly under the map so policies can be set and the
               turn ended without scrolling. */}

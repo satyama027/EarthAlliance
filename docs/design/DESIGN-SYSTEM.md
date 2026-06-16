@@ -116,12 +116,14 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
 - Mantine spacing scale (`xs`, `sm`, `md`, `xl`). Panels pad `p="sm"`; ending screen `p="xl"`.
 - App frame: `AppShell` with `padding="md"`. A **sticky ResourceBar header** sits at the top of
   `AppShell.Main` (`position: sticky; top: 0; zIndex: 200`), above the grid.
-- Main layout (top→bottom, so the action sits above the fold): sticky resource header → **full-width
-  map** (`Grid.Col span={12}`) → full-width **PolicyBoard** (`span 12`) → full-width **TurnLog**
-  (`span 12`, demoted to bottom as reference/history). The **Planet (Dashboard) and Region
-  (RegionPanel) detail are no longer inline** — they live in the **emissions data overlay**
-  (`DataOverlay`), opened from the resource-bar 📊 button. This removes the old `align="stretch"`
-  height-coupling that let a tall Region panel stretch the map container and letterbox the SVG.
+- Main layout (top→bottom, so the action sits above the fold): sticky resource header → a **map row**
+  (map `Grid.Col span={{ base: 12, md: 9 }}` + **RegionInfoBox** `span={{ base: 12, md: 3 }}`,
+  stacking on narrow) → full-width **PolicyBoard** (`span 12`) → full-width **TurnLog**
+  (`span 12`, demoted to bottom as reference/history). The **full Planet (Dashboard) and Region
+  (RegionPanel) detail are not inline** — they live in the **emissions data overlay**
+  (`DataOverlay`), now opened from the **RegionInfoBox 📊 button**. The map keeps its **fixed 480px
+  height** independent of the info box, so a short or tall info box never re-introduces the old
+  `align="stretch"` height-coupling that let a tall panel stretch the map container and letterbox the SVG.
 - Scene viewport: fixed `height: 480` (full-width), radius `8`. The inline `world-map.svg` uses
   `preserveAspectRatio="xMidYMid meet"`, so the **whole world is always shown**, centered; the slim
   top/bottom bands fall back to the scene's `#05080f` ocean.
@@ -137,11 +139,12 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   to 0.32; hover brightens). India follows the Government-of-India depiction (J&K incl. Azad
   Kashmir, Gilgit-Baltistan, Shaksgam, Aksai Chin). Replaces the former 3D R3F globe.
 - **ResourceBar** — bordered `Paper`. Left: year/turn (`fw={700}`) followed by an inline **climate
-  cluster** (Variant A) — **Warming** (colored by `temperatureColor`, with a 🌡 glyph), **CO₂**, and
-  **Emissions** — so the central climate metric stays glanceable without opening anything (`visibleFrom
-  "sm"`; hidden on narrow widths). Right: the single **Money** (`teal`) `Badge` (`size="lg"`,
-  `leftSection="💰"`) plus an **icon-only 📊 `ActionIcon`** (`color="earth"`, `variant="filled"`,
-  `aria-label="Emissions data"`) that opens the **DataOverlay**. The badge shows what is **REMAINING**
+  cluster** (Variant A) — **Warming** (colored by `temperatureColor`, with a 🌡 glyph) and **CO₂** —
+  so the central climate metric stays glanceable without opening anything (`visibleFrom "sm"`; hidden
+  on narrow widths). **Emissions is intentionally NOT here** — it lives in the RegionInfoBox /
+  DataOverlay, so the always-on bar doesn't duplicate it. Right: just the single **Money** (`teal`)
+  `Badge` (`size="lg"`, `leftSection="💰"`); the old 📊 `ActionIcon` was **removed** (data drill-down
+  is now owned by the RegionInfoBox). The badge shows what is **REMAINING**
   to spend this turn — balance minus the staged
   `costNow.money` — not the raw balance, so staging a policy immediately drops the number. `costNow`
   counts **every** staged policy's first-turn GDP-scaled charge (one-time enactment *and*
@@ -170,6 +173,19 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   segments, `title` tooltips); then a **band-grouped legend** (`1fr auto`) — each band a subheader
   (accent dot + name + **subtotal %**) followed by its sources (swatch · dotted-underline name ·
   share %, each name a Mantine `Tooltip`). The lone Nuclear band repeats its name as its single row.
+- **RegionInfoBox** (`RegionInfoBox.tsx`) — the compact glance-card beside the map (the map row's
+  right column). Bordered `Paper` (`p="sm"`), **content-height and top-aligned** so it reads as a small
+  card, never a column rivaling the map. Two states keyed off the selected region:
+  - **Region selected** — a `REGION_COLORS` dot + region name (`fw={700}` `size="sm"`), a dimmed
+    `pop NNNM` subtitle, then three headline stats — **GDP per capita** (`$` + locale value),
+    **Emissions** (`Gt/yr`), and **Public support** (value + a thin `Progress` colored by
+    `metricColor`) — over a full-width **📊 "Full region data"** `Button` (`color="earth"`).
+  - **No region** — a `🌍 Planet` header, planet quick-stats (**Warming** colored by
+    `temperatureColor`, **CO₂**, **Emissions**), a dimmed italic "Click a region for its data" hint,
+    and a **📊 "Full planet data"** `Button`.
+  Both buttons call `onOpenData`, which opens the existing **DataOverlay** — no emissions logic is
+  duplicated. Stats use the shared `Stat` (label + bold value) and `Unit` (dimmed suffix) helpers.
+  **No new tokens.**
 - **RegionPanel** — bordered `Paper`; region name + a `GDP/capita · pop · Gt/yr` line; then the
   **EmissionsBySource** breakdown for the region; the **Generation mix** block (`GenerationMix.tsx`);
   an **Energy & land levers** block (`RegionLevers.tsx`)
@@ -178,8 +194,8 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   a "grows with GDP" subtext for demand); then the per-metric rows with a `Progress` bar colored by
   `metricColor(value)`. Empty state: dimmed "Select a region on the globe." **Now rendered inside the
   `DataOverlay`** (region view), not inline.
-- **DataOverlay** (`DataOverlay.tsx`) — the emissions data window opened from the resource-bar 📊
-  button. Full-screen `Overlay` (`color="#000"`, `backgroundOpacity={0.85}`, `fixed`, `zIndex={1000}`)
+- **DataOverlay** (`DataOverlay.tsx`) — the emissions data window opened from the **RegionInfoBox 📊
+  button**. Full-screen `Overlay` (`color="#000"`, `backgroundOpacity={0.85}`, `fixed`, `zIndex={1000}`)
   with a centered, framer-motion (fade + 20px rise) window ~560px wide; content scrolls in a
   `ScrollArea.Autosize` (`mah="86vh"`). It **hosts the existing components**: `RegionPanel` when a
   region is selected, otherwise `Dashboard` (the planet) — no emissions logic is duplicated. Closes on
