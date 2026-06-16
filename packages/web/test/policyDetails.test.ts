@@ -22,13 +22,20 @@ describe('effectLines', () => {
     expect(gdp.direction).toBe('bad'); // losing GDP is bad
   });
 
-  it('marks a storage-gated renewable share effect and formats a 0–1 delta plainly', () => {
-    // renewable-subsidy: windShare/solarShare +0.05 ongoing storageGated
+  it('synthesizes the renewable fossil-replacement conversion (storage-gated, good)', () => {
+    // renewable-subsidy converts fossil → wind/solar in a submodel (no declared effects).
     const lines = effectLines(policy('renewable-subsidy'));
-    const wind = lines.find((l) => l.label === 'Wind share')!;
-    expect(wind.magnitude).toBe('+0.05');
-    expect(wind.direction).toBe('good'); // growing renewable share is good
-    expect(wind.note).toMatch(/storage/i);
+    const share = lines.find((l) => l.label === 'Renewable share')!;
+    expect(share.direction).toBe('good'); // growing renewable share is good
+    expect(share.scope).toBe('each turn');
+    expect(share.note).toMatch(/storage/i);
+  });
+
+  it('synthesizes the nuclear fossil-replacement conversion (uranium-capped, good)', () => {
+    const lines = effectLines(policy('nuclear-buildout'));
+    const share = lines.find((l) => l.label === 'Nuclear share')!;
+    expect(share.direction).toBe('good');
+    expect(share.note).toMatch(/uranium/i);
   });
 
   it('synthesizes EV Subsidies mechanics (effects live in a submodel, not declared)', () => {

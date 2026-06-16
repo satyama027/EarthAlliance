@@ -157,11 +157,20 @@ eight sources: fossil `coal`/`gas`/`oil`, zero-carbon-but-not-renewable `nuclear
 `hydro`/`wind`/`solar`/`geothermal` (`generation.ts`; emission factors normalized to coal = 1.0:
 gas 0.45, oil 0.70, others 0). **`gridCarbonIntensity` is DERIVED** from the mix
 (`Σ share × factor`) by the `generationMix` sub-model — it is **no longer a policy lever**.
-Renewable/nuclear policies instead grow generation shares (`windShare`/`solarShare`/`nuclearShare`
-`EffectTarget`s, routed into `generationMix` by `applyToRegion`); the `generationMix` sub-model then
-conserves Σ = 1 by retiring the **dirtiest fossils first** (coal → gas → oil) and re-derives
-intensity. Mixes are seeded from real ~2024 generation data (Ember/EIA/IEA), with `electricityDemand`
-set so `demand × intensity` preserves each region's real electricity CO₂.
+Renewable/nuclear policies are **fossil-replacement conversions** (`ConversionSpec` in `types.ts`):
+each turn, while funded, they convert a *fixed* slice of the **dirtiest available fossil**
+(coal → oil → gas; gas is the cleanest fossil, so it retires last) into their clean source —
+`drawFromFossils` pulls the fossil down and the same amount is added to the clean share, so the move
+is **net-zero to Σ** and two such policies never dilute each other (no renormalization fight). The
+conversion is applied in the `programs` sub-model (it is *not* a declared `effect`). **Renewables are
+uncapped** (land isn't the binding constraint — they can clean the grid to ~100%, gated only by grid
+storage and remaining fossil), split between wind/solar by a per-region `SOLAR_WEIGHT`. **Nuclear is
+capped per region by domestic uranium reserves** (`NUCLEAR_CAP`, derived from IAEA/NEA Red Book
+reserves × 40 GWh/t ÷ regional generation ÷ a 60-yr fleet life, clamped 0.05–0.85): uranium-rich
+regions (Oceania, Sub-Saharan, Russia-Central Asia) go nuclear-heavy; uranium-poor giants (East Asia,
+Europe) are floored and lean on renewables. `rebalanceMix` remains as a Σ-drift safety net (now a
+no-op since conversions conserve Σ). Mixes are seeded from real ~2024 generation data (Ember/EIA/IEA),
+with `electricityDemand` set so `demand × intensity` preserves each region's real electricity CO₂.
 
 Three remaining **coupling variables** carry the other trade-offs: `electricityDemand`,
 `agriculturalProductivity` (index, baseline 100), and `energyStorageCapacity` (0–1, gates renewable
@@ -172,7 +181,8 @@ that would otherwise drift (`agriculturalProductivity` from farming) are modelle
 one-time shifts; emission cuts stay `ongoing` flows. **EV Subsidies** (`ev-transition`) is special:
 its transport→electricity conversion is a per-turn flow driven by buildout capacity in the
 `evElectrification` sub-model — each turn a capacity-driven slice of road transport is electrified
-(tailpipe → 0 at full buildout) and added to electricity demand at `EV_DEMAND_FACTOR` (0.35, the
+(tailpipe → 0 at full buildout, reached over ~10 turns at `ratePerTurn 0.10` — the card copy now
+states this multi-decade timescale) and added to electricity demand at `EV_DEMAND_FACTOR` (0.35, the
 EV efficiency gain net of battery-charging losses), tracked drift-free against a GDP-grown baseline.
 Aviation/shipping has a hard-to-abate **floor** (`AVIATION_FLOOR` of its activity-driven level,
 stashed by `emissions` and enforced at finalization). All deltas/costs are provisional pending a
@@ -216,9 +226,9 @@ interface SimContext {
 | G | `biodiversity` | per-region ecosystem health                                          |
 | H | `support`      | per-region public support + equity drift                            |
 | I | `resources`    | global money regeneration from taxed GDP (the single spendable resource) |
-| J | `programs`     | charge recurring/buildout policy upkeep (GDP-scaled), advance buildout capacity, apply ramped buildout effects (incl. share growth) |
+| J | `programs`     | **region-by-region, stage-order**: charge recurring/buildout upkeep (GDP-scaled; FLAT for conversions), advance generic buildout capacity + ramped effects, and run renewable/nuclear **fossil→clean conversions** (net-zero to Σ) |
 | K | `evElectrification` | for each EV-Subsidies enactment, convert a capacity-driven slice of road transport into electricity demand (tailpipe → 0 at full buildout), drift-free against a GDP-grown baseline |
-| L | `generationMix` | rebalance each region's mix to Σ = 1 (retiring dirtiest fossils first) and **derive** `gridCarbonIntensity` from it |
+| L | `generationMix` | rebalance each region's mix to Σ = 1 (`rebalanceMix` — drift safety net, retiring dirtiest fossils coal→oil→gas; a no-op now conversions are net-zero) and **derive** `gridCarbonIntensity` from it |
 
 `programs` runs after `resources` so this turn's regenerated tax income is available to fund policy
 upkeep; `evElectrification` then runs (capacity already advanced), and `generationMix` runs **last**
@@ -259,20 +269,24 @@ a buildout's ongoing effects into `activeEffects`, so they are never double-appl
 Each policy declares a `funding` mode and a single `cost.money` that is a **global reference**
 (1 money = $1B over a 5-year turn). The money actually charged in a region is scaled by that
 region's share of world GDP (`regionCharge`); summed over all regions it recovers the global
-reference. Money is the **only** spendable resource — there is no second currency.
+reference. Money is the **only** spendable resource — there is no second currency. **Exception:**
+the two **fossil-replacement** policies (renewable-subsidy, nuclear-buildout) carry a `conversion`
+spec and are **flat-priced** — `regionCharge` returns their `cost.money` unchanged, the same money
+in every region regardless of GDP.
 
 | funding | when money is charged | effect | examples |
 |---|---|---|---|
 | `one-time`  | once at enactment (`spendAndRegister`) | permanent | carbon-tax, degrowth, orbital, off-world |
 | `recurring` | every turn while active (`programs`), never completes | flat | climate-adaptation |
-| `buildout`  | every turn until installed capacity reaches 100%, then stops | ramps with capacity (`delta × capacity`), persists at full after completion | renewable-subsidy, nuclear, reforestation, transit, education, grid-storage, EV, sustainable-fuels, industrial-electrification, green-steel-cement, CCS, circular-economy, organic-farming, precision-agriculture |
+| `buildout`  | every turn until installed capacity reaches 100%, then stops | ramps with capacity (`delta × capacity`), persists at full after completion | reforestation, transit, education, grid-storage, EV, sustainable-fuels, industrial-electrification, green-steel-cement, CCS, circular-economy, organic-farming, precision-agriculture |
+| `buildout` + `conversion` | every turn (FLAT cost) until the per-region cap is hit or fossils run out | converts a fixed grid-share fossil→clean, net-zero to Σ; installed clean share persists in the mix | renewable-subsidy (uncapped, storage-gated, wind/solar), nuclear-buildout (uranium-capped, firm) |
 
-An ongoing effect flagged **`storageGated`** (intermittent renewables) is additionally scaled in
-`programs` by the region's grid-storage efficiency `STORAGE_FLOOR + (1 − STORAGE_FLOOR) × energyStorageCapacity`
-(`STORAGE_FLOOR = 0.6`): at zero storage a renewable delivers only 60% of its grid-intensity cut,
-rising to 100% once `energyStorageCapacity` is fully built. Firm sources (nuclear) leave the flag unset
-and deliver full benefit immediately — so the player is rewarded for building storage before over-building
-renewables. The coupling stocks policies move (`gridCarbonIntensity`, `energyStorageCapacity` → `[0,1]`;
+**Storage gating** (`STORAGE_FLOOR + (1 − STORAGE_FLOOR) × energyStorageCapacity`, `STORAGE_FLOOR = 0.6`):
+the renewable conversion's per-turn **rate** is scaled by this factor — at zero storage only 60% of the
+slice converts, rising to 100% once `energyStorageCapacity` is fully built. Firm nuclear leaves
+`storageGated` unset and converts at full rate immediately — so the player is rewarded for building
+storage before over-building renewables. (Generic buildout ongoing effects can still set `storageGated`
+to scale `delta × capacity` the same way, though no current generic policy does.) The coupling stocks policies move (`gridCarbonIntensity`, `energyStorageCapacity` → `[0,1]`;
 `electricityDemand`, `agriculturalProductivity` → `≥ 0`) are clamped to their valid ranges at turn
 finalization, just before `electricity` and the totals are derived.
 
@@ -445,8 +459,8 @@ These hold across the engine and are guarded by the test suite. Treat them as lo
    a turn returns an ended state, stop calling the engine.
 
 4. **Emissions totals and grid intensity are derived, never set.** Each region's `gridCarbonIntensity`
-   is derived from its `generationMix` (`Σ share × factor`, shares kept conserved to 1 with renewable
-   growth retiring coal→gas→oil); at finalization `electricity` is recomputed as
+   is derived from its `generationMix` (`Σ share × factor`, shares kept conserved to 1 by the net-zero
+   fossil→clean conversions, which draw the dirtiest fossil first: coal→oil→gas); at finalization `electricity` is recomputed as
    `electricityDemand × gridCarbonIntensity`, `regionalEmissions` as the sum of the six per-source
    fields, and `climate.annualEmissions` as `Σ regionalEmissions`. None of `gridCarbonIntensity`/
    `electricity`/`regionalEmissions`/`annualEmissions` is a valid `EffectTarget`; policies move
@@ -506,7 +520,12 @@ These hold across the engine and are guarded by the test suite. Treat them as lo
   activity sources are clamped `≥ 0` at finalization (a sector can't emit negative — only `landUse`
   is a sink), and the coupling stocks are range-clamped; `test/invariants.test.ts` asserts all of
   this (sources finite + `≥ 0`, `Σ sources == regionalEmissions`, stocks in range) over 200 random
-  playthroughs. Policy costs/deltas remain a playtesting surface for finer tuning.
+  playthroughs. Policy costs/deltas remain a playtesting surface for finer tuning. The
+  **fossil-replacement** rework added a tuning surface in `policies.ts`: the per-region
+  `NUCLEAR_CAP` (uranium-derived, see §3) and `SOLAR_WEIGHT` tables, the two conversion
+  `ratePerTurn`s (renewable 0.06, nuclear 0.04), and their flat per-region costs (renewable 120,
+  nuclear 110). `test/scenarios.test.ts` (winnability + doom) and the golden snapshot guard that the
+  rework didn't move the do-nothing floor or the well-played win.
 - **Disaster/random events.** The RNG is threaded through every turn but only a
   `turn-advanced` event is emitted today; seeded disaster/milestone events are reserved.
 - **Art & audio.** Card art is referenced by asset *key* and SFX are synthesized in-browser;

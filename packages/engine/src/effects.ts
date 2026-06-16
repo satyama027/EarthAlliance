@@ -51,6 +51,7 @@ export function applyToRegion(region: Region, target: EffectTarget, delta: numbe
 }
 
 function buildoutBaseline(state: WorldState, policy: ReturnType<typeof getPolicy>, regionId: string): number {
+  if (policy?.conversion) return 0; // fossil-replacement starts at zero converted
   const spec = policy?.buildout;
   if (!spec) return 1; // non-buildout: fully "installed" immediately
   return spec.baselineByRegion?.[regionId] ?? spec.defaultBaseline ?? 0;
@@ -77,6 +78,7 @@ export function spendAndRegister(state: WorldState, selections: PolicySelection[
       policyId, regionId, capacity,
       complete: policy.funding === 'one-time' || (policy.funding === 'buildout' && capacity >= 1),
     };
+    if (policy.conversion) enactment.convertedShare = 0;
     state.enactments.push(enactment);
 
     for (const effect of policy.effects) {

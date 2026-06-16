@@ -88,6 +88,21 @@ const SYNTHESIZED_EFFECTS: Record<string, EffectLine[]> = {
     { label: 'Electricity demand', magnitude: '+rises', scope: 'each turn',
       direction: 'bad', note: 'oil demand shifts to power (~35% after EV efficiency)' },
   ],
+  // Renewable & nuclear are fossil-replacement conversions (see programs.ts): each turn they swap a
+  // fixed slice of the dirtiest fossil for clean generation, so their effect is on the mix, not a
+  // declared per-source delta.
+  'renewable-subsidy': [
+    { label: 'Renewable share', magnitude: '+rises', scope: 'each turn',
+      direction: 'good', note: 'replaces fossil generation (dirtiest first); scales with grid storage' },
+    { label: 'Grid carbon intensity', magnitude: `${MINUS}falls`, scope: 'each turn',
+      direction: 'good', note: 'uncapped — can clean the grid to ~100%' },
+  ],
+  'nuclear-buildout': [
+    { label: 'Nuclear share', magnitude: '+rises', scope: 'each turn',
+      direction: 'good', note: 'replaces fossil generation; capped by the region’s uranium reserves' },
+    { label: 'Grid carbon intensity', magnitude: `${MINUS}falls`, scope: 'each turn',
+      direction: 'good', note: 'firm baseload — delivers in full (no storage gate)' },
+  ],
 };
 
 /** Display-ready breakdown of what a policy does, one line per effect. */

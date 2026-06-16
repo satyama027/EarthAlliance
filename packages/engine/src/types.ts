@@ -115,15 +115,29 @@ export interface BuildoutSpec {
   defaultBaseline?: number;                     // fallback starting capacity (default 0)
 }
 
+/**
+ * A `buildout`-funded "fossil-replacement" policy (renewable-subsidy / nuclear-buildout): each turn
+ * while funded it converts a fixed grid-share of the dirtiest available fossil (coal → oil → gas)
+ * into its clean source — net-zero to Σ shares, so two such policies never dilute each other. Cost
+ * is flat across regions (see `regionCharge`).
+ */
+export interface ConversionSpec {
+  cleanSource: 'renewable' | 'nuclear';   // what the fossil is replaced WITH (renewable splits wind/solar)
+  ratePerTurn: number;                     // grid fraction converted per turn (fixed across regions)
+  storageGated?: boolean;                  // renewables: scale the rate by grid-storage efficiency
+  capByRegion?: Record<RegionId, number>;  // max cumulative grid fraction convertible; omit ⇒ uncapped
+}
+
 export interface Policy {
   id: string;
   name: string;
   category: PolicyCategory;
   description: string;
   art: string;               // asset key (placeholder)
-  cost: Resources;           // money is the GLOBAL reference; per-region charge is scaled by GDP share
+  cost: Resources;           // money is the GLOBAL reference (GDP-scaled per region); FLAT per region when `conversion` is set
   funding: PolicyFunding;
-  buildout?: BuildoutSpec;   // required when funding === 'buildout'
+  buildout?: BuildoutSpec;   // generic `buildout`: capacity rollout (mutually exclusive with `conversion`)
+  conversion?: ConversionSpec; // `buildout` fossil-replacement variant (renewable/nuclear)
   prerequisites?: string[];  // policy ids that must already be enacted IN THE SAME region
   effects: PolicyEffect[];
 }
@@ -141,6 +155,9 @@ export interface Enactment {
   capacity: number;   // 0–1 installed capacity (1 immediately for non-buildout)
   complete: boolean;  // buildout: capacity >= 1; one-time: true; recurring: false
   cancelled?: boolean; // buildout frozen by the player: stops upkeep + advance, keeps the installed benefit
+  // Fossil-replacement conversion bookkeeping (renewable-subsidy / nuclear-buildout): cumulative
+  // grid share this enactment has converted from fossil to clean, for cap tracking. See programs.ts.
+  convertedShare?: number;
   // EV electrification bookkeeping (ev-transition only): the counterfactual road-transport baseline
   // (grown with GDP) and the cumulative electricity demand already added, so each turn applies only
   // the capacity-driven delta — gradual and drift-free. See models/evElectrification.ts.

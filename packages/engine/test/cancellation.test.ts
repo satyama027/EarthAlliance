@@ -76,15 +76,27 @@ describe('advanceTurn — cancelling a committed buildout', () => {
 });
 
 describe('programs — cancelled buildout', () => {
-  it('charges nothing and stops advancing, but the installed capacity still delivers its benefit', () => {
+  it('a cancelled generic buildout charges nothing, stops advancing, but still delivers its benefit', () => {
     const state = makeState({
-      regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, energyStorageCapacity: 1 })],
+      regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9 })],
       resources: { money: 5000 },
-      enactments: [enact({ capacity: 0.4, cancelled: true })],
+      enactments: [{ policyId: 'reforestation', regionId: 'r1', capacity: 0.4, complete: false, cancelled: true }],
     });
     programs.step(makeContext(state));
     expect(state.resources.money).toBeCloseTo(5000, 5);          // no upkeep
     expect(state.enactments[0]!.capacity).toBeCloseTo(0.4, 5);    // frozen
-    expect(state.regions[0]!.generationMix.wind).toBeCloseTo(0.3 + 0.05 * 0.4, 5); // benefit persists
+    expect(state.regions[0]!.landUse).toBeCloseTo(0.5 - 0.3 * 0.4, 5); // installed benefit persists
+  });
+
+  it('a cancelled conversion charges nothing and converts no more fossil (installed mix persists)', () => {
+    const state = makeState({
+      regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9, energyStorageCapacity: 1 })],
+      resources: { money: 5000 },
+      enactments: [{ policyId: 'renewable-subsidy', regionId: 'r1', capacity: 0.4, complete: false, cancelled: true, convertedShare: 0.1 }],
+    });
+    programs.step(makeContext(state));
+    expect(state.resources.money).toBeCloseTo(5000, 5);             // no upkeep
+    expect(state.regions[0]!.generationMix.coal).toBeCloseTo(0.5, 9); // no further conversion
+    expect(state.enactments[0]!.convertedShare).toBeCloseTo(0.1, 9);  // frozen at what was installed
   });
 });

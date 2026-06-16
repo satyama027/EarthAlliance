@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   POLICY_CATALOG, getAvailablePolicies, getGloballyAvailablePolicies,
   validateSelection, getPolicy, isEnacted, enactedInAnyRegion,
+  regionCharge, NUCLEAR_CAP, SOLAR_WEIGHT,
 } from '../src/policies.js';
 import type { Enactment } from '../src/types.js';
+import { SAMPLE_REGIONS } from '../src/data/regions.js';
 import { makeState } from './fixtures.js';
 
 const REGION = 'north-america';
@@ -21,12 +23,60 @@ describe('policy catalog', () => {
     }
   });
 
-  it('gives every buildout policy a positive ratePerTurn', () => {
+  it('gives every buildout policy a positive ratePerTurn (generic or conversion)', () => {
     for (const p of POLICY_CATALOG) {
-      if (p.funding === 'buildout') {
-        expect(p.buildout?.ratePerTurn).toBeGreaterThan(0);
-      }
+      if (p.funding !== 'buildout') continue;
+      const rate = p.buildout?.ratePerTurn ?? p.conversion?.ratePerTurn;
+      expect(rate).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('fossil-replacement policy data', () => {
+  it('NUCLEAR_CAP covers all 10 regions with caps in [0.05, 0.85], multiples of 0.05', () => {
+    expect(Object.keys(NUCLEAR_CAP)).toHaveLength(10);
+    for (const r of SAMPLE_REGIONS) {
+      const cap = NUCLEAR_CAP[r.id];
+      expect(cap).toBeDefined();
+      expect(cap!).toBeGreaterThanOrEqual(0.05);
+      expect(cap!).toBeLessThanOrEqual(0.85);
+      expect(Math.round(cap! / 0.05)).toBeCloseTo(cap! / 0.05, 9); // multiple of 0.05
+    }
+  });
+
+  it('caps uranium-rich regions highest and uranium-poor giants at the floor', () => {
+    expect(NUCLEAR_CAP.oceania).toBe(0.85);
+    expect(NUCLEAR_CAP['sub-saharan-africa']).toBe(0.85);
+    expect(NUCLEAR_CAP['east-asia']).toBe(0.05); // huge demand, little domestic uranium
+    expect(NUCLEAR_CAP.oceania).toBeGreaterThan(NUCLEAR_CAP['south-asia']!);
+  });
+
+  it('SOLAR_WEIGHT covers all 10 regions within [0, 1]', () => {
+    for (const r of SAMPLE_REGIONS) {
+      const w = SOLAR_WEIGHT[r.id];
+      expect(w).toBeDefined();
+      expect(w!).toBeGreaterThanOrEqual(0);
+      expect(w!).toBeLessThanOrEqual(1);
+    }
+    expect(SOLAR_WEIGHT.mena).toBeGreaterThan(SOLAR_WEIGHT.europe!); // sun-rich vs wind-leaning
+  });
+
+  it('charges conversion policies a FLAT cost — equal across regions of very different GDP', () => {
+    const state = makeState({ resources: { money: 5000 } });
+    const rich = state.regions.find((r) => r.id === 'north-america')!;
+    const poor = state.regions.find((r) => r.id === 'sub-saharan-africa')!;
+    expect(rich.gdpPerCapita).toBeGreaterThan(poor.gdpPerCapita * 10); // genuinely different
+    const renewable = getPolicy('renewable-subsidy')!;
+    expect(regionCharge(state, renewable, 'north-america'))
+      .toBeCloseTo(regionCharge(state, renewable, 'sub-saharan-africa'), 9);
+    expect(regionCharge(state, renewable, 'north-america')).toBeCloseTo(renewable.cost.money, 9);
+  });
+
+  it('still GDP-scales a non-conversion policy (reforestation costs more in a richer region)', () => {
+    const state = makeState({ resources: { money: 5000 } });
+    const reforestation = getPolicy('reforestation')!;
+    expect(regionCharge(state, reforestation, 'north-america'))
+      .toBeGreaterThan(regionCharge(state, reforestation, 'sub-saharan-africa'));
   });
 });
 

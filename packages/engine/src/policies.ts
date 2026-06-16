@@ -1,10 +1,24 @@
 import type { Policy, PolicySelection, WorldState } from './types.js';
 
-// Renewable buildout starts higher in developed regions (real ids from data/regions.ts).
-const RENEWABLE_BASELINE: Record<string, number> = {
-  europe: 0.25, 'north-america': 0.20, oceania: 0.20, 'east-asia': 0.15,
-  'russia-central-asia': 0.12, 'latin-america': 0.10, 'southeast-asia': 0.08,
-  'south-asia': 0.07, mena: 0.05, 'sub-saharan-africa': 0.05,
+// Max share of a region's grid that Nuclear Buildout may convert from fossil to nuclear, derived
+// from domestic uranium reserves: cap = roundTo(0.05, clamp(yearsOfFullGridSupply / 60, 0.05, 0.85)),
+// where yearsOfFullGridSupply = reserves(t) × 40 GWh ÷ regional annual generation. Reserves from the
+// IAEA/NEA Red Book (Australia 1.67 Mt, Kazakhstan 0.81, Canada 0.58, Namibia 0.50, Russia 0.48,
+// Niger 0.34, S.Africa 0.32, China 0.27, India 0.19); 40 GWh/t is once-through LWR energy content;
+// ÷60 is a reactor fleet's lifetime; 0.85 ceiling (grids need dispatchable flex), 0.05 floor.
+// Uranium-rich/low-demand regions go nuclear-heavy; uranium-poor giants lean on uncapped renewables.
+// (Tunable balance surface.)
+export const NUCLEAR_CAP: Record<string, number> = {
+  oceania: 0.85, 'sub-saharan-africa': 0.85, 'russia-central-asia': 0.70,
+  'latin-america': 0.15, 'north-america': 0.10, 'south-asia': 0.05,
+  europe: 0.05, mena: 0.05, 'east-asia': 0.05, 'southeast-asia': 0.05,
+};
+
+// Share of each Renewable Subsidy conversion that goes to solar (remainder → wind), from solar-GHI
+// rankings (MENA/Sahel/Atacama/Australia sun-rich; Europe/Russia wind-leaning). Missing region ⇒ 0.5.
+export const SOLAR_WEIGHT: Record<string, number> = {
+  mena: 0.85, 'sub-saharan-africa': 0.75, 'south-asia': 0.70, oceania: 0.65, 'southeast-asia': 0.60,
+  'latin-america': 0.55, 'north-america': 0.55, 'east-asia': 0.55, 'russia-central-asia': 0.45, europe: 0.35,
 };
 
 // `money` is a GLOBAL reference cost (1 unit = $1B over a 5-year turn); the amount
@@ -23,24 +37,21 @@ export const POLICY_CATALOG: readonly Policy[] = [
   },
   {
     id: 'renewable-subsidy', name: 'Renewable Subsidy', category: 'energy',
-    description: 'Fund wind and solar deployment until the grid is built out.',
-    art: 'renewable-subsidy', cost: { money: 1200 }, funding: 'buildout',
-    buildout: { ratePerTurn: 0.10, baselineByRegion: RENEWABLE_BASELINE, defaultBaseline: 0 },
-    // Grows wind+solar share of the generation mix (the generationMix submodel retires coal first,
-    // so derived grid intensity falls). Intermittent → storage-gated: full deployment lands only
-    // once grid storage is built.
-    effects: [
-      { target: 'windShare', delta: 0.05, duration: 'ongoing', storageGated: true },
-      { target: 'solarShare', delta: 0.05, duration: 'ongoing', storageGated: true },
-    ],
+    description: 'Replace fossil generation with wind and solar — a fixed slice of the grid each turn, dirtiest fuel first. Land is plentiful, so it can run the grid to ~100% clean; intermittent, so grid storage gates how fast it lands.',
+    art: 'renewable-subsidy', cost: { money: 120 }, funding: 'buildout',
+    // Fossil-replacement: convert 6% of the grid per turn (storage-gated) from the dirtiest fossil
+    // into wind+solar (split by SOLAR_WEIGHT). Uncapped — only fossil availability bounds it. Flat cost.
+    conversion: { cleanSource: 'renewable', ratePerTurn: 0.06, storageGated: true },
+    effects: [],
   },
   {
     id: 'nuclear-buildout', name: 'Nuclear Buildout', category: 'energy',
-    description: 'Large baseload decarbonization; reactors come online over years.',
-    art: 'nuclear-buildout', cost: { money: 800 }, funding: 'buildout',
-    buildout: { ratePerTurn: 0.08, defaultBaseline: 0 },
-    // Grows nuclear share of the mix. Firm baseload → NOT storage-gated (delivers in full).
-    effects: [{ target: 'nuclearShare', delta: 0.08, duration: 'ongoing' }],
+    description: 'Replace fossil generation with firm nuclear baseload — a fixed slice of the grid each turn. Capped by the region’s domestic uranium reserves: uranium-rich regions can go nuclear-heavy, uranium-poor ones barely at all.',
+    art: 'nuclear-buildout', cost: { money: 110 }, funding: 'buildout',
+    // Fossil-replacement: convert 4% of the grid per turn from the dirtiest fossil into nuclear,
+    // up to the region's uranium cap. Firm baseload → NOT storage-gated. Flat cost.
+    conversion: { cleanSource: 'nuclear', ratePerTurn: 0.04, capByRegion: NUCLEAR_CAP },
+    effects: [],
   },
   {
     id: 'reforestation', name: 'Reforestation', category: 'land',
@@ -75,7 +86,7 @@ export const POLICY_CATALOG: readonly Policy[] = [
   },
   {
     id: 'ev-transition', name: 'EV Subsidies', category: 'industry',
-    description: 'Subsidize electric vehicles: each turn more of the fleet converts, shifting oil demand into a growing electricity load until tailpipe emissions reach zero.',
+    description: 'Subsidize electric vehicles: the fleet electrifies gradually over decades (~10 turns), shifting road-transport oil demand into a growing electricity load until tailpipe emissions approach zero.',
     art: 'ev-transition', cost: { money: 900 }, funding: 'buildout',
     buildout: { ratePerTurn: 0.10, defaultBaseline: 0 },
     // Transport cut + electricity-demand growth are driven gradually by buildout capacity in the
@@ -274,6 +285,8 @@ const worldGdp = (state: WorldState): number =>
  * is the policy's "setup" cost as well.
  */
 export function regionCharge(state: WorldState, policy: Policy, regionId: string): number {
+  // Fossil-replacement policies are flat-priced: the same money in every region (not GDP-scaled).
+  if (policy.conversion) return policy.cost.money;
   const region = state.regions.find((r) => r.id === regionId);
   const total = worldGdp(state);
   if (!region || total <= 0) return 0;

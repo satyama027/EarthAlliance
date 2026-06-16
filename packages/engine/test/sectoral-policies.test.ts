@@ -157,10 +157,10 @@ describe('activity sources cannot go negative (only land-use is a sink)', () => 
 });
 
 describe('policy catalog integrity', () => {
-  it('gives every buildout policy a buildout spec and a positive cost', () => {
+  it('gives every buildout policy a rollout spec (buildout or conversion) and a positive cost', () => {
     for (const p of POLICY_CATALOG) {
       expect(p.cost.money).toBeGreaterThan(0);
-      if (p.funding === 'buildout') expect(p.buildout).toBeDefined();
+      if (p.funding === 'buildout') expect(p.buildout ?? p.conversion).toBeDefined();
     }
   });
 });

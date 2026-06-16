@@ -36,8 +36,30 @@ export const GENERATION_SOURCES: Record<GenerationSource, GenerationSourceSpec> 
 
 export const GENERATION_SOURCE_IDS = Object.keys(GENERATION_SOURCES) as GenerationSource[];
 
-/** Fossil sources ordered dirtiest-first — the order in which they are retired as clean share grows. */
-const FOSSIL_BY_DIRTINESS: readonly GenerationSource[] = ['coal', 'gas', 'oil'];
+/**
+ * Fossil sources ordered dirtiest-first by emission factor (coal 1.0 → oil 0.70 → gas 0.45) — the
+ * order in which they are retired as clean share grows. Gas is the *cleanest* fossil, so it retires
+ * last.
+ */
+const FOSSIL_BY_DIRTINESS: readonly GenerationSource[] = ['coal', 'oil', 'gas'];
+
+/**
+ * Pull up to `amount` of generation share out of the fossils, dirtiest-first (coal → oil → gas),
+ * capped at what is actually available. Mutates the fossil shares down in place and returns the
+ * amount actually pulled (which is `< amount` only when fossils are exhausted). The caller pairs
+ * this with a matching add to a clean source, so the conversion is net-zero to Σ shares — no
+ * renormalization is needed and two clean policies cannot dilute each other.
+ */
+export function drawFromFossils(mix: GenerationMix, amount: number): number {
+  let remaining = amount;
+  for (const f of FOSSIL_BY_DIRTINESS) {
+    if (remaining <= 0) break;
+    const take = Math.min(mix[f], remaining);
+    mix[f] -= take;
+    remaining -= take;
+  }
+  return amount - remaining;
+}
 
 /** Average grid carbon intensity (0–1) implied by a generation mix. */
 export function gridIntensityFromMix(mix: GenerationMix): number {
@@ -48,9 +70,9 @@ export function gridIntensityFromMix(mix: GenerationMix): number {
 
 /**
  * Conserve Σ shares = 1 after policy has grown clean shares. The net share added above 1 is drawn
- * out of the fossils dirtiest-first (coal → gas → oil), so coal retires before gas before oil.
- * Negative shares are clamped to 0; a terminal proportional renormalization guards floating-point
- * drift and the (rare) case where fossils are exhausted.
+ * out of the fossils dirtiest-first (coal → oil → gas), so coal retires before oil before gas (gas
+ * is the cleanest fossil). Negative shares are clamped to 0; a terminal proportional renormalization
+ * guards floating-point drift and the (rare) case where fossils are exhausted.
  */
 export function rebalanceMix(mix: GenerationMix): void {
   for (const s of GENERATION_SOURCE_IDS) if (mix[s] < 0) mix[s] = 0;
