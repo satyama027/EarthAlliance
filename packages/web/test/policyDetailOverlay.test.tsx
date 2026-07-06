@@ -26,14 +26,15 @@ function vm(over: Partial<CardVM> = {}): CardVM {
 describe('PolicyDetailOverlay', () => {
   it('renders nothing when vm is null', () => {
     wrap(<PolicyDetailOverlay vm={null} regionName="North America" onPrimary={() => {}} onClose={() => {}} />);
-    expect(screen.queryByText(/price carbon/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/tax fossil-fuel emissions/i)).not.toBeInTheDocument();
   });
 
   it('shows the full description and a per-effect breakdown', () => {
     wrap(<PolicyDetailOverlay vm={vm()} regionName="North America" onPrimary={() => {}} onClose={() => {}} />);
-    expect(screen.getByText(/price carbon to curb power demand/i)).toBeInTheDocument();
-    expect(screen.getByText('Electricity demand')).toBeInTheDocument();
+    expect(screen.getByText(/tax fossil-fuel emissions/i)).toBeInTheDocument();
+    expect(screen.getByText('Treasury revenue')).toBeInTheDocument();
     expect(screen.getByText('Public support')).toBeInTheDocument();
+    expect(screen.getByText('Industry emissions')).toBeInTheDocument();
   });
 
   it('shows "Runs until cancelled" for a recurring policy', () => {

@@ -157,9 +157,10 @@ describe('activity sources cannot go negative (only land-use is a sink)', () => 
 });
 
 describe('policy catalog integrity', () => {
-  it('gives every buildout policy a rollout spec (buildout or conversion) and a positive cost', () => {
+  it('gives every buildout policy a rollout spec (buildout or conversion) and a non-negative cost', () => {
     for (const p of POLICY_CATALOG) {
-      expect(p.cost.money).toBeGreaterThan(0);
+      // Most policies cost money; the Carbon Tax is a revenue lever (cost 0), so allow >= 0.
+      expect(p.cost.money).toBeGreaterThanOrEqual(0);
       if (p.funding === 'buildout') expect(p.buildout ?? p.conversion).toBeDefined();
     }
   });

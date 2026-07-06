@@ -54,14 +54,34 @@ describe('effectLines', () => {
     expect(yield_.magnitude).toBe('+8');
     expect(yield_.direction).toBe('good');
   });
+
+  it('shows the Carbon Tax revenue + flat support offset (synthesized) alongside its industry cut', () => {
+    // carbon-tax: revenue + a flat public-support offset live in the submodel; only industry is declared.
+    const lines = effectLines(policy('carbon-tax'));
+    const revenue = lines.find((l) => l.label === 'Treasury revenue')!;
+    expect(revenue.direction).toBe('good');
+    expect(revenue.note).toMatch(/decarbonise/i);
+
+    const support = lines.find((l) => l.label === 'Public support')!;
+    expect(support.magnitude).toBe('−5');
+    expect(support.scope).toBe('while active'); // held flat while active, not per-turn
+    expect(support.direction).toBe('bad');
+
+    const industry = lines.find((l) => l.label === 'Industry emissions')!;
+    expect(industry.magnitude).toBe('−0.05 Gt/yr');
+    expect(industry.direction).toBe('good');
+  });
 });
 
 describe('durationLine', () => {
   it('returns "Runs until cancelled" for recurring policies', () => {
     expect(durationLine(policy('anti-deforestation'))).toBe('Runs until cancelled');
   });
+  it('returns "Runs until cancelled" for the recurring Carbon Tax', () => {
+    expect(durationLine(policy('carbon-tax'))).toBe('Runs until cancelled');
+  });
   it('returns null for one-time and buildout policies', () => {
-    expect(durationLine(policy('carbon-tax'))).toBeNull(); // one-time
+    expect(durationLine(policy('fuel-efficiency'))).toBeNull(); // one-time
     expect(durationLine(policy('renewable-subsidy'))).toBeNull(); // buildout
   });
 });

@@ -26,13 +26,16 @@ export const SOLAR_WEIGHT: Record<string, number> = {
 export const POLICY_CATALOG: readonly Policy[] = [
   {
     id: 'carbon-tax', name: 'Carbon Tax', category: 'industry',
-    description: 'Price carbon to curb power demand; unpopular up front.',
-    art: 'carbon-tax', cost: { money: 50 }, funding: 'one-time',
+    description: 'Tax fossil-fuel emissions for treasury revenue that shrinks as you decarbonise — at a standing political cost.',
+    art: 'carbon-tax', cost: { money: 0 }, funding: 'recurring',
+    // Revenue (= CARBON_TAX_RATE × fossil-combustion emissions) AND the flat public-support offset are
+    // applied by the `carbonTax` submodel — money is a global resource, not an EffectTarget, and the
+    // support cost must be a conditional FLAT level (held while active, restored on repeal), not an
+    // accumulating per-turn flow. Both fall away as the region decarbonizes. The only declared effect
+    // is a modest industry price-response cut (real unit, Gt/yr). Recurring funding (cost 0 → no upkeep
+    // charge) makes the tax repealable.
     effects: [
-      // Grid intensity is now derived from the generation mix, so the tax instead curbs power
-      // DEMAND (efficiency + price response), lowering electricity = demand × intensity each turn.
-      { target: 'electricityDemand', delta: -0.15, duration: 'ongoing' },
-      { target: 'publicSupport', delta: -3, duration: 'immediate' },
+      { target: 'industry', delta: -0.05, duration: 'ongoing' },
     ],
   },
   {

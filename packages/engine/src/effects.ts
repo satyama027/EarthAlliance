@@ -18,6 +18,13 @@ export function applyCancellations(state: WorldState, cancellations: PolicySelec
       const e = state.enactments.find((x) => x.policyId === policyId && x.regionId === regionId);
       if (e) e.cancelled = true;
     } else if (policy.funding === 'recurring') {
+      // Reverse any flat level-shift the enactment baked into the region before dropping it, so the
+      // metric returns to its no-policy line (only the Carbon Tax sets `carbonSupportApplied`).
+      const e = state.enactments.find((x) => x.policyId === policyId && x.regionId === regionId);
+      if (e?.carbonSupportApplied) {
+        const region = state.regions.find((r) => r.id === regionId);
+        if (region) region.publicSupport = clamp(region.publicSupport - e.carbonSupportApplied, 0, 100);
+      }
       state.enactments = state.enactments.filter((x) => !(x.policyId === policyId && x.regionId === regionId));
       state.activeEffects = state.activeEffects.filter((x) => !(x.policyId === policyId && x.regionId === regionId));
     }

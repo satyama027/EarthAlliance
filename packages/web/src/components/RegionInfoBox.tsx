@@ -3,6 +3,7 @@ import { Box, Button, Group, Paper, Progress, Stack, Text } from '@mantine/core'
 import type { Region } from '@earth-alliance/engine';
 import { metricColor, temperatureColor } from '../scene/metricColor.js';
 import { REGION_COLORS } from '../theme.js';
+import type { RegionBudget } from '../game/regionBudget.js';
 
 interface RegionInfoBoxProps {
   /** Selected region → its headline stats; `null` → the planet quick-stats. */
@@ -10,6 +11,8 @@ interface RegionInfoBoxProps {
   temperature: number;
   co2: number;
   annualEmissions: number;
+  /** The region's per-turn income breakdown; when present, adds a net Income stat. */
+  budget?: RegionBudget;
   /** Opens the full emissions-data overlay (the 📊 drill-down). */
   onOpenData(): void;
 }
@@ -36,7 +39,7 @@ function Unit({ children }: { children: ReactNode }) {
  * — no emissions logic is duplicated. Deliberately content-height so it reads as a glance-card, not
  * a column rivaling the map.
  */
-export function RegionInfoBox({ region, temperature, co2, annualEmissions, onOpenData }: RegionInfoBoxProps) {
+export function RegionInfoBox({ region, temperature, co2, annualEmissions, budget, onOpenData }: RegionInfoBoxProps) {
   if (!region) {
     return (
       <Paper p="sm" withBorder>
@@ -73,6 +76,9 @@ export function RegionInfoBox({ region, temperature, co2, annualEmissions, onOpe
         <Stack gap={8}>
           <Stat label="GDP per capita">${Math.round(region.gdpPerCapita).toLocaleString('en-US')}</Stat>
           <Stat label="Emissions">{region.regionalEmissions.toFixed(1)}<Unit>Gt/yr</Unit></Stat>
+          {budget && (
+            <Stat label="Income">${Math.round(budget.net).toLocaleString('en-US')}<Unit>/turn</Unit></Stat>
+          )}
           <Stack gap={4}>
             <Group justify="space-between">
               <Text size="xs" c="dimmed">Public support</Text>

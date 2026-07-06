@@ -39,10 +39,10 @@ describe('regionPolicyView', () => {
   });
 
   it('drops a committed one-time policy from the Active lane', () => {
-    const e: Enactment = { policyId: 'carbon-tax', regionId: REGION, capacity: 1, complete: true };
+    const e: Enactment = { policyId: 'fuel-efficiency', regionId: REGION, capacity: 1, complete: true };
     const { available, active } = regionPolicyView(withEnactments([e]), REGION, [], []);
-    expect(find(active, 'carbon-tax')).toBeUndefined();
-    expect(find(available, 'carbon-tax')).toBeUndefined();
+    expect(find(active, 'fuel-efficiency')).toBeUndefined();
+    expect(find(available, 'fuel-efficiency')).toBeUndefined();
   });
 
   it('drops a cancelled (frozen) buildout from the Active lane', () => {
@@ -79,7 +79,7 @@ describe('stagedCostNow', () => {
   });
 
   it('still charges one-time money', () => {
-    const cost = stagedCostNow(createInitialState(), [{ policyId: 'carbon-tax', regionId: REGION }]);
+    const cost = stagedCostNow(createInitialState(), [{ policyId: 'fuel-efficiency', regionId: REGION }]);
     expect(cost.money).toBeGreaterThan(0);
   });
 });

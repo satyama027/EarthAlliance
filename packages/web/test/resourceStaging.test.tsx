@@ -36,8 +36,8 @@ describe('ResourceBar reflects staged cost', () => {
     wrap(<Harness />);
     expect(moneyBadge()).toHaveTextContent('Money: 1,500');
     // Double-click stages the policy (single click only opens the detail overlay now).
-    await userEvent.dblClick(screen.getByRole('button', { name: /enact carbon tax/i }));
-    // carbon-tax is one-time → some GDP-scaled money is charged now, so remaining < 1500
+    await userEvent.dblClick(screen.getByRole('button', { name: /enact fuel efficiency/i }));
+    // fuel-efficiency is one-time → some GDP-scaled money is charged now, so remaining < 1500
     expect(moneyBadge()).not.toHaveTextContent('Money: 1,500');
   });
 });

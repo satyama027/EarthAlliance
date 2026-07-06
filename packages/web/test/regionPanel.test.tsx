@@ -38,4 +38,24 @@ describe('RegionPanel', () => {
     expect(screen.getByText(/crop yield/i)).toBeInTheDocument();
     expect(screen.getByText(/power demand/i)).toBeInTheDocument();
   });
+
+  it('shows the Income breakdown with the carbon-tax row when the tax is active', () => {
+    const region = SAMPLE_REGIONS[0]!;
+    const budget = { taxIncome: 1014, carbonTax: 11, upkeep: 120, net: 905 };
+    wrap(<RegionPanel region={region} budget={budget} />);
+    expect(screen.getByText('Income')).toBeInTheDocument();
+    expect(screen.getByText('Tax (GDP)')).toBeInTheDocument();
+    expect(screen.getByText('Carbon tax')).toBeInTheDocument();
+    expect(screen.getByText('Policy upkeep')).toBeInTheDocument();
+    expect(screen.getByText('Net')).toBeInTheDocument();
+    expect(screen.getByText('$905')).toBeInTheDocument();
+  });
+
+  it('hides the carbon-tax row when the tax is not active in the region', () => {
+    const region = SAMPLE_REGIONS[0]!;
+    const budget = { taxIncome: 1014, carbonTax: 0, upkeep: 0, net: 1014 };
+    wrap(<RegionPanel region={region} budget={budget} />);
+    expect(screen.getByText('Income')).toBeInTheDocument();
+    expect(screen.queryByText('Carbon tax')).not.toBeInTheDocument();
+  });
 });

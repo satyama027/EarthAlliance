@@ -104,7 +104,7 @@ describe('programs submodel — generic buildout funding', () => {
     const state = makeState({
       regions: [makeRegion({ id: 'r1', gdpPerCapita: 20000, population: 1e9 })],
       resources: { money: 5000 },
-      enactments: [enact({ policyId: 'carbon-tax', capacity: 1, complete: true })],
+      enactments: [enact({ policyId: 'fuel-efficiency', capacity: 1, complete: true })],
     });
     programs.step(makeContext(state));
     expect(state.resources.money).toBeCloseTo(5000, 5);

@@ -163,6 +163,11 @@ export interface Enactment {
   // the capacity-driven delta — gradual and drift-free. See models/evElectrification.ts.
   evBaselineTransport?: number;
   evDemandAdded?: number;
+  // Carbon Tax bookkeeping (carbon-tax only): the flat public-support offset currently applied by the
+  // carbonTax submodel (−CARBON_TAX_SUPPORT_HIT while active, 0 when inactive). Stored so each turn
+  // applies only the delta — the offset stays flat, and reverses cleanly on repeal/auto-repeal. See
+  // models/carbonTax.ts.
+  carbonSupportApplied?: number;
 }
 
 export interface ActiveEffect {
@@ -236,4 +241,6 @@ export interface TurnDiagnostics {
   equityDriftByRegion: Record<RegionId, number>;      // equity erosion from growth (≥ 0)
   programSpendByRegion: Record<RegionId, number>;     // policy upkeep/buildout money spent this turn
   capacityByRegionPolicy: Record<string, number>;     // installed capacity 0–1, keyed `policyId:regionId`
+  taxIncomeByRegion: Record<RegionId, number>;        // per-region GDP tax income this turn
+  carbonTaxRevenueByRegion: Record<RegionId, number>; // per-region Carbon Tax revenue this turn (0 if not enacted)
 }

@@ -4,6 +4,8 @@ import { metricColor } from '../scene/metricColor.js';
 import { EmissionsBySource } from './EmissionsBySource.js';
 import { GenerationMix } from './GenerationMix.js';
 import { RegionLevers } from './RegionLevers.js';
+import { RegionIncome } from './RegionIncome.js';
+import type { RegionBudget } from '../game/regionBudget.js';
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
@@ -18,7 +20,7 @@ function CapLabel({ children }: { children: string }) {
   return <Text size="xs" c="earth.7" tt="uppercase" fw={600}>{children}</Text>;
 }
 
-export function RegionPanel({ region }: { region: Region | null }) {
+export function RegionPanel({ region, budget }: { region: Region | null; budget?: RegionBudget }) {
   if (!region) {
     return <Paper p="sm" withBorder><Text c="dimmed">Select a region on the globe.</Text></Paper>;
   }
@@ -40,6 +42,8 @@ export function RegionPanel({ region }: { region: Region | null }) {
         <Divider my={4} />
         <CapLabel>Energy &amp; land levers</CapLabel>
         <RegionLevers region={region} />
+
+        {budget && <RegionIncome budget={budget} />}
 
         <Divider my={4} />
         <Metric label="Public support" value={region.publicSupport} />

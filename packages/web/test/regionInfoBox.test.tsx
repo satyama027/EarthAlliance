@@ -47,4 +47,12 @@ describe('RegionInfoBox', () => {
     await userEvent.click(screen.getByRole('button', { name: /full region data/i }));
     expect(onOpenData).toHaveBeenCalledTimes(1);
   });
+
+  it('shows the net Income stat when a budget is provided', () => {
+    const region = SAMPLE_REGIONS[0]!;
+    const budget = { taxIncome: 1014, carbonTax: 11, upkeep: 120, net: 905 };
+    wrap(<RegionInfoBox region={region} {...planet} budget={budget} onOpenData={() => {}} />);
+    expect(screen.getByText('Income')).toBeInTheDocument();
+    expect(screen.getByText('$905')).toBeInTheDocument();
+  });
 });

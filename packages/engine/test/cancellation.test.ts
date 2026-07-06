@@ -42,12 +42,29 @@ describe('applyCancellations', () => {
   it('does not cancel a one-time policy (permanent, left intact)', () => {
     const state = makeState({
       regions: [makeRegion({ id: 'r1' })],
-      enactments: [enact({ policyId: 'carbon-tax', regionId: 'r1', capacity: 1, complete: true })],
+      enactments: [enact({ policyId: 'fuel-efficiency', regionId: 'r1', capacity: 1, complete: true })],
     });
-    applyCancellations(state, [{ policyId: 'carbon-tax', regionId: 'r1' }]);
-    const e = state.enactments.find((x) => x.policyId === 'carbon-tax');
+    applyCancellations(state, [{ policyId: 'fuel-efficiency', regionId: 'r1' }]);
+    const e = state.enactments.find((x) => x.policyId === 'fuel-efficiency');
     expect(e).toBeDefined();
     expect(e!.cancelled).toBeFalsy();
+  });
+
+  it('repealing the recurring Carbon Tax drops it, its industry effect, and restores the support offset', () => {
+    const industryEffect: ActiveEffect = {
+      policyId: 'carbon-tax', regionId: 'r1',
+      effect: { target: 'industry', delta: -0.05, duration: 'ongoing' },
+      turnsRemaining: Number.POSITIVE_INFINITY,
+    };
+    const state = makeState({
+      regions: [makeRegion({ id: 'r1', publicSupport: 45 })], // sitting 5 below its no-tax value of 50
+      enactments: [enact({ policyId: 'carbon-tax', regionId: 'r1', capacity: 1, complete: false, carbonSupportApplied: -5 })],
+      activeEffects: [industryEffect],
+    });
+    applyCancellations(state, [{ policyId: 'carbon-tax', regionId: 'r1' }]);
+    expect(state.enactments.some((x) => x.policyId === 'carbon-tax')).toBe(false);
+    expect(state.activeEffects.some((x) => x.policyId === 'carbon-tax')).toBe(false);
+    expect(state.regions[0]!.publicSupport).toBeCloseTo(50, 6); // +5 restored to the no-tax line
   });
 });
 

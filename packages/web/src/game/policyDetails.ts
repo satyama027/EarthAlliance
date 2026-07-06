@@ -105,12 +105,27 @@ const SYNTHESIZED_EFFECTS: Record<string, EffectLine[]> = {
   ],
 };
 
+/**
+ * Extra synthesized lines shown ALONGSIDE a policy's declared effects (unlike SYNTHESIZED_EFFECTS,
+ * which replaces them when there are none). The Carbon Tax's revenue and its flat public-support
+ * offset are applied by the carbonTax submodel, not declared effects, so they're surfaced here.
+ */
+const EXTRA_EFFECT_LINES: Record<string, EffectLine[]> = {
+  'carbon-tax': [
+    { label: 'Treasury revenue', magnitude: '+ scales with fossil emissions', scope: 'each turn',
+      direction: 'good', note: 'falls as you decarbonise' },
+    { label: 'Public support', magnitude: `${MINUS}5`, scope: 'while active',
+      direction: 'bad', note: 'a flat hit, lifts on repeal' },
+  ],
+};
+
 /** Display-ready breakdown of what a policy does, one line per effect. */
 export function effectLines(policy: Policy): EffectLine[] {
-  if (policy.effects.length === 0 && SYNTHESIZED_EFFECTS[policy.id]) {
-    return SYNTHESIZED_EFFECTS[policy.id]!;
-  }
-  return policy.effects.map(toLine);
+  const extra = EXTRA_EFFECT_LINES[policy.id] ?? [];
+  const declared = policy.effects.length === 0 && SYNTHESIZED_EFFECTS[policy.id]
+    ? SYNTHESIZED_EFFECTS[policy.id]!
+    : policy.effects.map(toLine);
+  return [...extra, ...declared];
 }
 
 /** One-line plain-language meaning of a funding mode (mirrors the doc in engine `types.ts`). */

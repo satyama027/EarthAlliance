@@ -24,6 +24,8 @@ export interface ModelParams {
   INEQUALITY_DRIFT: number;
   TAX_RATE: number;
   MONEY_SCALE: number;
+  CARBON_TAX_RATE: number;     // treasury money per Gt of fossil-combustion emissions taxed each turn
+  CARBON_TAX_SUPPORT_HIT: number; // flat public-support offset held while a Carbon Tax is active
   // Sectoral-emissions model (used from CP2/CP3 onward).
   STORAGE_FLOOR: number;       // renewable effectiveness floor at zero storage (0–1)
   AVIATION_FLOOR: number;      // hard-to-abate fraction of baseline aviation/shipping
@@ -47,6 +49,7 @@ export interface TurnScratch {
   worldPopulation: number; // global population sum (set by resources)
   worldGdp: number;        // global GDP sum, gdpPerCapita×population (set by resources)
   moneyGain: number;       // money regenerated this turn (set by resources)
+  taxIncomeByRegion: Record<RegionId, number>; // per-region GDP tax income this turn (set by resources)
   scarcityByRegion: Record<RegionId, number>;         // min(water,land)/100 (set by economy)
   constraintFactorByRegion: Record<RegionId, number>; // 0.5–1.0 growth dampener (set by economy)
   outputRatioByRegion: Record<RegionId, number>;      // economic-output expansion (set by emissions)
@@ -61,6 +64,8 @@ export interface TurnScratch {
   equityDriftByRegion: Record<RegionId, number>;      // equity erosion from growth, ≥0 (set by support)
   programSpendByRegion: Record<RegionId, number>;     // policy upkeep/buildout money spent this turn (set by programs)
   capacityByRegionPolicy: Record<string, number>;     // installed capacity 0–1, keyed `policyId:regionId` (set by programs)
+  carbonTaxRevenue: number;                            // global carbon-tax income this turn (set by carbonTax)
+  carbonTaxRevenueByRegion: Record<RegionId, number>; // per-region carbon-tax income this turn (set by carbonTax)
 }
 
 export interface SimContext {
@@ -90,6 +95,7 @@ export function createScratch(): TurnScratch {
     worldPopulation: 0,
     worldGdp: 0,
     moneyGain: 0,
+    taxIncomeByRegion: {},
     scarcityByRegion: {},
     constraintFactorByRegion: {},
     outputRatioByRegion: {},
@@ -104,5 +110,7 @@ export function createScratch(): TurnScratch {
     equityDriftByRegion: {},
     programSpendByRegion: {},
     capacityByRegionPolicy: {},
+    carbonTaxRevenue: 0,
+    carbonTaxRevenueByRegion: {},
   };
 }

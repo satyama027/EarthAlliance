@@ -17,6 +17,7 @@ export {
 } from './policies.js';
 export type { ValidationResult } from './policies.js';
 export { applyCancellations } from './effects.js';
+export { fossilTaxBase, carbonTaxRevenue, regionTaxIncome } from './income.js';
 export { ENDINGS, evaluateEnding } from './endings.js';
 export { advanceTurn, createSimulation } from './simulation.js';
 export type { AdvanceResult, Simulation } from './simulation.js';

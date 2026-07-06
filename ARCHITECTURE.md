@@ -122,9 +122,11 @@ global `co2Ratio`, `equilibriumTemp`, `deltaPpm`, `grossEmissions`, `baseGrowthF
 per-region `scarcityByRegion`, `constraintFactorByRegion`, `outputRatioByRegion`, `popGrowthByRegion`,
 `waterLossByRegion`, `landLossByRegion`, `bioLossByRegion`, the three support-change contributions
 (`supportTempTermByRegion`, `supportEconTermByRegion`, `supportEquityTermByRegion`),
-`equityDriftByRegion`, and the policy-program fields `programSpendByRegion` (upkeep/buildout
+`equityDriftByRegion`, the policy-program fields `programSpendByRegion` (upkeep/buildout
 money spent per region this turn) + `capacityByRegionPolicy` (installed capacity 0–1, keyed
-`policyId:regionId`). These let the client show *why* values moved *exactly*, without re-deriving
+`policyId:regionId`), and the per-region income fields `taxIncomeByRegion` (GDP tax income) +
+`carbonTaxRevenueByRegion` (Carbon Tax revenue, 0 where not active). These let the client show *why*
+values moved *exactly*, without re-deriving
 the model equations (the web layer duplicates no engine logic; the lone UI-side derivation is
 `Warming⁺ = max(0, deltaTemperature)`). The field is additive: existing `{ state, events }`
 consumers are unaffected.
@@ -229,11 +231,13 @@ interface SimContext {
 | J | `programs`     | **region-by-region, stage-order**: charge recurring/buildout upkeep (GDP-scaled; FLAT for conversions), advance generic buildout capacity + ramped effects, and run renewable/nuclear **fossil→clean conversions** (net-zero to Σ) |
 | K | `evElectrification` | for each EV-Subsidies enactment, convert a capacity-driven slice of road transport into electricity demand (tailpipe → 0 at full buildout), drift-free against a GDP-grown baseline |
 | L | `generationMix` | rebalance each region's mix to Σ = 1 (`rebalanceMix` — drift safety net, retiring dirtiest fossils coal→oil→gas; a no-op now conversions are net-zero) and **derive** `gridCarbonIntensity` from it |
+| M | `carbonTax` | for each active Carbon Tax enactment: add `CARBON_TAX_RATE × fossilTaxBase` to the treasury and hold a **flat** `−CARBON_TAX_SUPPORT_HIT` public-support offset; auto-repeal a region whose fossil base has fallen to 0 |
 
 `programs` runs after `resources` so this turn's regenerated tax income is available to fund policy
-upkeep; `evElectrification` then runs (capacity already advanced), and `generationMix` runs **last**
-so it sees this turn's share growth before grid intensity is derived and emissions are finalized.
-See §4.2 for the policy funding model.
+upkeep; `evElectrification` then runs (capacity already advanced), `generationMix` rebalances + derives
+grid intensity, and `carbonTax` runs **last** so it taxes this turn's post-decarbonization grid
+intensity and sectors — the revenue and the tax's base both shrink automatically as a region cleans up.
+See §4.2 for the policy funding model and the Carbon Tax mechanic.
 
 **Swapping fidelity:** `createSimulation(models?, params?)` assembles a pipeline from any
 ordered `SubModel[]` and any `ModelParams`. Replace one entry (e.g. a multi-gas carbon
@@ -276,8 +280,8 @@ in every region regardless of GDP.
 
 | funding | when money is charged | effect | examples |
 |---|---|---|---|
-| `one-time`  | once at enactment (`spendAndRegister`) | permanent | carbon-tax, degrowth, orbital, off-world |
-| `recurring` | every turn while active (`programs`), never completes | flat | climate-adaptation |
+| `one-time`  | once at enactment (`spendAndRegister`) | permanent | degrowth, orbital, off-world, fuel-efficiency |
+| `recurring` | every turn while active (`programs`), never completes | flat | climate-adaptation, carbon-tax (`cost 0`), flight-freight-levy |
 | `buildout`  | every turn until installed capacity reaches 100%, then stops | ramps with capacity (`delta × capacity`), persists at full after completion | reforestation, transit, education, grid-storage, EV, sustainable-fuels, industrial-electrification, green-steel-cement, CCS, circular-economy, organic-farming, precision-agriculture |
 | `buildout` + `conversion` | every turn (FLAT cost) until the per-region cap is hit or fossils run out | converts a fixed grid-share fossil→clean, net-zero to Σ; installed clean share persists in the mix | renewable-subsidy (uncapped, storage-gated, wind/solar), nuclear-buildout (uranium-capped, firm) |
 
@@ -308,6 +312,30 @@ charging upkeep and advancing capacity, while the installed capacity keeps deliv
 (the enactment is kept, never deleted). A `recurring` fund is *ended* — its enactment and ongoing
 `ActiveEffect`s are removed (upkeep and benefit both stop). A `one-time` policy is permanent and
 cannot be cancelled.
+
+**The Carbon Tax** (`carbon-tax`, `recurring`, `cost 0`) is a lever, not a spending program: while
+active it *raises* treasury money instead of costing it. Its two state-dependent effects are applied
+imperatively by the `carbonTax` sub-model (stage M), because neither `money` (a global resource) nor
+a *conditional flat* support offset can be expressed as declared `EffectTarget` deltas:
+
+- **Revenue** = `CARBON_TAX_RATE × fossilTaxBase(region)` added to the treasury, where `fossilTaxBase`
+  (`income.ts`) = fossil power (`electricityDemand × gridCarbonIntensity`, recomputed since
+  `electricity` is only derived at finalization) + `transport` + `industry` + `aviationShipping`
+  (agriculture and land-use excluded — non-fossil). Revenue therefore shrinks automatically as the
+  region decarbonizes.
+- **Support cost** = a **flat** `−CARBON_TAX_SUPPORT_HIT` (5) offset *held while active*, not an
+  accumulating per-turn drain. It uses the `evElectrification` re-base idiom (`carbonSupportApplied`
+  on the `Enactment`): each turn applies only `desired − applied`, so support drops 5 the turn the tax
+  activates, stays flat while active, and springs back the turn it deactivates. (A declared `ongoing`
+  −5 effect would re-subtract 5 every turn and spiral support into the `economic-ruin` loss floor.)
+
+Only a modest `industry −0.05 Gt/yr` price-nudge is a declared effect. A tax is **active** only while
+its region still has a fossil base (`> 0`); a fully-decarbonized region **auto-repeals** it (revenue 0,
+offset restored, enactment + its `activeEffect` dropped). On **manual repeal**, `applyCancellations`
+reverses the baked-in support offset (via `carbonSupportApplied`) before dropping the recurring
+enactment, so support returns to its no-tax line. `income.ts` also exports `regionTaxIncome`
+(per-region GDP tax income) — the same helpers feed the `taxIncomeByRegion`/`carbonTaxRevenueByRegion`
+diagnostics and the web per-region **Income** display.
 
 ---
 
@@ -421,19 +449,23 @@ the dashboard sparkline.
   `RegionInfoBox`/`DataOverlay`, not duplicated here); right: just the **remaining** money badge —
   `resources − costNow`, going red with an `⚠ over budget` `role="alert"` when a staged selection
   exceeds the budget; rendered as the sticky top header), `RegionInfoBox` (the compact glance-card
-  beside the map — a single region click surfaces its headline **GDP/capita · emissions · public
-  support**, or planet **warming · CO₂ · emissions** when none is selected, each state with a **📊**
-  button that opens the `DataOverlay`), `DataOverlay` (the emissions data window — a full-screen
+  beside the map — a single region click surfaces its headline **GDP/capita · emissions · income ·
+  public support**, or planet **warming · CO₂ · emissions** when none is selected, each state with a
+  **📊** button that opens the `DataOverlay`), `DataOverlay` (the emissions data window — a full-screen
   `Overlay` following the `EndingScreen` pattern that **hosts `RegionPanel` when a region is selected,
   else `Dashboard`**; closes on ✕ / `Escape` / backdrop), `Dashboard` (+ `Sparkline` trend + a global
   **emissions-by-source** breakdown), `RegionPanel` (the selected region — its per-source breakdown via
   the shared `EmissionsBySource` stacked bar, the four coupling-variable **levers** via `RegionLevers`
-  with hover tooltips, then the metric bars), `TurnLog` (a scrollable, newest-first history of
+  with hover tooltips, the **Income** breakdown via `RegionIncome`, then the metric bars), `TurnLog` (a scrollable, newest-first history of
   every per-turn data point — a global "Planet" block plus the selected region's full block, each
   value carrying a good/bad-colored change chip vs. the prior turn; each non-baseline entry also has
   a per-entry **"More"** toggle revealing a `Collapse`d CALC section of the engine's `TurnDiagnostics`
   calc internals), `PolicyBoard` of `PolicyCard`s (with the single-click `PolicyDetailOverlay`),
-  and `EndingScreen` (shown when `game.ending` is non-null).
+  and `EndingScreen` (shown when `game.ending` is non-null). The **`RegionInfoBox` Income stat** and
+  **`RegionIncome`** breakdown both consume the `regionBudget` selector (`game/regionBudget.ts`) —
+  `{ taxIncome, carbonTax, upkeep, net }` composed from the latest turn's `TurnDiagnostics`
+  (`taxIncomeByRegion` / `carbonTaxRevenueByRegion` / `programSpendByRegion`), with a turn-0
+  projection fallback via the engine's `regionTaxIncome` / `carbonTaxRevenue` helpers.
 - **Stacking order** (`Z_LAYERS` in `theme.ts`): overlays render at `overlay` (1000:
   `DataOverlay`, `EndingScreen`) / `overlayRaised` (1100: `PolicyDetailOverlay`). Mantine portals
   tooltips to `document.body` as siblings of those overlays, so the theme lifts the **Tooltip**

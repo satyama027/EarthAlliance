@@ -26,18 +26,29 @@ describe('spendAndRegister', () => {
 
   it('charges a one-time policy its GDP-scaled money, and records the enactment', () => {
     const state = makeState(singleRegion());
-    const immediate = spendAndRegister(state, [{ policyId: 'carbon-tax', regionId: 'r1' }]);
-    expect(state.resources.money).toBeCloseTo(4950, 5);    // -50 (share 1)
+    spendAndRegister(state, [{ policyId: 'fuel-efficiency', regionId: 'r1' }]);
+    expect(state.resources.money).toBeCloseTo(4900, 5);    // -100 (share 1)
     expect(state.enactments).toContainEqual(
-      expect.objectContaining({ policyId: 'carbon-tax', regionId: 'r1', complete: true }),
+      expect.objectContaining({ policyId: 'fuel-efficiency', regionId: 'r1', complete: true }),
     );
-    // ongoing demand cut registered, scoped to the region; immediate support hit returned
+    // ongoing transport cut registered, scoped to the region
     expect(state.activeEffects).toHaveLength(1);
-    expect(state.activeEffects[0]!.effect.target).toBe('electricityDemand');
+    expect(state.activeEffects[0]!.effect.target).toBe('transport');
     expect(state.activeEffects[0]!.regionId).toBe('r1');
-    expect(immediate).toHaveLength(1);
-    expect(immediate[0]!.effect.target).toBe('publicSupport');
-    expect(immediate[0]!.regionId).toBe('r1');
+  });
+
+  it('charges no up-front money for the recurring Carbon Tax; registers only its declared industry effect', () => {
+    const state = makeState(singleRegion());
+    const immediate = spendAndRegister(state, [{ policyId: 'carbon-tax', regionId: 'r1' }]);
+    expect(state.resources.money).toBe(5000);              // recurring: no up-front charge (revenue via submodel)
+    expect(immediate).toHaveLength(0);                      // no immediate effects
+    const e = state.enactments.find((x) => x.policyId === 'carbon-tax')!;
+    expect(e.complete).toBe(false);                         // recurring never "completes"
+    // Only the ongoing industry price-nudge is a declared effect — revenue and the support offset are
+    // applied by the carbonTax submodel, not the effect system.
+    expect(state.activeEffects).toHaveLength(1);
+    expect(state.activeEffects[0]!.effect.target).toBe('industry');
+    expect(state.activeEffects[0]!.regionId).toBe('r1');
   });
 
   it('does not charge money or register ongoing effects for a buildout policy (programs handles them)', () => {

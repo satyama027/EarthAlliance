@@ -6,12 +6,15 @@ import { Dashboard } from './Dashboard.js';
 import { RegionPanel } from './RegionPanel.js';
 import { Z_LAYERS } from '../theme.js';
 import type { ClimatePoint } from '../game/useGame.js';
+import type { RegionBudget } from '../game/regionBudget.js';
 
 interface DataOverlayProps {
   opened: boolean;
   onClose(): void;
   /** Selected region → its breakdown; `null` → the planet breakdown. */
   region: Region | null;
+  /** The selected region's income breakdown (forwarded to RegionPanel). */
+  budget?: RegionBudget;
   temperature: number;
   co2: number;
   annualEmissions: number;
@@ -26,7 +29,7 @@ interface DataOverlayProps {
  * surface, framer-motion fade + rise); closes on ✕, Escape, or a backdrop click.
  */
 export function DataOverlay({
-  opened, onClose, region, temperature, co2, annualEmissions, regions, history,
+  opened, onClose, region, budget, temperature, co2, annualEmissions, regions, history,
 }: DataOverlayProps) {
   useEffect(() => {
     if (!opened) return;
@@ -56,7 +59,7 @@ export function DataOverlay({
           {/* RegionPanel / Dashboard each render their own bordered Paper surface. */}
           <ScrollArea.Autosize mah="86vh">
             {region ? (
-              <RegionPanel region={region} />
+              <RegionPanel region={region} budget={budget} />
             ) : (
               <Dashboard
                 temperature={temperature} co2={co2} annualEmissions={annualEmissions}

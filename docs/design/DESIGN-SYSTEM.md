@@ -177,9 +177,10 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   right column). Bordered `Paper` (`p="sm"`), **content-height and top-aligned** so it reads as a small
   card, never a column rivaling the map. Two states keyed off the selected region:
   - **Region selected** — a `REGION_COLORS` dot + region name (`fw={700}` `size="sm"`), a dimmed
-    `pop NNNM` subtitle, then three headline stats — **GDP per capita** (`$` + locale value),
-    **Emissions** (`Gt/yr`), and **Public support** (value + a thin `Progress` colored by
-    `metricColor`) — over a full-width **📊 "Full region data"** `Button` (`color="earth"`).
+    `pop NNNM` subtitle, then headline stats — **GDP per capita** (`$` + locale value), **Emissions**
+    (`Gt/yr`), an **Income** stat (net `$…/turn`, shown when a `regionBudget` is passed), and
+    **Public support** (value + a thin `Progress` colored by `metricColor`) — over a full-width
+    **📊 "Full region data"** `Button` (`color="earth"`).
   - **No region** — a `🌍 Planet` header, planet quick-stats (**Warming** colored by
     `temperatureColor`, **CO₂**, **Emissions**), a dimmed italic "Click a region for its data" hint,
     and a **📊 "Full planet data"** `Button`.
@@ -191,9 +192,17 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   an **Energy & land levers** block (`RegionLevers.tsx`)
   — a 2×2 grid of the four coupling variables (`Grid intensity` — now a *derived* read-out, `Storage
   built`, `Crop yield`, `Power demand`), each a label + `ⓘ` tooltip, a bold value, and a mini-bar (or
-  a "grows with GDP" subtext for demand); then the per-metric rows with a `Progress` bar colored by
+  a "grows with GDP" subtext for demand); then an **Income** block (`RegionIncome.tsx`, shown when a
+  `regionBudget` is passed); then the per-metric rows with a `Progress` bar colored by
   `metricColor(value)`. Empty state: dimmed "Select a region on the globe." **Now rendered inside the
   `DataOverlay`** (region view), not inline.
+- **RegionIncome** (`RegionIncome.tsx`, RegionPanel) — the region's per-turn treasury cash-flow
+  breakdown from the `regionBudget` selector (last turn's `TurnDiagnostics`, or a turn-0 projection).
+  An `earth-7` uppercase **Income** header (same section treatment as Emissions/Generation), then a
+  2-col ledger: **Tax (GDP)** `+$…` (`teal.4`), a highlighted **Carbon tax** `+$…` row (only when the
+  tax is active here — `dark-6` fill + 2px `earth-5` left accent + a dimmed "shrinks as this region
+  decarbonises" note), **Policy upkeep** `−$…` (`red.4`), and a top-bordered **Net** `$…/turn`
+  (`fw={700}`). Money in = `teal`, out = `red`. **No new tokens.**
 - **DataOverlay** (`DataOverlay.tsx`) — the emissions data window opened from the **RegionInfoBox 📊
   button**. Full-screen `Overlay` (`color="#000"`, `backgroundOpacity={0.85}`, `fixed`, `zIndex={1000}`)
   with a centered, framer-motion (fade + 20px rise) window ~560px wide; content scrolls in a

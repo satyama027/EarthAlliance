@@ -38,6 +38,14 @@ export const DEFAULT_PARAMS: ModelParams = Object.freeze({
   // do-nothing still collapses ~2095 (income never feeds climate, so it doesn't move the floor).
   TAX_RATE: 0.03,
   MONEY_SCALE: 1e9,
+  // Carbon Tax revenue: money raised per Gt of fossil-combustion emissions (electricity + transport +
+  // industry + aviation/shipping) taxed each turn. A light fiscal nudge (~1–3% of a region's GDP tax
+  // income); revenue shrinks automatically as the region decarbonizes. Tunable balance surface.
+  CARBON_TAX_RATE: 2,
+  // Carbon Tax political cost: a flat public-support offset HELD while the tax is active (a region
+  // sits this far below where its support would be without the tax), not a per-turn drain — so it
+  // never spirals. Lifts on repeal and on auto-repeal (fully decarbonized region). Tunable.
+  CARBON_TAX_SUPPORT_HIT: 5,
   // --- Sectoral-emissions model (used from CP2/CP3 onward) ---
   STORAGE_FLOOR: 0.6,        // renewables deliver 60% of their grid-cleaning benefit with zero storage
   AVIATION_FLOOR: 0.2,       // fraction of a region's baseline aviation/shipping that is hard-to-abate

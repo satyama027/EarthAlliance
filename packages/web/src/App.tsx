@@ -8,6 +8,7 @@ import { TurnLog } from './components/TurnLog.js';
 import { DataOverlay } from './components/DataOverlay.js';
 import { EndingScreen } from './components/EndingScreen.js';
 import { useGame } from './game/useGame.js';
+import { regionBudget } from './game/regionBudget.js';
 import { useSfx } from './audio/useSfx.js';
 import { type Region } from '@earth-alliance/engine';
 
@@ -24,6 +25,10 @@ export default function App() {
 
   const selectedRegion: Region | null =
     game.state.regions.find((r) => r.id === selectedRegionId) ?? null;
+
+  // Per-region income breakdown from the last turn's diagnostics (projection on the opening turn).
+  const latestDiagnostics = game.turnLog[game.turnLog.length - 1]?.diagnostics ?? null;
+  const selectedBudget = selectedRegion ? regionBudget(selectedRegion, latestDiagnostics) : undefined;
 
   return (
     <AppShell padding="md">
@@ -54,6 +59,7 @@ export default function App() {
               temperature={game.state.climate.temperatureAnomaly}
               co2={game.state.climate.co2Concentration}
               annualEmissions={game.state.climate.annualEmissions}
+              budget={selectedBudget}
               onOpenData={() => setDataOpen(true)}
             />
           </Grid.Col>
@@ -84,7 +90,7 @@ export default function App() {
       </AppShell.Main>
       <DataOverlay
         opened={dataOpen} onClose={() => setDataOpen(false)}
-        region={selectedRegion}
+        region={selectedRegion} budget={selectedBudget}
         temperature={game.state.climate.temperatureAnomaly} co2={game.state.climate.co2Concentration}
         annualEmissions={game.state.climate.annualEmissions}
         regions={game.state.regions} history={game.history}

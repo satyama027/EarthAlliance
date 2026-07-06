@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Earth Alliance — Region Income (approved mockup)</title>
+<style>
+  :root {
+    --earth-3:#63e6be; --earth-5:#20c997; --earth-6:#12b886; --earth-7:#0ca678;
+    --teal:#20c997; --red:#ff6b6b; --yellow:#ffd43b;
+    --bg:#1a1b1e; --surface:#25262b; --surface-2:#2c2e33; --border:#373a40;
+    --text:#c1c2c5; --text-strong:#f1f3f5; --dimmed:#909296;
+    --radius:8px; --radius-sm:4px;
+    font-family: system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); padding:24px;
+         -webkit-font-smoothing:antialiased; }
+  h1 { font-size:18px; color:var(--text-strong); margin:0 0 4px; }
+  .lede { color:var(--dimmed); font-size:13px; margin:0 0 20px; max-width:820px; }
+  .flow { display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap; }
+  .arrow { align-self:center; color:var(--earth-5); font-size:26px; }
+  .col { display:flex; flex-direction:column; gap:8px; }
+  .caption { font-size:12px; color:var(--dimmed); max-width:340px; }
+  .caption b { color:var(--earth-3); font-weight:600; }
+  .variant-label { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--earth-7);
+    font-weight:600; margin-bottom:2px; }
+
+  .paper { background:var(--surface); border:1px solid var(--border);
+           border-radius:var(--radius); padding:12px; }
+
+  /* RegionInfoBox (glance card) */
+  .infobox { padding:11px 12px; width:232px; }
+  .ib-head { display:flex; align-items:center; gap:7px; }
+  .ib-dot { width:10px; height:10px; border-radius:3px; flex:0 0 auto; }
+  .ib-name { font-size:14px; font-weight:700; color:var(--text-strong); }
+  .ib-stats { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .ib-stat .k { font-size:11px; color:var(--dimmed); }
+  .ib-stat .v { font-size:16px; font-weight:700; color:var(--text-strong); line-height:1.15; }
+  .ib-stat .v small { font-size:11px; font-weight:600; color:var(--dimmed); margin-left:2px; }
+  .ib-sub { font-size:11px; color:var(--dimmed); margin-top:1px; }
+  .ib-btn { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; padding:8px;
+    margin-top:12px; border:none; border-radius:var(--radius-sm); background:var(--earth-6);
+    color:#fff; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 0 0 2px var(--earth-3); }
+
+  /* Drill-down overlay window (DataOverlay → RegionPanel) */
+  .overlay-win { width:360px; position:relative; }
+  .close { position:absolute; top:8px; right:8px; width:28px; height:28px; border:none;
+    border-radius:var(--radius-sm); background:var(--surface-2); color:var(--text); font-size:14px; cursor:pointer; }
+  .h4 { font-size:15px; font-weight:700; color:var(--text-strong); margin:0 0 4px; }
+  .row { display:flex; justify-content:space-between; align-items:center; }
+  .xs { font-size:11px; } .sm { font-size:13px; }
+  .dimmed { color:var(--dimmed); } .strong { color:var(--text-strong); font-weight:700; }
+  .prog { height:8px; border-radius:999px; background:var(--surface-2); overflow:hidden; }
+  .prog > span { display:block; height:100%; border-radius:999px; }
+  .sec { text-transform:uppercase; letter-spacing:.05em; color:var(--earth-7); font-size:11px;
+    margin:10px 0 8px; border-top:1px solid var(--border); padding-top:8px; }
+  .placeholder { color:var(--dimmed); font-size:11.5px; font-style:italic; }
+
+  /* Income ledger — same 2-col grid idiom as the emissions legend */
+  .income { display:grid; grid-template-columns:1fr auto; gap:7px 10px; font-size:12.5px; }
+  .income .lbl { display:flex; align-items:center; gap:7px; }
+  .income .amt { text-align:right; font-variant-numeric:tabular-nums; }
+  .pos { color:var(--teal); } .neg { color:var(--red); }
+  .dot { width:8px; height:8px; border-radius:2px; flex:0 0 auto; }
+  /* Emphasized carbon-tax row (approved Variant B) */
+  .ctax-wrap { grid-column:1/-1; display:grid; grid-template-columns:1fr auto; gap:0 10px;
+    align-items:center; background:var(--surface-2); border-left:2px solid var(--earth-5);
+    margin:0 -6px; padding:4px 6px 4px 8px; border-radius:0 var(--radius-sm) var(--radius-sm) 0; }
+  .ctax-note { grid-column:1/-1; font-size:10.5px; color:var(--dimmed); margin-top:-1px; }
+  .net-row { grid-column:1/-1; display:flex; justify-content:space-between; align-items:baseline;
+    margin-top:4px; padding-top:8px; border-top:1px solid var(--border); }
+  .net-row .nlbl { font-size:12px; font-weight:700; color:var(--text-strong);
+    text-transform:uppercase; letter-spacing:.05em; }
+  .net-row .nval { font-size:16px; font-weight:700; color:var(--text-strong); font-variant-numeric:tabular-nums; }
+  .net-row .nval small { font-size:11px; font-weight:600; color:var(--dimmed); margin-left:2px; }
+</style>
+</head>
+<body>
+  <h1>Per-region Income display — approved (Variant B, net glance value)</h1>
+  <p class="lede">Makes treasury income — and the carbon tax's contribution — visible per region
+    (today it's hidden except a buried global "Money regen" line). The glance card gains one
+    <b>Income</b> stat (net /turn); its existing <b>📊 Full region data</b> button opens the
+    drill-down, where a new <b>Income</b> section breaks the number down. NA sample: Tax (GDP) +1,014,
+    Carbon Tax active +11, one buildout's upkeep −120 → Net $905/turn.</p>
+
+  <div class="flow">
+
+    <!-- Glance card -->
+    <div class="col">
+      <div class="variant-label">Glance card (beside the map)</div>
+      <div class="paper infobox">
+        <div class="ib-head"><span class="ib-dot" style="background:#4dabf7;"></span><span class="ib-name">North America</span></div>
+        <div class="ib-sub">pop 520M</div>
+        <div class="ib-stats">
+          <div class="ib-stat"><div class="k">GDP per capita</div><div class="v">$65,000</div></div>
+          <div class="ib-stat"><div class="k">Emissions</div><div class="v">5.9 <small>Gt/yr</small></div></div>
+          <div class="ib-stat"><div class="k">Income</div><div class="v">$905 <small>/turn</small></div></div>
+          <div class="ib-stat">
+            <div class="row"><span class="k">Public support</span><span class="v" style="font-size:14px;">53</span></div>
+            <div class="prog" style="margin-top:4px;"><span style="width:53%; background:var(--earth-5);"></span></div>
+          </div>
+        </div>
+        <button class="ib-btn">📊 Full region data</button>
+      </div>
+      <div class="caption">New <b>Income</b> stat after Emissions (same <code>Stat</code> style), value
+        is <b>net</b>/turn. The highlighted button is the existing drill-down entry →</div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- Drill-down overlay: RegionPanel with the new Income section in place -->
+    <div class="col">
+      <div class="variant-label">📊 Full region data (DataOverlay → RegionPanel)</div>
+      <div class="paper overlay-win">
+        <button class="close" title="Close">✕</button>
+        <div class="h4">North America</div>
+        <div class="xs dimmed" style="margin-bottom:2px;">GDP/capita $65,000 · pop 520M · 5.9 Gt/yr</div>
+        <div class="sec" style="margin-top:8px;">Emissions by source</div>
+        <div class="placeholder">▉▉▉▉ stacked bar + legend …</div>
+        <div class="sec">Generation mix</div>
+        <div class="placeholder">grid-intensity gauge + banded bar …</div>
+        <div class="sec">Energy &amp; land levers</div>
+        <div class="placeholder">grid intensity · storage · yield · demand …</div>
+
+        <!-- NEW section -->
+        <div class="sec">Income</div>
+        <div class="income">
+          <span class="lbl"><span class="dot" style="background:#20c997;"></span>Tax (GDP)</span>
+          <span class="amt pos">+1,014</span>
+          <div class="ctax-wrap">
+            <span class="lbl" style="color:var(--text-strong);font-weight:600;"><span class="dot" style="background:var(--earth-5);"></span>Carbon tax</span>
+            <span class="amt pos">+11</span>
+            <span class="ctax-note">shrinks as this region decarbonises</span>
+          </div>
+          <span class="lbl"><span class="dot" style="background:#ff6b6b;"></span>Policy upkeep</span>
+          <span class="amt neg">−120</span>
+          <div class="net-row"><span class="nlbl">Net</span><span class="nval">$905 <small>/turn</small></span></div>
+        </div>
+
+        <div class="sec">Public support · Equity · Biodiversity · …</div>
+        <div class="placeholder">metric bars …</div>
+      </div>
+      <div class="caption">The <b>Income</b> section slots in after the levers, above the metric bars.
+        The <b>Carbon tax</b> row (earth accent + fill) only appears when the tax is active here, and
+        its note explains why the figure moves. Same 2-col ledger as the emissions legend.</div>
+    </div>
+
+  </div>
+</body>
+</html>

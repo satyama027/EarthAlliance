@@ -122,6 +122,8 @@ export function createSimulation(
         equityDriftByRegion: { ...scratch.equityDriftByRegion },
         programSpendByRegion: { ...scratch.programSpendByRegion },
         capacityByRegionPolicy: { ...scratch.capacityByRegionPolicy },
+        taxIncomeByRegion: { ...scratch.taxIncomeByRegion },
+        carbonTaxRevenueByRegion: { ...scratch.carbonTaxRevenueByRegion },
       };
 
       return { state: draft, events, diagnostics };

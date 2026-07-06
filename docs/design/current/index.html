@@ -259,6 +259,7 @@
         <div class="ib-stats">
           <div class="ib-stat"><div class="k">GDP per capita</div><div class="v">$65,000</div></div>
           <div class="ib-stat"><div class="k">Emissions</div><div class="v">5.9 <small>Gt/yr</small></div></div>
+          <div class="ib-stat"><div class="k">Income</div><div class="v">$905 <small>/turn</small></div></div>
           <div class="ib-stat">
             <div class="row"><span class="k">Public support</span><span class="v" style="font-size:14px;">58</span></div>
             <div class="prog" style="margin-top:4px;"><span style="width:58%; background:var(--earth-5);"></span></div>
@@ -358,6 +359,20 @@
         <div><div class="dimmed">Storage built ⓘ</div><div class="strong" style="font-size:15px;">4%</div><div class="prog" style="margin-top:4px;"><span style="width:4%;background:var(--earth-6);"></span></div></div>
         <div><div class="dimmed">Crop yield ⓘ</div><div class="strong" style="font-size:15px;">100</div><div class="prog" style="margin-top:4px;"><span style="width:100%;background:#a9e34b;"></span></div></div>
         <div><div class="dimmed">Power demand ⓘ</div><div class="strong" style="font-size:15px;">6.97</div><div class="xs dimmed" style="margin-top:2px;">grows with GDP</div></div>
+      </div>
+      <!-- Income: per-turn treasury cash flow (RegionIncome). Carbon-tax row highlighted, only when active. -->
+      <div class="xs" style="text-transform:uppercase;letter-spacing:.05em;color:var(--earth-7);margin:4px 0 8px;border-top:1px solid var(--border);padding-top:8px;">Income</div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:7px 10px;font-size:12.5px;">
+        <span>Tax (GDP)</span><span class="strong" style="text-align:right;color:var(--teal);">+$1,014</span>
+        <div style="grid-column:1/-1;display:grid;grid-template-columns:1fr auto;gap:0 10px;align-items:center;background:var(--surface-2);border-left:2px solid var(--earth-5);margin:0 -6px;padding:4px 6px 4px 8px;border-radius:0 4px 4px 0;">
+          <span class="strong" style="font-weight:600;">Carbon tax</span><span class="strong" style="text-align:right;color:var(--teal);">+$11</span>
+          <span style="grid-column:1/-1;font-size:10.5px;color:var(--dimmed);">shrinks as this region decarbonises</span>
+        </div>
+        <span>Policy upkeep</span><span class="strong" style="text-align:right;color:var(--red);">−$120</span>
+        <div style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;margin-top:2px;padding-top:8px;border-top:1px solid var(--border);">
+          <span class="strong" style="text-transform:uppercase;letter-spacing:.05em;font-size:12px;">Net</span>
+          <span class="strong" style="font-size:15px;">$905 <small class="dimmed" style="font-size:11px;font-weight:600;">/turn</small></span>
+        </div>
       </div>
       <div style="border-top:1px solid var(--border);margin:10px 0 8px;"></div>
       <div style="display:flex; flex-direction:column; gap:8px;">
