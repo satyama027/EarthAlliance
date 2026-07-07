@@ -32,9 +32,9 @@ describe('App integration', () => {
 
     // With no region selected (the map is stubbed), the info box shows planet quick-stats + drill-down.
     await userEvent.click(screen.getByRole('button', { name: /full planet data/i }));
-    // The overlay shows the full planet breakdown.
+    // The overlay opens on the planet metrics grid (drill-down dashboard).
     expect(screen.getByRole('heading', { name: 'Planet' })).toBeInTheDocument();
-    expect(screen.getByText(/emissions by source/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /biodiversity/i })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: /close/i }));
     expect(screen.queryByRole('heading', { name: 'Planet' })).not.toBeInTheDocument();

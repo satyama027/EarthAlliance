@@ -26,3 +26,6 @@ Thumbs.db
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# Design scratch (throwaway mockups; approved ones live in docs/design/proposals)
+.design-scratch/

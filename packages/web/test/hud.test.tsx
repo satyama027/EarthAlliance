@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
-import { SAMPLE_REGIONS } from '@earth-alliance/engine';
 import type { ReactNode } from 'react';
 import { ResourceBar } from '../src/components/ResourceBar.js';
-import { Dashboard } from '../src/components/Dashboard.js';
 import { Sparkline } from '../src/components/Sparkline.js';
 
 function wrap(ui: ReactNode) {
@@ -46,27 +44,6 @@ describe('ResourceBar', () => {
   it('no longer renders the emissions-data button (the RegionInfoBox owns drill-down)', () => {
     wrap(<ResourceBar year={2030} turn={1} money={45} />);
     expect(screen.queryByRole('button', { name: /emissions data/i })).not.toBeInTheDocument();
-  });
-});
-
-describe('Dashboard', () => {
-  const props = {
-    temperature: 1.84, co2: 431.2, annualEmissions: 35,
-    regions: [...SAMPLE_REGIONS], history: [{ year: 2025, temperature: 1.3, co2: 420 }],
-  };
-
-  it('shows temperature and CO2', () => {
-    wrap(<Dashboard {...props} />);
-    expect(screen.getByText(/1\.84/)).toBeInTheDocument();
-    expect(screen.getByText(/431/)).toBeInTheDocument();
-  });
-
-  it('shows the emissions-by-source breakdown', () => {
-    wrap(<Dashboard {...props} />);
-    expect(screen.getByText(/emissions by source/i)).toBeInTheDocument();
-    // Electricity is the largest global source in the sample data.
-    expect(screen.getByText('Electricity')).toBeInTheDocument();
-    expect(screen.getByText('Industry')).toBeInTheDocument();
   });
 });
 

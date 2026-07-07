@@ -90,11 +90,8 @@ export default function App() {
       </AppShell.Main>
       <DataOverlay
         opened={dataOpen} onClose={() => setDataOpen(false)}
-        region={selectedRegion} budget={selectedBudget}
-        temperature={game.state.climate.temperatureAnomaly} co2={game.state.climate.co2Concentration}
-        annualEmissions={game.state.climate.annualEmissions}
-        regions={game.state.regions} history={game.history}
-        diagnostics={latestDiagnostics}
+        entity={selectedRegion ? { kind: 'region', id: selectedRegion.id } : { kind: 'planet' }}
+        log={game.turnLog}
       />
       {game.ending && (
         <EndingScreen ending={game.ending} year={game.state.year} onPlayAgain={() => { game.reset(); setSelectedRegionId(null); }} />

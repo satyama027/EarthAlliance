@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Earth Alliance — MetricTrend per-turn enhancement (mockup)</title>
+<style>
+  :root {
+    --earth-3:#63e6be; --earth-5:#20c997; --earth-7:#0ca678;
+    --red:#ff6b6b; --yellow:#ffd43b; --orange:#f59f00;
+    --bg:#1a1b1e; --surface:#25262b; --surface-2:#2c2e33; --dark-8:#141517; --border:#373a40; --dark-4:#373a40;
+    --text:#c1c2c5; --text-strong:#f1f3f5; --dimmed:#909296;
+    --radius:8px; --radius-sm:4px;
+    font-family: system-ui, sans-serif;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); padding:24px 24px 60px; -webkit-font-smoothing:antialiased; }
+  h1 { font-size:18px; color:var(--text-strong); margin:0 0 4px; }
+  .lede { color:var(--dimmed); font-size:13px; margin:0 0 18px; max-width:940px; line-height:1.55; }
+  .lede b { color:var(--earth-3); font-weight:600; }
+  .stage { display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap; }
+  .col { display:flex; flex-direction:column; gap:8px; }
+  .variant-label { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--earth-7); font-weight:600; }
+  .caption { font-size:12px; color:var(--dimmed); max-width:420px; line-height:1.6; }
+  .caption b { color:var(--earth-3); font-weight:600; }
+  .caption ul { margin:6px 0 0; padding-left:18px; } .caption li { margin-bottom:4px; }
+
+  .win { width:420px; max-width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px 16px; position:relative; }
+  .close { position:absolute; top:12px; right:12px; width:28px; height:28px; border:none; border-radius:var(--radius-sm); background:var(--surface-2); color:var(--text); font-size:14px; }
+  .h4 { font-size:16px; font-weight:700; color:var(--text-strong); margin:0; }
+  .crumbs { font-size:12px; margin:8px 0 12px; }
+  .crumbs .l { color:var(--earth-3); font-weight:600; } .crumbs .s { color:var(--dimmed); } .crumbs .c { color:var(--text-strong); font-weight:700; }
+  .head { display:flex; align-items:baseline; gap:8px; }
+  .hv { font-size:22px; font-weight:700; color:var(--text-strong); font-variant-numeric:tabular-nums; }
+  .hv small { font-size:12px; color:var(--dimmed); font-weight:600; margin-left:3px; }
+  .chip { font-size:11.5px; font-weight:600; } .chip.bad { color:var(--red); } .chip.good { color:var(--earth-3); }
+  .chartwrap { margin-top:10px; background:var(--dark-8); border:1px solid var(--dark-4); border-radius:var(--radius-sm); padding:8px 10px 6px; }
+  svg { display:block; width:100%; height:auto; }
+  .toggle { display:inline-flex; background:var(--dark-8); border:1px solid var(--border); border-radius:999px; padding:3px; gap:2px; margin-bottom:14px; }
+  .toggle button { border:none; background:transparent; color:var(--dimmed); font-size:12.5px; font-weight:600; padding:6px 16px; border-radius:999px; cursor:pointer; }
+  .toggle button.on { background:var(--surface-2); color:var(--text-strong); }
+</style>
+</head>
+<body>
+  <h1>MetricTrend — per-turn markers, value labels & per-turn gridlines</h1>
+  <p class="lede">Three additions the user asked for: a <b>dot at every turn</b> (so the series is
+    explicit and the line zig-zags with real data), a <b>value label at each turn</b> (turn-by-turn
+    impact), and a <b>vertical gridline at every turn year</b>. The Y-axis stays <b>baselined at 0</b>
+    with horizontal value gridlines. Toggle <b>Label density</b> to see how a long game (36 turns,
+    2025→2200) degrades gracefully without overlapping.</p>
+
+  <div class="toggle" id="density">
+    <button data-mode="all">Label every turn</button>
+    <button data-mode="thin" class="on">Thin on long series (approved)</button>
+  </div>
+
+  <div class="stage">
+    <div class="col">
+      <div class="variant-label">Short game — 5 turns (2025 → 2045)</div>
+      <div class="win">
+        <button class="close">✕</button>
+        <div class="h4">Russia &amp; Central Asia</div>
+        <div class="crumbs"><span class="l">Overview</span> <span class="s">›</span> <span class="c">Public support</span></div>
+        <div class="head"><span class="hv" id="s-hv">42<small>/100</small></span><span class="chip bad" id="s-chip">▼ 3.5 since 2025</span></div>
+        <div class="chartwrap"><svg id="chart-short" viewBox="0 0 400 180"></svg></div>
+      </div>
+      <div class="caption">Few turns → <b>every</b> point gets a dot, a value label, a vertical gridline
+        and a year. This is exactly the turn-by-turn read requested.</div>
+    </div>
+
+    <div class="col">
+      <div class="variant-label">Long game — 36 turns (2025 → 2200)</div>
+      <div class="win">
+        <button class="close">✕</button>
+        <div class="h4">Russia &amp; Central Asia</div>
+        <div class="crumbs"><span class="l">Overview</span> <span class="s">›</span> <span class="s">Emissions</span> <span class="s">›</span> <span class="c">Electricity</span></div>
+        <div class="head"><span class="hv" id="l-hv">0.31<small>Gt CO₂/yr</small></span><span class="chip good" id="l-chip">▼ 0.42 since 2025</span></div>
+        <div class="chartwrap"><svg id="chart-long" viewBox="0 0 400 180"></svg></div>
+      </div>
+      <div class="caption">Many turns → dots + vertical gridlines still at <b>every</b> turn (thin, so
+        the cadence stays visible), but in <b>Thin</b> mode the value labels &amp; year labels show at a
+        readable subset (every ~5th + the latest) so nothing overlaps. In <b>every-turn</b> mode you can
+        see why thinning is needed.</div>
+    </div>
+  </div>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+function el(tag, attrs){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+// nice ticks (1/2/5 x10^n), baselined so 0 is included
+function niceTicks(min,max,count){ const span=(max-min)||1, mag=Math.pow(10,Math.floor(Math.log10(span/count))), norm=span/count/mag;
+  const step=(norm<1.5?1:norm<3?2:norm<7?5:10)*mag; const lo=Math.floor(min/step)*step, hi=Math.ceil(max/step)*step; const out=[]; for(let v=lo;v<=hi+step*1e-6;v+=step) out.push(+v.toFixed(6)); return out; }
+function fmtTick(v,step){ if(Math.abs(v)>=1000) return Math.round(v).toLocaleString(); const d=Math.max(0,Math.ceil(-Math.log10(step))); return v.toFixed(d); }
+function fmtVal(v){ const a=Math.abs(v); if(a>=1000) return Math.round(v).toLocaleString(); return a>=10?v.toFixed(0):a>=1?v.toFixed(1):v.toFixed(2); }
+
+function draw(svgId, data, color, mode){
+  const svg=document.getElementById(svgId); svg.innerHTML='';
+  const W=400,H=180, mL=34,mR=16,mT=24,mB=24;               // mT leaves room for value labels above
+  const plotW=W-mL-mR, plotH=H-mT-mB, n=data.length;
+  const vals=data.map(d=>d.value), dataMin=Math.min(...vals), dataMax=Math.max(...vals);
+  const yt=niceTicks(Math.min(0,dataMin), Math.max(0,dataMax), 4);
+  const yMin=yt[0], yMax=yt[yt.length-1], ySpan=(yMax-yMin)||1, step=yt.length>1?yt[1]-yt[0]:1;
+  const X=i=> mL + (n>1? i/(n-1)*plotW : plotW/2);
+  const Y=v=> mT + (1-(v-yMin)/ySpan)*plotH;
+
+  // which turns get value + year labels
+  const showAll = mode==='all' || n<=8;
+  const stepIdx = showAll?1:Math.ceil((n-1)/6);
+  const labeled = i => showAll || i===0 || i===n-1 || i%stepIdx===0;
+
+  // horizontal Y gridlines + labels
+  yt.forEach(v=>{ const y=Y(v);
+    svg.appendChild(el('line',{x1:mL,y1:y,x2:W-mR,y2:y,stroke:'#2b2d31','stroke-width':1}));
+    const t=el('text',{x:mL-6,y:y+3,'text-anchor':'end',fill:'#909296','font-size':9}); t.textContent=fmtTick(v,step); svg.appendChild(t);
+  });
+  // vertical gridline at EVERY turn
+  data.forEach((d,i)=>{ const x=X(i);
+    svg.appendChild(el('line',{x1:x,y1:mT,x2:x,y2:mT+plotH,stroke:'#212327','stroke-width':1}));
+  });
+  // baseline axis
+  svg.appendChild(el('line',{x1:mL,y1:mT+plotH,x2:W-mR,y2:mT+plotH,stroke:'#373a40','stroke-width':1}));
+  // year labels (thinned) with edge anchoring
+  data.forEach((d,i)=>{ if(!labeled(i)) return; const x=X(i);
+    const anchor= i===0?'start':i===n-1?'end':'middle';
+    svg.appendChild(el('line',{x1:x,y1:mT+plotH,x2:x,y2:mT+plotH+4,stroke:'#373a40','stroke-width':1}));
+    const t=el('text',{x:x,y:H-6,'text-anchor':anchor,fill:'#909296','font-size':9}); t.textContent=d.year; svg.appendChild(t);
+  });
+  // area + line
+  const linePts=data.map((d,i)=>`${X(i).toFixed(1)},${Y(d.value).toFixed(1)}`).join(' ');
+  svg.appendChild(el('polygon',{points:`${mL},${mT+plotH} ${linePts} ${mL+plotW},${mT+plotH}`, fill:color, opacity:0.10}));
+  svg.appendChild(el('polyline',{points:linePts, fill:'none', stroke:color, 'stroke-width':2}));
+  // dot at EVERY turn + value labels (thinned)
+  data.forEach((d,i)=>{ const x=X(i), y=Y(d.value); const last=i===n-1;
+    svg.appendChild(el('circle',{cx:x,cy:y,r:last?3.5:2.6, fill:color, stroke:'#141517','stroke-width':last?2:1.5}));
+    if(labeled(i)){ const anchor= i===0?'start':i===n-1?'end':'middle';
+      const t=el('text',{x:x, y:y-7,'text-anchor':anchor, fill:'#f1f3f5','font-size':9,'font-weight':600}); t.textContent=fmtVal(d.value); svg.appendChild(t);
+    }
+  });
+}
+
+// data
+const shortData=[{year:2025,value:45.0},{year:2030,value:41.6},{year:2035,value:43.2},{year:2040,value:40.1},{year:2045,value:41.5}];
+const longData=(()=>{ const a=[]; let v=0.73; for(let y=2025;y<=2200;y+=5){ v+= Math.sin((y-2025)/12)*0.03 - 0.012; v=Math.max(0.05,v); a.push({year:y,value:+v.toFixed(2)}); } return a; })();
+
+let mode='thin';
+function render(){ draw('chart-short', shortData, '#ffd43b', mode); draw('chart-long', longData, '#f59f00', mode); }
+document.querySelectorAll('#density button').forEach(b=>b.onclick=()=>{ document.querySelectorAll('#density button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); mode=b.dataset.mode; render(); });
+render();
+</script>
+</body>
+</html>

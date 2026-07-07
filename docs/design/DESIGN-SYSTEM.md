@@ -154,31 +154,57 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   (mirrors `validateSelection` / the disabled End Turn). Rendered as a **sticky header** at the top of
   `AppShell.Main` (`position: sticky; top: 0`, body-colored background) so it stays visible while the
   player works the policy board.
-- **Dashboard** — bordered `Paper`, title "Planet", a dimmed `pop … · GDP/capita …` totals subtitle,
-  warming/CO₂/emissions rows (temperature colored by `temperatureColor`), then **full region-parity**:
-  the same sections a `RegionPanel` shows, in the same order and visual language, only with **planet
-  aggregates** (from the `planetAggregate` selector) — **Emissions by source**, **Generation mix**,
-  **Energy & land levers**, **Income** (carbon-tax note reads "the planet"), and the five **quality
-  bars** (`MetricBar`) — trailed by a `Sparkline` (240×40) of temperature history. Aggregation:
-  totals sum; generation/levers are generation-weighted by demand; crop yield + quality bars are
-  simple-averaged. **Rendered inside the `DataOverlay`** (planet view, when no region is selected).
-- **EmissionsBySource** (`EmissionsBySource.tsx`, shared by Dashboard + RegionPanel) — a horizontal
-  **stacked bar** (`dark-8` track, each source a `SOURCE_COLORS` segment) over a 3-column **legend**
-  grid (`source · Gt · %`), sources **ordered by size** (descending). Each legend label carries a
-  Mantine `<Tooltip multiline w={250}>` explaining the source (dotted-underline affordance). The one
-  source that can go negative (`landUse` after reforestation) renders as a dashed-teal **sink**
-  segment left of a thin zero divider, with positives stacked to its right; its legend value shows a
-  `−` sign in `teal.4` and reads `sink` instead of a %.
-- **GenerationMix** (`GenerationMix.tsx`, RegionPanel + Dashboard) — an electricity generation split
-  (per-region, or the demand-weighted planet aggregate — it takes `{ mix, intensity }`, not a whole
-  `Region`, so both panels feed it).
-  A **derived grid-intensity readout** (`Grid carbon intensity (derived)` + value) over a thin
-  green→amber→red **gauge** with a white marker at `gridCarbonIntensity` (`0 · clean` … `coal · 1.0`);
-  then an 18px **banded stacked bar** (`dark-8` track) split into **fossil | nuclear | renewable**
-  blocks separated by 2px `dark-8` gaps (sources size-ordered within a band, `GENERATION_COLORS`
-  segments, `title` tooltips); then a **band-grouped legend** (`1fr auto`) — each band a subheader
-  (accent dot + name + **subtotal %**) followed by its sources (swatch · dotted-underline name ·
-  share %, each name a Mantine `Tooltip`). The lone Nuclear band repeats its name as its single row.
+- **DrillDownPanel** (`DrillDownPanel.tsx`) — the body of the `DataOverlay`: a **config-driven,
+  recursive metric drill-down** that replaced the flat Dashboard/RegionPanel. Bordered `Paper`,
+  header = entity title (`Title order={4}` — "Planet", or the region name with its `REGION_COLORS`
+  dot) + a dimmed summary line **shown only at the overview** (drilled levels drop it — the breadcrumb
+  + content stand alone), then a **breadcrumb** (`Overview › Emissions › Electricity › Coal`; each
+  prior crumb is an earth-tinted button, the current is bold text) and, per level, one of:
+  the top-level `MetricGrid`, a `Composition`, or a `MetricTrend` — **with no separate section label**
+  (the breadcrumb's current crumb already names the view). Owns the drill `path`; the
+  `DataOverlay` re-keys it by entity so the path resets when the selection changes. The metric tree
+  (`game/metricTree.ts`) is the single source of truth; every value/series is a pure selector over
+  `turnLog`, so planet and region share one tree (planet via the `planetAggregate` selector).
+- **MetricGrid** (`MetricGrid.tsx`) — the drill-down's top level: a 2-col grid of the six headline
+  metric tiles — **Emissions · Public support · Income · Biodiversity · Water availability · Land
+  availability**. Each tile (`dark-8` fill, `dark-4` border, radius 4) shows a color dot + label, the
+  value + unit, a `Sparkline` mini-trend, and a `›` drill affordance. Tile color = the node's fixed
+  color (emissions/income) or `metricColor(value)` (index metrics).
+- **Composition** (`Composition.tsx`) — the reusable "contribution of each part" renderer (generalizes
+  the old EmissionsBySource). **`sum` mode**: a proportional stacked bar (`SOURCE_COLORS` /
+  `GENERATION_COLORS`) over rows (`swatch · label · value · %`), size-ordered; used for
+  Emissions→sectors and Electricity→coal/gas/oil. **`ledger` mode**: signed money rows (in = `teal.4`
+  `+$…`, out = `red.4` `−$…`) + a top-bordered **Net /turn**; used for Income→tax/carbon-tax/upkeep.
+  A **negative** sum-mode row (a land-use carbon **sink**) is shown as a signed `−value` in `teal.4`
+  with the word **`sink`** in the %-column (never a bogus negative percentage). Every row is a button:
+  a `›` drills into further composition, a `📈` opens that part's trend.
+- **MetricTrend** (`MetricTrend.tsx`) — the reusable value-vs-year line graph (generalizes
+  `Sparkline`, which stays the tile mini-trend). Reads **turn by turn**. Headline = latest value +
+  unit + a change chip (`▲/▼ Δ since <year>`, `earth.3` good / `red.4` bad by the node's `goodUp`;
+  change shown to enough precision that a small real move never rounds to `0.0`). Chart (`dark-8`
+  panel, viewBox `0 0 400 180`): the **Y axis is baselined at 0** (so a small change reads as small,
+  not a cliff; a sink shows the 0 line) with nice-number ticks (1/2/5 × 10ⁿ) + **horizontal value
+  gridlines** (`#2b2d31`) labeled to step-appropriate precision; a **vertical gridline at every turn
+  year** (`#212327`, fainter since denser); a faint area fill + the line; and a **dot at every turn**
+  (latest emphasized). **Value labels sit above each turn's dot and year labels below** — both shown
+  for every turn on a short series (**≤ 8 turns**), else **thinned** to the first, the last and every
+  `ceil((n−1)/6)`-th (edge labels start/end-anchored so they never clip); dots + vertical gridlines
+  stay at *every* turn regardless, so the per-turn cadence is never lost. Used for the index metrics
+  and every leaf sector/fuel/income line (metrics with no modeled composition). The two grid greys
+  (`#2b2d31` horizontal, `#212327` vertical) are the MetricTrend grid tones — dark neutrals in the
+  surface ramp, no new palette entry.
+- **EmissionsBySource** (`EmissionsBySource.tsx`) — the earlier stacked-bar + legend breakdown.
+  **Superseded in the UI by `Composition` (sum mode)** and no longer mounted; the module is retained
+  because its `EMISSION_SOURCES` / `SourceValues` exports are the shared source keys used by
+  `planetAggregate` and `game/metricSeries`. Historical look: a horizontal stacked bar (`dark-8`
+  track, `SOURCE_COLORS` segments) over a `source · Gt · %` legend, size-ordered, with the negative
+  `landUse` **sink** case.
+- **GenerationMix** / **RegionLevers** / **RegionIncome** / **MetricBar** — components of the retired
+  Dashboard/RegionPanel. **Not currently surfaced** by the drill-down (the redesign is metric-first:
+  the electricity fuel drill shows per-fuel *emissions*, not the full 8-source generation *share* mix,
+  grid-intensity gauge, storage/crop-yield levers). Retained in the tree pending a decision on whether
+  to re-surface the generation-share mix + levers under Electricity. `GenerationMix` still renders the
+  derived grid-intensity gauge + banded fossil/nuclear/renewable bar + band legend when mounted.
 - **RegionInfoBox** (`RegionInfoBox.tsx`) — the compact glance-card beside the map (the map row's
   right column). Bordered `Paper` (`p="sm"`), **content-height and top-aligned** so it reads as a small
   card, never a column rivaling the map. Two states keyed off the selected region:
@@ -193,29 +219,16 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   Both buttons call `onOpenData`, which opens the existing **DataOverlay** — no emissions logic is
   duplicated. Stats use the shared `Stat` (label + bold value) and `Unit` (dimmed suffix) helpers.
   **No new tokens.**
-- **RegionPanel** — bordered `Paper`; region name + a `GDP/capita · pop · Gt/yr` line; then the
-  **EmissionsBySource** breakdown for the region; the **Generation mix** block (`GenerationMix.tsx`);
-  an **Energy & land levers** block (`RegionLevers.tsx`)
-  — a 2×2 grid of the four coupling variables (`Grid intensity` — now a *derived* read-out, `Storage
-  built`, `Crop yield`, `Power demand`), each a label + `ⓘ` tooltip, a bold value, and a mini-bar (or
-  a "grows with GDP" subtext for demand); then an **Income** block (`RegionIncome.tsx`, shown when a
-  `regionBudget` is passed); then the per-metric rows with a `Progress` bar colored by
-  `metricColor(value)`. Empty state: dimmed "Select a region on the globe." **Now rendered inside the
-  `DataOverlay`** (region view), not inline.
-- **RegionIncome** (`RegionIncome.tsx`, RegionPanel) — the region's per-turn treasury cash-flow
-  breakdown from the `regionBudget` selector (last turn's `TurnDiagnostics`, or a turn-0 projection).
-  An `earth-7` uppercase **Income** header (same section treatment as Emissions/Generation), then a
-  2-col ledger: **Tax (GDP)** `+$…` (`teal.4`), a highlighted **Carbon tax** `+$…` row (only when the
-  tax is active here — `dark-6` fill + 2px `earth-5` left accent + a dimmed "shrinks as this region
-  decarbonises" note), **Policy upkeep** `−$…` (`red.4`), and a top-bordered **Net** `$…/turn`
-  (`fw={700}`). Money in = `teal`, out = `red`. **No new tokens.**
-- **DataOverlay** (`DataOverlay.tsx`) — the emissions data window opened from the **RegionInfoBox 📊
+  *(The retired `Dashboard` and `RegionPanel` — flat top-to-bottom stacks of these sections — were
+  replaced by `DrillDownPanel`; the region income ledger now lives in `Composition` ledger mode.)*
+- **DataOverlay** (`DataOverlay.tsx`) — the "Full data" window opened from the **RegionInfoBox 📊
   button**. Full-screen `Overlay` (`color="#000"`, `backgroundOpacity={0.85}`, `fixed`, `zIndex={1000}`)
-  with a centered, framer-motion (fade + 20px rise) window ~560px wide; content scrolls in a
-  `ScrollArea.Autosize` (`mah="86vh"`). It **hosts the existing components**: `RegionPanel` when a
-  region is selected, otherwise `Dashboard` (the planet) — no emissions logic is duplicated. Closes on
-  the ✕ `ActionIcon` (top-right), `Escape`, or a backdrop click. Reuses the `EndingScreen` overlay
-  pattern; adds **no new tokens**.
+  with a centered, framer-motion (fade + 20px rise) window ~460px wide; content scrolls in a
+  `ScrollArea.Autosize` (`mah="86vh"`). It **hosts the `DrillDownPanel`**, passing the entity
+  (`{kind:'region',id}` when a region is selected, else `{kind:'planet'}`) and the full `turnLog`;
+  the panel is `key`ed by entity so the drill path resets on selection change. Closes on the ✕
+  `ActionIcon` (top-right), `Escape`, or a backdrop click. Reuses the `EndingScreen` overlay pattern;
+  adds **no new tokens**.
 - **TurnLog** — bordered `Paper` titled "Turn Log"; a `ScrollArea.Autosize` (max-height ~340) of
   per-turn entries, **newest first**. Each entry is a `dark-6` sub-card (`dark-4` border, radius 4)
   with a `Turn N · year` header, a **Planet** block (Warming/CO₂/Emissions/Damage) always, and the

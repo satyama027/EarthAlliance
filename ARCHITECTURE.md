@@ -70,9 +70,9 @@ EarthAlliance/
 │        ├─ game/useGame.ts  # the React hook wrapping the engine (holds WorldState)
 │        ├─ scene/           # WorldMap (inlines world-map.svg) + metricColor
 │        ├─ assets/          # world-map.svg — baked HD region map (generated, committed)
-│        ├─ components/      # Mantine DOM HUD (ResourceBar, RegionInfoBox, DataOverlay, Dashboard,
-│        │                   #   RegionPanel, EmissionsBySource, RegionLevers, PolicyBoard, PolicyCard,
-│        │                   #   PolicyDetailOverlay, EndingScreen, Sparkline)
+│        ├─ components/      # Mantine DOM HUD (ResourceBar, RegionInfoBox, DataOverlay, DrillDownPanel,
+│        │                   #   MetricGrid, Composition, MetricTrend, EmissionsBySource, GenerationMix,
+│        │                   #   PolicyBoard, PolicyCard, PolicyDetailOverlay, EndingScreen, Sparkline)
 │        └─ audio/           # useSfx + sound (Web Audio SFX, event-driven)
 └─ docs/superpowers/         # specs and implementation plans
 ```
@@ -454,32 +454,39 @@ the dashboard sparkline.
   exceeds the budget; rendered as the sticky top header), `RegionInfoBox` (the compact glance-card
   beside the map — a single region click surfaces its headline **GDP/capita · emissions · income ·
   public support**, or planet **warming · CO₂ · emissions** when none is selected, each state with a
-  **📊** button that opens the `DataOverlay`), `DataOverlay` (the emissions data window — a full-screen
-  `Overlay` following the `EndingScreen` pattern that **hosts `RegionPanel` when a region is selected,
-  else `Dashboard`**; closes on ✕ / `Escape` / backdrop), `Dashboard` (the planet drill-down — now a
-  **full region-parity** superset: its climate-native block (warming / CO₂ / emissions / `Sparkline`
-  trend) plus planet-level equivalents of every region section — **emissions by source**, **generation
-  mix**, **energy & land levers**, **income**, and the five **quality bars** — all from the
-  `planetAggregate` selector), `RegionPanel` (the selected region — its per-source breakdown via
-  the shared `EmissionsBySource` stacked bar, the **generation mix** via `GenerationMix`, the four
-  coupling-variable **levers** via `RegionLevers` with hover tooltips, the **Income** breakdown via
-  `RegionIncome`, then the metric bars via the shared `MetricBar`), `TurnLog` (a scrollable, newest-first history of
+  **📊** button that opens the `DataOverlay`), `DataOverlay` (the "Full data" window — a full-screen
+  `Overlay` following the `EndingScreen` pattern that **hosts the `DrillDownPanel`**, passing the
+  entity `{kind:'planet'}` / `{kind:'region',id}` and the full `turnLog`; closes on ✕ / `Escape` /
+  backdrop), `DrillDownPanel` (the **config-driven, recursive metric drill-down** that replaced the
+  flat `Dashboard`/`RegionPanel`: an entity header + breadcrumb over one of `MetricGrid` (the top-level
+  six-tile grid — **Emissions · Public support · Income · Biodiversity · Water · Land**), `Composition`
+  (a "contribution of each part" stacked bar / signed ledger), or `MetricTrend` (a value-vs-year line
+  graph). The **metric tree** (`game/metricTree.ts`) declares each node's kind; every value/series is a
+  pure selector over `turnLog` (see below), so the planet and any region share one tree),
+  `TurnLog` (a scrollable, newest-first history of
   every per-turn data point — a global "Planet" block plus the selected region's full block, each
   value carrying a good/bad-colored change chip vs. the prior turn; each non-baseline entry also has
   a per-entry **"More"** toggle revealing a `Collapse`d CALC section of the engine's `TurnDiagnostics`
   calc internals), `PolicyBoard` of `PolicyCard`s (with the single-click `PolicyDetailOverlay`),
-  and `EndingScreen` (shown when `game.ending` is non-null). The **`RegionInfoBox` Income stat** and
-  **`RegionIncome`** breakdown both consume the `regionBudget` selector (`game/regionBudget.ts`) —
-  `{ taxIncome, carbonTax, upkeep, net }` composed from the latest turn's `TurnDiagnostics`
-  (`taxIncomeByRegion` / `carbonTaxRevenueByRegion` / `programSpendByRegion`), with a turn-0
-  projection fallback via the engine's `regionTaxIncome` / `carbonTaxRevenue` helpers. The **planet**
-  `Dashboard` reads the sibling `planetAggregate` selector (`game/planetAggregate.ts`), which rolls the
-  10 regions into one reading: totals **sum** (population, emissions, power demand, and each region's
-  `regionBudget` for income); the generation mix, grid intensity and storage are **generation-weighted**
-  by `electricityDemand`; crop yield and the five 0–100 quality metrics are **simple-averaged**. Grid
-  intensity is derived from the aggregated mix via the engine's `gridIntensityFromMix`. `GenerationMix`,
-  `RegionLevers` and `MetricBar` take minimal data props (not a whole `Region`), so both the region and
-  planet panels feed them the same components.
+  and `EndingScreen` (shown when `game.ending` is non-null).
+- **The metric drill-down** (`game/metricTree.ts` + `game/metricSeries.ts`) is the data spine of the
+  `DataOverlay`. Each `MetricNode` carries a single `read(reading) → number` accessor: the node's
+  **headline value** is `read` of the latest turn's reading and its **trend series** is `read` mapped
+  over *every* turn — so composition and trend fall out of one accessor. A `Reading` is a uniform shape
+  produced identically from a `Region` or the `planetAggregate` rollup (`game/planetAggregate.ts`), so
+  the tree never branches on entity type. **No engine change and no new storage**: every series is
+  derived from `useGame`'s `turnLog`, which already holds the turn-0 baseline plus a full `WorldState`
+  snapshot per turn — so "history for the planet and all regions from the start of the game" already
+  exists. The one real fuel-level split (Emissions → Electricity → coal/gas/oil) is computed by
+  `electricityFuelEmissions` (`electricityDemand × share × emissionFactor`, summing to the `electricity`
+  total); the four index metrics and every leaf sector are trend leaves (no modeled composition).
+  Income composition reuses the `regionBudget` selector (`{ taxIncome, carbonTax, upkeep, net }`), the
+  same one behind the `RegionInfoBox` Income stat. `planetAggregate` rolls the 10 regions into one
+  reading: totals **sum**; the generation mix / grid intensity / storage are **demand-weighted**; crop
+  yield and the five 0–100 quality metrics are **simple-averaged**. *(The generation-share mix bar,
+  grid-intensity gauge and coupling-variable levers the old panels showed are not currently surfaced by
+  the drill-down; `GenerationMix`/`RegionLevers`/`RegionIncome`/`MetricBar` remain in the tree pending a
+  decision on re-surfacing them under Electricity.)*
 - **Stacking order** (`Z_LAYERS` in `theme.ts`): overlays render at `overlay` (1000:
   `DataOverlay`, `EndingScreen`) / `overlayRaised` (1100: `PolicyDetailOverlay`). Mantine portals
   tooltips to `document.body` as siblings of those overlays, so the theme lifts the **Tooltip**

@@ -1,38 +1,28 @@
 import { useEffect } from 'react';
 import { ActionIcon, Box, Overlay, ScrollArea } from '@mantine/core';
 import { motion } from 'framer-motion';
-import type { Region, TurnDiagnostics } from '@earth-alliance/engine';
-import { Dashboard } from './Dashboard.js';
-import { RegionPanel } from './RegionPanel.js';
+import { DrillDownPanel } from './DrillDownPanel.js';
 import { Z_LAYERS } from '../theme.js';
-import type { ClimatePoint } from '../game/useGame.js';
-import type { RegionBudget } from '../game/regionBudget.js';
+import type { Entity } from '../game/metricTree.js';
+import type { TurnRecord } from '../game/useGame.js';
 
 interface DataOverlayProps {
   opened: boolean;
   onClose(): void;
-  /** Selected region → its breakdown; `null` → the planet breakdown. */
-  region: Region | null;
-  /** The selected region's income breakdown (forwarded to RegionPanel). */
-  budget?: RegionBudget;
-  temperature: number;
-  co2: number;
-  annualEmissions: number;
-  regions: Region[];
-  history: ClimatePoint[];
-  /** Last turn's diagnostics — feeds the planet income rollup (Dashboard). */
-  diagnostics?: TurnDiagnostics | null;
+  /** The planet, or a selected region — the entity the drill-down reads. */
+  entity: Entity;
+  /** The full per-turn history; every metric series is derived from it. */
+  log: TurnRecord[];
 }
 
 /**
- * Emissions data in an overlay window (opened from the resource-bar 📊 button). Hosts the existing
- * `RegionPanel` (when a region is selected) or `Dashboard` (the planet, otherwise) — no emissions
- * logic is duplicated here. Follows the `EndingScreen` overlay pattern (dark backdrop, centered
- * surface, framer-motion fade + rise); closes on ✕, Escape, or a backdrop click.
+ * The "Full data" window (opened from the RegionInfoBox 📊 button). Hosts the config-driven
+ * `DrillDownPanel` — a 6-tile metrics grid that drills into composition breakdowns or value-vs-year
+ * trend graphs. Follows the `EndingScreen` overlay pattern (dark backdrop, centered surface,
+ * framer-motion fade + rise); closes on ✕, Escape, or a backdrop click. `key`ing the panel by entity
+ * resets the drill path when the selection changes.
  */
-export function DataOverlay({
-  opened, onClose, region, budget, temperature, co2, annualEmissions, regions, history, diagnostics = null,
-}: DataOverlayProps) {
+export function DataOverlay({ opened, onClose, entity, log }: DataOverlayProps) {
   useEffect(() => {
     if (!opened) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -42,6 +32,8 @@ export function DataOverlay({
 
   if (!opened) return null;
 
+  const entityKey = entity.kind === 'region' ? entity.id : 'planet';
+
   return (
     <Overlay color="#000" backgroundOpacity={0.85} fixed zIndex={Z_LAYERS.overlay} onClick={onClose}>
       <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 24 }}>
@@ -49,7 +41,7 @@ export function DataOverlay({
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}
           onClick={(e) => e.stopPropagation()}
-          style={{ position: 'relative', width: 560, maxWidth: '100%' }}
+          style={{ position: 'relative', width: 460, maxWidth: '100%' }}
         >
           <ActionIcon
             aria-label="Close" variant="subtle" color="gray" size="md"
@@ -58,16 +50,8 @@ export function DataOverlay({
           >
             ✕
           </ActionIcon>
-          {/* RegionPanel / Dashboard each render their own bordered Paper surface. */}
           <ScrollArea.Autosize mah="86vh">
-            {region ? (
-              <RegionPanel region={region} budget={budget} />
-            ) : (
-              <Dashboard
-                temperature={temperature} co2={co2} annualEmissions={annualEmissions}
-                regions={regions} history={history} diagnostics={diagnostics}
-              />
-            )}
+            <DrillDownPanel key={entityKey} entity={entity} log={log} />
           </ScrollArea.Autosize>
         </motion.div>
       </Box>

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Earth Alliance — Metric drill-down dashboard (mockup)</title>
+<style>
+  :root {
+    --earth-3:#63e6be; --earth-5:#20c997; --earth-6:#12b886; --earth-7:#0ca678;
+    --teal:#20c997; --teal-4:#38d9a9; --red:#ff6b6b; --yellow:#ffd43b; --amber:#fab005;
+    --bg:#1a1b1e; --surface:#25262b; --surface-2:#2c2e33; --dark-8:#141517; --border:#373a40; --dark-4:#373a40;
+    --text:#c1c2c5; --text-strong:#f1f3f5; --dimmed:#909296;
+    --radius:8px; --radius-sm:4px;
+    --s-electricity:#f59f00; --s-transport:#4dabf7; --s-aviation:#66d9e8;
+    --s-industry:#868e96; --s-agriculture:#a9e34b; --s-landuse:#2f9e44;
+    --g-coal:#495057; --g-gas:#868e96; --g-oil:#e8590c; --g-nuclear:#9775fa;
+    --g-hydro:#4dabf7; --g-wind:#3bc9db; --g-solar:#ffd43b; --g-geo:#94d82d;
+    --income-tax:#38d9a9; --income-ctax:#20c997; --income-upkeep:#ff6b6b;
+    font-family: system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); padding:24px 24px 60px;
+         -webkit-font-smoothing:antialiased; }
+  h1 { font-size:18px; color:var(--text-strong); margin:0 0 4px; }
+  .lede { color:var(--dimmed); font-size:13px; margin:0 0 18px; max-width:920px; line-height:1.55; }
+  .lede b { color:var(--earth-3); font-weight:600; }
+  .stage { display:flex; gap:40px; align-items:flex-start; flex-wrap:wrap; }
+  .caption { font-size:12px; color:var(--dimmed); max-width:340px; line-height:1.6; margin-top:14px; }
+  .caption b { color:var(--earth-3); font-weight:600; }
+  .caption ul { margin:8px 0 0; padding-left:18px; }
+  .caption li { margin-bottom:5px; }
+
+  /* entity toggle */
+  .toggle { display:inline-flex; background:var(--dark-8); border:1px solid var(--border);
+    border-radius:999px; padding:3px; margin-bottom:14px; gap:2px; }
+  .toggle button { border:none; background:transparent; color:var(--dimmed); font-size:12.5px; font-weight:600;
+    padding:6px 16px; border-radius:999px; cursor:pointer; }
+  .toggle button.on { background:var(--surface-2); color:var(--text-strong); }
+
+  /* Overlay window (DataOverlay) */
+  .overlay-win { position:relative; width:412px; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:14px 16px 16px; box-shadow:0 20px 60px rgba(0,0,0,.5); }
+  .close { position:absolute; top:12px; right:12px; width:28px; height:28px; border:none;
+    border-radius:var(--radius-sm); background:var(--surface-2); color:var(--text); font-size:14px; cursor:pointer; }
+
+  /* header + breadcrumb */
+  .head { display:flex; align-items:baseline; gap:8px; margin-bottom:2px; padding-right:32px; }
+  .entity-dot { width:11px; height:11px; border-radius:3px; flex:none; align-self:center; }
+  .h4 { font-size:16px; font-weight:700; color:var(--text-strong); margin:0; }
+  .entity-sub { font-size:11px; color:var(--dimmed); margin:0 0 10px; }
+  .crumbs { display:flex; align-items:center; gap:4px; flex-wrap:wrap; font-size:12px; margin:8px 0 12px; min-height:18px; }
+  .crumbs button { border:none; background:transparent; color:var(--earth-3); font-size:12px; font-weight:600;
+    padding:2px 4px; border-radius:var(--radius-sm); cursor:pointer; }
+  .crumbs button:hover { background:var(--surface-2); }
+  .crumbs .sep { color:var(--dimmed); }
+  .crumbs .cur { color:var(--text-strong); font-weight:700; padding:2px 4px; }
+
+  /* level-0 tile grid */
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .tile { background:var(--dark-8); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:10px 11px; cursor:pointer; text-align:left; color:inherit; font:inherit; position:relative;
+    transition:border-color .12s, background .12s; overflow:hidden; }
+  .tile:hover { border-color:var(--earth-6); background:#17181c; }
+  .tile .tk { font-size:11px; color:var(--dimmed); display:flex; align-items:center; gap:6px; }
+  .tile .tk .d { width:8px; height:8px; border-radius:2px; }
+  .tile .tv { font-size:20px; font-weight:700; color:var(--text-strong); margin-top:5px; line-height:1;
+    font-variant-numeric:tabular-nums; }
+  .tile .tu { font-size:11px; color:var(--dimmed); font-weight:600; margin-left:3px; }
+  .tile .tspark { margin-top:8px; height:26px; }
+  .tile .chev { position:absolute; top:10px; right:9px; color:var(--dimmed); font-size:12px; }
+
+  /* section header + divider */
+  .sec { text-transform:uppercase; letter-spacing:.05em; color:var(--earth-7); font-size:11px; font-weight:600;
+    margin:2px 0 8px; }
+  .divider { border-top:1px solid var(--border); margin:12px 0; }
+
+  /* composition stacked bar */
+  .bar { display:flex; height:18px; border-radius:4px; overflow:hidden; background:var(--dark-8); }
+  .bar > span { height:100%; display:block; }
+  .gap { width:2px; background:var(--dark-8); flex:none; }
+
+  /* composition rows (clickable legend) */
+  .rows { margin-top:11px; display:flex; flex-direction:column; gap:2px; }
+  .crow { display:grid; grid-template-columns:auto 1fr auto auto auto; gap:10px; align-items:center;
+    padding:6px 6px; border-radius:var(--radius-sm); background:transparent; border:none; color:inherit; font:inherit;
+    cursor:pointer; text-align:left; width:100%; transition:background .1s; }
+  .crow:hover { background:var(--surface-2); }
+  .crow[data-leaf="1"] { cursor:pointer; }
+  .crow .dot { width:10px; height:10px; border-radius:2px; flex:none; }
+  .crow .nm { font-size:13px; color:var(--text); }
+  .crow .num { text-align:right; font-variant-numeric:tabular-nums; color:var(--dimmed); font-size:12px; }
+  .crow .pct { text-align:right; font-variant-numeric:tabular-nums; font-weight:600; font-size:12.5px; min-width:34px; }
+  .crow .go { color:var(--dimmed); font-size:12px; width:14px; text-align:center; }
+  .crow:hover .go { color:var(--earth-3); }
+  .crow .go.leaf { font-size:11px; }
+
+  /* income ledger net row */
+  .net-row { display:flex; justify-content:space-between; align-items:baseline;
+    margin-top:8px; padding-top:9px; border-top:1px solid var(--dark-4); }
+  .net-row .nlbl { font-size:13px; font-weight:700; color:var(--text-strong); text-transform:uppercase; letter-spacing:.05em; }
+  .net-row .nval { font-size:15px; font-weight:700; color:var(--text-strong); font-variant-numeric:tabular-nums; }
+  .net-row .nval small { font-size:11px; font-weight:600; color:var(--dimmed); margin-left:2px; }
+
+  /* trend line graph (MetricTrend) */
+  .trend-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:2px; }
+  .trend-head .tk { font-size:12px; color:var(--dimmed); }
+  .trend-head .tv { font-size:22px; font-weight:700; color:var(--text-strong); font-variant-numeric:tabular-nums; }
+  .trend-head .tv small { font-size:12px; color:var(--dimmed); font-weight:600; margin-left:3px; }
+  .trend-delta { font-size:11.5px; font-weight:600; margin-left:8px; }
+  .up-good { color:var(--earth-3); } .down-bad { color:var(--red); }
+  .chartwrap { margin-top:10px; background:var(--dark-8); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:10px 10px 8px; }
+  .chart-svg { display:block; width:100%; height:auto; }
+  .axis-lbl { fill:var(--dimmed); font-size:9px; font-variant-numeric:tabular-nums; }
+  .axis-lbl.y { text-anchor:end; }
+  .axis-lbl.x { text-anchor:middle; }
+  .axis-line { stroke:var(--border); stroke-width:1; }
+  .grid-line { stroke:var(--dark-4); stroke-width:1; }
+  .tick { stroke:var(--border); stroke-width:1; }
+  .trend-line { fill:none; stroke-width:2; }
+  .trend-area { opacity:.10; }
+  .end-dot { stroke:var(--dark-8); stroke-width:2; }
+  .trend-note { font-size:11px; color:var(--dimmed); margin-top:9px; line-height:1.5; }
+  .trend-note b { color:var(--earth-3); font-weight:600; }
+</style>
+</head>
+<body>
+  <h1>Metric drill-down dashboard — “Full data” redesign (interactive mockup)</h1>
+  <p class="lede">The 📊 <b>Full data</b> overlay becomes a <b>6-tile metrics grid</b> that drills down. Two reusable
+    renderers do all the work: <b>Composition</b> (contribution of each part — the stacked bar + clickable rows) and
+    <b>MetricTrend</b> (a value-vs-year line graph). Where the engine models a real breakdown you drill into composition
+    (Emissions → sectors → Electricity → coal/gas/oil; Income → parts); where it doesn’t, the node is a trend line.
+    <b>Click the tiles and rows below</b> — it’s live. Toggle Planet ⇄ Region to see both entities.</p>
+
+  <div class="toggle" id="entityToggle">
+    <button data-entity="planet" class="on">🌍 Planet</button>
+    <button data-entity="south-asia">🔴 South Asia (region)</button>
+  </div>
+
+  <div class="stage">
+    <div>
+      <div class="overlay-win">
+        <button class="close">✕</button>
+        <div class="head">
+          <span class="entity-dot" id="entityDot"></span>
+          <h4 class="h4" id="entityName">Planet</h4>
+        </div>
+        <div class="entity-sub" id="entitySub">pop 8,050M · GDP/capita $17,400</div>
+        <div class="crumbs" id="crumbs"></div>
+        <div id="panel"></div>
+      </div>
+    </div>
+
+    <div class="caption">
+      <b>How to read it</b>
+      <ul>
+        <li><b>Level 0</b> — the 6 tiles: Emissions, Public support, Income, Biodiversity, Water availability,
+          Land availability. Each shows the headline value + a mini trend.</li>
+        <li><b>Composition</b> nodes (Emissions, Electricity, Income) show the stacked bar; each row is clickable —
+          <span style="color:var(--earth-3)">›</span> drills further, <span style="color:var(--earth-3)">📈</span>
+          opens that part’s trend line.</li>
+        <li><b>Trend</b> leaves (the four index metrics, and every leaf sector/fuel) show the value-vs-year line —
+          derived from <b>turnLog</b> snapshots, so history exists from turn 0 with no engine change.</li>
+        <li>Only <b>Electricity</b> has a real fuel split (coal/gas/oil, from the generation mix). Transport / industry /
+          agriculture etc. go straight to a trend — no fabricated fuel numbers.</li>
+      </ul>
+      Breadcrumb navigates back at any depth. The same tree drives both the Planet and Region views — only the numbers differ.
+    </div>
+  </div>
+
+<script>
+// ---- sample series helpers (2025 → 2200, 5-yr steps) ----
+const YEARS = []; for (let y=2025; y<=2100; y+=5) YEARS.push(y);
+function series(from, to, wobble=0){
+  return YEARS.map((year,i)=>{
+    const t=i/(YEARS.length-1);
+    let v = from+(to-from)*t;
+    v += Math.sin(i*1.3)*wobble;
+    return { year, value:+v.toFixed(2) };
+  });
+}
+const C = {
+  electricity:'var(--s-electricity)', transport:'var(--s-transport)', aviation:'var(--s-aviation)',
+  industry:'var(--s-industry)', agriculture:'var(--s-agriculture)', landuse:'var(--s-landuse)',
+  coal:'var(--g-coal)', gas:'var(--g-gas)', oil:'var(--g-oil)',
+  support:'var(--yellow)', bio:'var(--earth-5)', water:'var(--earth-5)', land:'var(--earth-5)',
+  tax:'var(--income-tax)', ctax:'var(--income-ctax)', upkeep:'var(--income-upkeep)', emis:'var(--s-electricity)',
+};
+
+// ---- the metric config tree (mirrors game/metricTree.ts) ----
+// node: { id, label, unit, color, kind:'composition'|'trend', value, children?, series?, goodUp? }
+const DATA = {
+  planet: {
+    name:'Planet', dot:'#63e6be', sub:'pop 8,050M · GDP/capita $17,400',
+    tree: makeTree({
+      emisTotal:50.4, sectors:[15.6,8.6,3.0,12.6,6.6,4.0], elecFuel:[9.4,5.1,1.1],
+      support:51, bio:62, water:66, land:71,
+      tax:9240, ctax:184, upkeep:1420,
+    })
+  },
+  'south-asia': {
+    name:'South Asia', dot:'#ff8787', sub:'pop 2,050M · GDP/capita $2,700',
+    tree: makeTree({
+      emisTotal:8.1, sectors:[3.1,1.0,0.3,2.2,1.2,0.3], elecFuel:[2.1,0.8,0.2],
+      support:44, bio:48, water:39, land:52,
+      tax:610, ctax:22, upkeep:180,
+    })
+  },
+};
+
+function makeTree(d){
+  const [elec,trans,avi,ind,agri,land] = d.sectors;
+  const [coal,gas,oil] = d.elecFuel;
+  const net = d.tax + d.ctax - d.upkeep;
+  return [
+    { id:'emissions', label:'Emissions', unit:'Gt CO₂/yr', color:C.emis, kind:'composition',
+      value:d.emisTotal, goodUp:false, series:series(d.emisTotal*0.9, d.emisTotal*1.15, d.emisTotal*0.02),
+      children:[
+        { id:'electricity', label:'Electricity', unit:'Gt CO₂/yr', color:C.electricity, kind:'composition',
+          value:elec, goodUp:false, series:series(elec*1.1, elec*0.5, elec*0.03),
+          children:[
+            leaf('elec-coal','Coal', coal, 'Gt CO₂/yr', C.coal, false, series(coal*1.3, coal*0.2, 0.05)),
+            leaf('elec-gas','Gas', gas, 'Gt CO₂/yr', C.gas, false, series(gas*1.1, gas*0.6, 0.03)),
+            leaf('elec-oil','Oil', oil, 'Gt CO₂/yr', C.oil, false, series(oil*1.2, oil*0.3, 0.02)),
+          ]},
+        leaf('transport','Transport', trans, 'Gt CO₂/yr', C.transport, false, series(trans*0.9, trans*1.2, trans*0.03)),
+        leaf('aviation','Aviation & shipping', avi, 'Gt CO₂/yr', C.aviation, false, series(avi*0.9, avi*1.3, avi*0.02)),
+        leaf('industry','Industry', ind, 'Gt CO₂/yr', C.industry, false, series(ind*0.95, ind*1.1, ind*0.03)),
+        leaf('agriculture','Agriculture', agri, 'Gt CO₂/yr', C.agriculture, false, series(agri*0.9, agri*1.15, agri*0.02)),
+        leaf('landuse','Land use', land, 'Gt CO₂/yr', C.landuse, false, series(land*1.2, land*0.4, land*0.03)),
+      ]},
+    leaf('support','Public support', d.support, '/100', C.support, true, series(d.support+6, d.support-14, 3)),
+    { id:'income', label:'Income', unit:'$B/turn', color:C.tax, kind:'composition-income',
+      value:net, goodUp:true, series:series(net*0.7, net*1.25, net*0.04),
+      parts:[
+        { id:'tax', label:'Tax (GDP)', sign:'+', amt:d.tax, color:C.tax, series:series(d.tax*0.7,d.tax*1.25,d.tax*0.03) },
+        { id:'ctax', label:'Carbon tax', sign:'+', amt:d.ctax, color:C.ctax, series:series(d.ctax*1.6,d.ctax*0.3,d.ctax*0.05) },
+        { id:'upkeep', label:'Policy upkeep', sign:'−', amt:d.upkeep, color:C.upkeep, series:series(d.upkeep*0.4,d.upkeep*1.4,d.upkeep*0.05) },
+      ], net },
+    leaf('biodiversity','Biodiversity', d.bio, '/100', C.bio, true, series(d.bio+4, d.bio-16, 2)),
+    leaf('water','Water availability', d.water, '/100', C.water, true, series(d.water+3, d.water-18, 2)),
+    leaf('land','Land availability', d.land, '/100', C.land, true, series(d.land+2, d.land-12, 2)),
+  ];
+}
+function leaf(id,label,value,unit,color,goodUp,ser){ return {id,label,unit,color,kind:'trend',value,goodUp,series:ser}; }
+
+// ---- state ----
+let entity='planet';
+let path=[]; // array of node ids from root
+
+function currentTree(){ return DATA[entity].tree; }
+function nodeAt(pathIds){
+  let list=currentTree(), node=null;
+  for(const id of pathIds){
+    node = list.find(n=>n.id===id);
+    if(!node) return null;
+    list = node.children || (node.parts ? node.parts : []);
+  }
+  return node;
+}
+function fmt(v){ return Math.abs(v)>=1000 ? v.toLocaleString(undefined,{maximumFractionDigits:0})
+  : (Number.isInteger(v)? v : v.toFixed(1)); }
+
+// ---- renderers ----
+function render(){
+  const meta=DATA[entity];
+  document.getElementById('entityName').textContent=meta.name;
+  document.getElementById('entityDot').style.background=meta.dot;
+  document.getElementById('entitySub').textContent=meta.sub;
+  renderCrumbs();
+  const panel=document.getElementById('panel');
+  if(path.length===0){ panel.innerHTML=renderGrid(); wireGrid(); return; }
+  const node=nodeAt(path);
+  if(node.kind==='composition'){ panel.innerHTML=renderComposition(node); wireRows(); }
+  else if(node.kind==='composition-income'){ panel.innerHTML=renderIncome(node); wireRows(); }
+  else { panel.innerHTML=renderTrend(node); }
+}
+
+function renderCrumbs(){
+  const el=document.getElementById('crumbs');
+  if(path.length===0){ el.innerHTML=`<span class="cur">Overview</span>`; return; }
+  let html=`<button data-depth="0">Overview</button>`;
+  let acc=[];
+  path.forEach((id,i)=>{
+    acc.push(id);
+    const n=nodeAt(acc.slice());
+    html+=`<span class="sep">›</span>`;
+    if(i===path.length-1) html+=`<span class="cur">${n.label}</span>`;
+    else html+=`<button data-depth="${i+1}">${n.label}</button>`;
+  });
+  el.innerHTML=html;
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ path=path.slice(0,+b.dataset.depth); render(); });
+}
+
+function renderGrid(){
+  const t=currentTree();
+  const order=['emissions','support','income','biodiversity','water','land'];
+  const cells=order.map(id=>{
+    const n=t.find(x=>x.id===id);
+    return `<button class="tile" data-id="${n.id}">
+      <span class="chev">›</span>
+      <span class="tk"><span class="d" style="background:${n.color}"></span>${n.label}</span>
+      <span class="tv">${fmt(n.value)}<span class="tu">${n.unit}</span></span>
+      <div class="tspark">${miniSpark(n.series,n.color)}</div>
+    </button>`;
+  }).join('');
+  return `<div class="grid">${cells}</div>`;
+}
+function wireGrid(){ document.querySelectorAll('.tile').forEach(t=>t.onclick=()=>{ path=[t.dataset.id]; render(); }); }
+
+function renderComposition(node){
+  const kids=node.children;
+  const total=kids.reduce((s,k)=>s+Math.max(0,k.value),0);
+  const sorted=[...kids].sort((a,b)=>b.value-a.value);
+  const bar=sorted.map(k=>`<span style="width:${(Math.max(0,k.value)/total*100).toFixed(1)}%;background:${k.color}"></span>`).join('');
+  const rows=sorted.map(k=>{
+    const drill = k.kind==='composition';
+    const go = drill ? `<span class="go">›</span>` : `<span class="go leaf">📈</span>`;
+    return `<button class="crow" data-id="${k.id}">
+      <span class="dot" style="background:${k.color}"></span>
+      <span class="nm">${k.label}</span>
+      <span class="num">${fmt(k.value)} Gt</span>
+      <span class="pct">${(k.value/total*100).toFixed(0)}%</span>
+      ${go}
+    </button>`;
+  }).join('');
+  return `<div class="sec">${node.label} — by ${node.id==='electricity'?'fuel':'source'}</div>
+    <div class="bar">${bar}</div><div class="rows">${rows}</div>
+    <div class="trend-note">Total <b>${fmt(node.value)} ${node.unit}</b>. Tap a
+      ${node.id==='electricity'?'fuel':'sector'} to ${node.children.some(c=>c.kind==='composition')?'drill in (›) or':''} open its trend (📈).</div>`;
+}
+
+function renderIncome(node){
+  const rows=node.parts.map(p=>`
+    <button class="crow" data-id="${p.id}">
+      <span class="dot" style="background:${p.color}"></span>
+      <span class="nm">${p.label}</span>
+      <span class="num"></span>
+      <span class="pct" style="color:${p.sign==='−'?'var(--red)':'var(--teal-4)'}">${p.sign}$${p.amt.toLocaleString()}</span>
+      <span class="go leaf">📈</span>
+    </button>`).join('');
+  return `<div class="sec">Income — per-turn cash flow</div>
+    <div class="rows">${rows}</div>
+    <div class="net-row"><span class="nlbl">Net</span><span class="nval">$${node.net.toLocaleString()}<small>/turn</small></span></div>
+    <div class="trend-note">Tap any line to see how it has moved over time (📈).</div>`;
+}
+
+function wireRows(){
+  document.querySelectorAll('.crow').forEach(r=>r.onclick=()=>{ path=[...path, r.dataset.id]; render(); });
+}
+
+function renderTrend(node){
+  const s=node.series, first=s[0].value, last=s[s.length-1].value;
+  const delta=last-first, good=(node.goodUp? delta>=0 : delta<=0);
+  const arrow=delta>0?'▲':delta<0?'▼':'—';
+  const unitLbl = node.unit.startsWith('/')? `/${node.unit.slice(1)}` : node.unit;
+  return `<div class="sec">${node.label} — over time</div>
+    <div class="trend-head">
+      <div><span class="tv">${fmt(last)}<small>${node.unit}</small></span>
+        <span class="trend-delta ${good?'up-good':'down-bad'}">${arrow} ${Math.abs(delta).toFixed(1)} since ${s[0].year}</span></div>
+    </div>
+    <div class="chartwrap">${bigChart(s,node.color)}</div>
+    <div class="trend-note">This metric isn’t composed of sub-parts, so its drill-down is its own <b>history</b> —
+      value on Y, year on X. Series derived from <b>turnLog</b> (planet or region), captured from turn 0.</div>`;
+}
+
+// ---- svg charts ----
+function miniSpark(s,color){
+  const w=150,h=26,vals=s.map(p=>p.value),min=Math.min(...vals),max=Math.max(...vals),span=(max-min)||1;
+  const pts=s.map((p,i)=>`${(i/(s.length-1)*w).toFixed(1)},${(h-((p.value-min)/span)*(h-4)-2).toFixed(1)}`).join(' ');
+  return `<svg class="chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" width="${w}" height="${h}">
+    <polyline class="trend-line" style="stroke:${color}" points="${pts}"/></svg>`;
+}
+// "nice" evenly-spaced tick values covering [min,max]
+function niceTicks(min,max,count){
+  const span=(max-min)||1, raw=span/count, mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  const norm=raw/mag, step=(norm<1.5?1:norm<3?2:norm<7?5:10)*mag;
+  const lo=Math.floor(min/step)*step, hi=Math.ceil(max/step)*step, out=[];
+  for(let v=lo; v<=hi+step*1e-6; v+=step) out.push(+v.toFixed(6));
+  return out;
+}
+function bigChart(s,color){
+  const w=352,h=150, mL=34,mR=8,mT=8,mB=20;                 // margins leave room for axis labels
+  const plotW=w-mL-mR, plotH=h-mT-mB, vals=s.map(p=>p.value);
+  const yt=niceTicks(Math.min(...vals),Math.max(...vals),4);
+  const yMin=yt[0], yMax=yt[yt.length-1], ySpan=(yMax-yMin)||1;
+  const X=i=>mL+i/(s.length-1)*plotW;
+  const Y=v=>mT+(1-(v-yMin)/ySpan)*plotH;
+  const pts=s.map((p,i)=>`${X(i).toFixed(1)},${Y(p.value).toFixed(1)}`).join(' ');
+  const area=`${mL},${mT+plotH} `+pts+` ${mL+plotW},${mT+plotH}`;
+  // Y gridlines + labels
+  const yaxis=yt.map(v=>{const y=Y(v);
+    return `<line class="grid-line" x1="${mL}" y1="${y.toFixed(1)}" x2="${w-mR}" y2="${y.toFixed(1)}"/>
+      <text class="axis-lbl y" x="${mL-6}" y="${(y+3).toFixed(1)}">${fmt(v)}</text>`;}).join('');
+  // X ticks — every decade (2030, 2040 … 2100)
+  const xlabel=(yr,i)=> (yr%10===0)
+    ? `<line class="tick" x1="${X(i).toFixed(1)}" y1="${mT+plotH}" x2="${X(i).toFixed(1)}" y2="${mT+plotH+4}"/>
+       <text class="axis-lbl x" x="${X(i).toFixed(1)}" y="${h-6}">${yr}</text>` : '';
+  const xaxis=`<line class="axis-line" x1="${mL}" y1="${mT+plotH}" x2="${w-mR}" y2="${mT+plotH}"/>`
+    + s.map((p,i)=>xlabel(p.year,i)).join('');
+  const li=s.length-1;
+  return `<svg class="chart-svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
+    ${yaxis}${xaxis}
+    <polygon class="trend-area" style="fill:${color}" points="${area}"/>
+    <polyline class="trend-line" style="stroke:${color}" points="${pts}"/>
+    <circle class="end-dot" cx="${X(li).toFixed(1)}" cy="${Y(s[li].value).toFixed(1)}" r="3.5" style="fill:${color}"/>
+  </svg>`;
+}
+
+// ---- entity toggle ----
+document.getElementById('entityToggle').querySelectorAll('button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('#entityToggle button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); entity=b.dataset.entity; path=[]; render();
+  };
+});
+
+render();
+</script>
+</body>
+</html>
