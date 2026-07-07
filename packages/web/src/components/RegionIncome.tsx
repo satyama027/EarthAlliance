@@ -22,7 +22,9 @@ function Row({ label, value, color }: { label: string; value: string; color: str
  * its contribution is the point of the section. Money in is teal, out is red. See the approved
  * proposal docs/design/proposals/2026-07-06-region-income/.
  */
-export function RegionIncome({ budget }: { budget: RegionBudget }) {
+export function RegionIncome({ budget, carbonTaxNote = 'shrinks as this region decarbonises' }: {
+  budget: RegionBudget; carbonTaxNote?: string;
+}) {
   const taxes: ReactNode = (
     <Box
       style={{
@@ -37,7 +39,7 @@ export function RegionIncome({ budget }: { budget: RegionBudget }) {
           {`+$${money(budget.carbonTax)}`}
         </Text>
       </Group>
-      <Text c="dimmed" style={{ fontSize: 10.5 }}>shrinks as this region decarbonises</Text>
+      <Text c="dimmed" style={{ fontSize: 10.5 }}>{carbonTaxNote}</Text>
     </Box>
   );
 

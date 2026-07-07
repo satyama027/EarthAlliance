@@ -281,6 +281,7 @@
       <div class="paper" style="flex:1 1 340px; position:relative;">
         <button class="data-btn" title="Close" style="position:absolute;top:8px;right:8px;width:28px;height:28px;background:var(--surface-2);color:var(--text);font-size:14px;">✕</button>
         <div class="h4">Planet</div>
+      <div class="xs dimmed" style="margin-bottom:6px;">pop 8,050M · GDP/capita $17,400</div>
       <div class="row sm"><span>Warming</span><span style="color:var(--yellow)" class="strong">+1.30 °C</span></div>
       <div class="row sm" style="margin-top:4px;"><span>CO₂</span><span class="strong">420 ppm</span></div>
       <div class="row sm" style="margin-top:4px;"><span>Emissions</span><span class="strong">35.5 Gt/yr</span></div>
@@ -298,6 +299,65 @@
         <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#a9e34b;margin-right:6px;"></span>Agriculture</span><span class="strong" style="text-align:right;">2.8</span><span class="dimmed" style="text-align:right;">8%</span>
         <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#66d9e8;margin-right:6px;"></span>Aviation &amp; Shipping</span><span class="strong" style="text-align:right;">1.7</span><span class="dimmed" style="text-align:right;">5%</span>
         <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#2f9e44;margin-right:6px;"></span>Land-use</span><span class="strong" style="text-align:right;">1.5</span><span class="dimmed" style="text-align:right;">4%</span>
+      </div>
+      <!-- Generation mix (planet, demand-weighted). Same block as the region window; planet numbers. -->
+      <div class="xs" style="text-transform:uppercase;letter-spacing:.05em;color:var(--earth-7);margin:4px 0 6px;border-top:1px solid var(--border);padding-top:8px;">Generation mix</div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;font-size:12px;" class="dimmed">
+        <span>Grid carbon intensity <span style="opacity:.7;">(derived)</span></span><span class="strong" style="color:var(--text);">0.52</span>
+      </div>
+      <div style="position:relative;height:6px;border-radius:3px;margin-top:6px;background:linear-gradient(90deg,#2f9e44 0%,#fab005 55%,#e03131 100%);">
+        <div style="position:absolute;top:-3px;left:calc(52% - 1px);width:2px;height:12px;background:#fff;border-radius:1px;box-shadow:0 0 0 1px rgba(0,0,0,.6);"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;margin-top:3px;" class="dimmed"><span>0 · clean</span><span>coal · 1.0</span></div>
+      <div style="display:flex;height:18px;border-radius:4px;overflow:hidden;background:#141517;margin-top:10px;">
+        <span style="width:27%;background:#495057;"></span><span style="width:22%;background:#868e96;"></span><span style="width:3%;background:#e8590c;"></span>
+        <span style="width:2px;background:#141517;"></span>
+        <span style="width:10%;background:#9775fa;"></span>
+        <span style="width:2px;background:#141517;"></span>
+        <span style="width:15%;background:#4dabf7;"></span><span style="width:11%;background:#3bc9db;"></span><span style="width:9%;background:#ffd43b;"></span><span style="width:3%;background:#94d82d;"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:4px 10px;margin-top:10px;font-size:12.5px;">
+        <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-bottom:2px;border-bottom:1px solid var(--border);"><span class="xs dimmed" style="text-transform:uppercase;letter-spacing:.06em;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#e8590c;margin-right:6px;"></span>Fossil</span><span class="strong" style="font-size:11px;">52%</span></div>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#495057;margin-right:6px;"></span>Coal</span><span class="strong" style="text-align:right;">27%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#868e96;margin-right:6px;"></span>Gas</span><span class="strong" style="text-align:right;">22%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#e8590c;margin-right:6px;"></span>Oil</span><span class="strong" style="text-align:right;">3%</span>
+        <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-bottom:2px;border-bottom:1px solid var(--border);"><span class="xs dimmed" style="text-transform:uppercase;letter-spacing:.06em;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#9775fa;margin-right:6px;"></span>Nuclear</span><span class="strong" style="font-size:11px;">10%</span></div>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#9775fa;margin-right:6px;"></span>Nuclear</span><span class="strong" style="text-align:right;">10%</span>
+        <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-bottom:2px;border-bottom:1px solid var(--border);"><span class="xs dimmed" style="text-transform:uppercase;letter-spacing:.06em;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#4dabf7;margin-right:6px;"></span>Renewable</span><span class="strong" style="font-size:11px;">38%</span></div>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#4dabf7;margin-right:6px;"></span>Hydro</span><span class="strong" style="text-align:right;">15%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#3bc9db;margin-right:6px;"></span>Wind</span><span class="strong" style="text-align:right;">11%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ffd43b;margin-right:6px;"></span>Solar</span><span class="strong" style="text-align:right;">9%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#94d82d;margin-right:6px;"></span>Geothermal</span><span class="strong" style="text-align:right;">3%</span>
+      </div>
+      <!-- Energy & land levers (planet: grid intensity/storage demand-weighted, crop yield simple-avg, demand summed) -->
+      <div class="xs" style="text-transform:uppercase;letter-spacing:.05em;color:var(--earth-7);margin:4px 0 6px;border-top:1px solid var(--border);padding-top:8px;">Energy &amp; land levers</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;font-size:12.5px;">
+        <div><div class="dimmed">Grid intensity ⓘ</div><div class="strong" style="font-size:15px;">0.52</div><div class="prog" style="margin-top:4px;"><span style="width:52%;background:#f59f00;"></span></div></div>
+        <div><div class="dimmed">Storage built ⓘ</div><div class="strong" style="font-size:15px;">34%</div><div class="prog" style="margin-top:4px;"><span style="width:34%;background:var(--earth-6);"></span></div></div>
+        <div><div class="dimmed">Crop yield ⓘ</div><div class="strong" style="font-size:15px;">103</div><div class="prog" style="margin-top:4px;"><span style="width:100%;background:#a9e34b;"></span></div></div>
+        <div><div class="dimmed">Power demand ⓘ</div><div class="strong" style="font-size:15px;">24.8</div><div class="xs dimmed" style="margin-top:2px;">grows with GDP</div></div>
+      </div>
+      <!-- Income (planet: each region's RegionBudget summed; carbon-tax note reads "the planet") -->
+      <div class="xs" style="text-transform:uppercase;letter-spacing:.05em;color:var(--earth-7);margin:4px 0 8px;border-top:1px solid var(--border);padding-top:8px;">Income</div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:7px 10px;font-size:12.5px;">
+        <span>Tax (GDP)</span><span class="strong" style="text-align:right;color:var(--teal);">+$9,240</span>
+        <div style="grid-column:1/-1;display:grid;grid-template-columns:1fr auto;gap:0 10px;align-items:center;background:var(--surface-2);border-left:2px solid var(--earth-5);margin:0 -6px;padding:4px 6px 4px 8px;border-radius:0 4px 4px 0;">
+          <span class="strong" style="font-weight:600;">Carbon tax</span><span class="strong" style="text-align:right;color:var(--teal);">+$184</span>
+          <span style="grid-column:1/-1;font-size:10.5px;color:var(--dimmed);">shrinks as the planet decarbonises</span>
+        </div>
+        <span>Policy upkeep</span><span class="strong" style="text-align:right;color:var(--red);">−$1,420</span>
+        <div style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;margin-top:2px;padding-top:8px;border-top:1px solid var(--border);">
+          <span class="strong" style="text-transform:uppercase;letter-spacing:.05em;font-size:12px;">Net</span>
+          <span class="strong" style="font-size:15px;">$8,004 <small class="dimmed" style="font-size:11px;font-weight:600;">/turn</small></span>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);margin:10px 0 8px;"></div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div><div class="row sm"><span>Public support</span><span class="strong">51</span></div><div class="prog"><span style="width:51%; background:var(--yellow);"></span></div></div>
+        <div><div class="row sm"><span>Equity</span><span class="strong">58</span></div><div class="prog"><span style="width:58%; background:var(--earth-5);"></span></div></div>
+        <div><div class="row sm"><span>Biodiversity</span><span class="strong">62</span></div><div class="prog"><span style="width:62%; background:var(--earth-5);"></span></div></div>
+        <div><div class="row sm"><span>Water</span><span class="strong">66</span></div><div class="prog"><span style="width:66%; background:var(--earth-5);"></span></div></div>
+        <div><div class="row sm"><span>Land</span><span class="strong">71</span></div><div class="prog"><span style="width:71%; background:var(--earth-5);"></span></div></div>
       </div>
       <svg class="spark" viewBox="0 0 240 40" preserveAspectRatio="none" style="margin-top:8px;">
         <polyline fill="none" stroke="var(--earth-5)" stroke-width="2"

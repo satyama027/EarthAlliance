@@ -27,6 +27,24 @@ describe('WorldMap', () => {
     expect(onSelect).toHaveBeenCalledWith('europe');
   });
 
+  it('deselects (calls onSelectRegion with null) when the background outside any region is clicked', async () => {
+    const onSelect = vi.fn();
+    render(<WorldMap selectedRegionId="mena" onSelectRegion={onSelect} />);
+    const root = screen.getByTestId('world-map');
+    await userEvent.click(root); // the container/ocean carries no data-region
+    expect(onSelect).toHaveBeenCalledWith(null);
+  });
+
+  it('does not deselect when a region path is clicked (only selects it)', async () => {
+    const onSelect = vi.fn();
+    render(<WorldMap selectedRegionId={null} onSelectRegion={onSelect} />);
+    const root = screen.getByTestId('world-map');
+    const europe = root.querySelector('[data-region="europe"]') as Element;
+    await userEvent.click(europe);
+    expect(onSelect).toHaveBeenCalledWith('europe');
+    expect(onSelect).not.toHaveBeenCalledWith(null);
+  });
+
   it('dims every region except the selected one', () => {
     render(<WorldMap selectedRegionId="mena" onSelectRegion={() => {}} />);
     const root = screen.getByTestId('world-map');

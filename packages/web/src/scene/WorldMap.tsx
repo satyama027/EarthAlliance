@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type MouseEvent } from 'react';
 import rawSvg from '../assets/world-map.svg?raw';
 
 interface WorldMapProps {
   selectedRegionId: string | null;
-  onSelectRegion(id: string): void;
+  /** A region id selects it; `null` (a click on ocean / empty space) deselects back to the planet view. */
+  onSelectRegion(id: string | null): void;
 }
 
 /**
@@ -39,11 +40,19 @@ export function WorldMap({ selectedRegionId, onSelectRegion }: WorldMapProps) {
     });
   }, [selectedRegionId]);
 
+  // Click on ocean / empty space (anything without a data-region) deselects — the only in-map way
+  // back to the planet view. A region path click is caught by its own listener above; here it's a
+  // no-op because the click target sits inside a [data-region] element.
+  const onBackgroundClick = (e: MouseEvent<HTMLDivElement>) => {
+    if (!(e.target as Element).closest('[data-region]')) onSelectRegion(null);
+  };
+
   return (
     <div
       ref={ref}
       data-testid="world-map"
       style={{ width: '100%', height: '100%' }}
+      onClick={onBackgroundClick}
       dangerouslySetInnerHTML={{ __html: rawSvg }}
     />
   );

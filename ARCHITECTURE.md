@@ -429,7 +429,10 @@ the dashboard sparkline.
   pre-baked `assets/world-map.svg` (real Natural Earth geometry; one filled `<path>` per region
   in its fixed `REGION_COLORS` hue, region partition lines, no internal country borders). The
   component inlines the SVG and wires click-to-select + selection dimming; `App` owns the
-  `selectedRegionId` (a *view* concern, not engine state). India follows the Government-of-India
+  `selectedRegionId` (a *view* concern, not engine state). A click on the **ocean / empty space**
+  (anything without a `data-region`) calls `onSelectRegion(null)` — the in-map way to **deselect**
+  back to the planet view (a region-path click is caught by its own listener and is a no-op for the
+  background handler). India follows the Government-of-India
   depiction: Aksai Chin is **cut out of China's geometry and reassigned to South Asia** at bake
   time (see below), so it carries the South Asia hue and selects with South Asia — not an overlay
   painted on top. The geometry is baked offline by `scripts/generate-map.mjs` — **no D3/TopoJSON
@@ -453,10 +456,14 @@ the dashboard sparkline.
   public support**, or planet **warming · CO₂ · emissions** when none is selected, each state with a
   **📊** button that opens the `DataOverlay`), `DataOverlay` (the emissions data window — a full-screen
   `Overlay` following the `EndingScreen` pattern that **hosts `RegionPanel` when a region is selected,
-  else `Dashboard`**; closes on ✕ / `Escape` / backdrop), `Dashboard` (+ `Sparkline` trend + a global
-  **emissions-by-source** breakdown), `RegionPanel` (the selected region — its per-source breakdown via
-  the shared `EmissionsBySource` stacked bar, the four coupling-variable **levers** via `RegionLevers`
-  with hover tooltips, the **Income** breakdown via `RegionIncome`, then the metric bars), `TurnLog` (a scrollable, newest-first history of
+  else `Dashboard`**; closes on ✕ / `Escape` / backdrop), `Dashboard` (the planet drill-down — now a
+  **full region-parity** superset: its climate-native block (warming / CO₂ / emissions / `Sparkline`
+  trend) plus planet-level equivalents of every region section — **emissions by source**, **generation
+  mix**, **energy & land levers**, **income**, and the five **quality bars** — all from the
+  `planetAggregate` selector), `RegionPanel` (the selected region — its per-source breakdown via
+  the shared `EmissionsBySource` stacked bar, the **generation mix** via `GenerationMix`, the four
+  coupling-variable **levers** via `RegionLevers` with hover tooltips, the **Income** breakdown via
+  `RegionIncome`, then the metric bars via the shared `MetricBar`), `TurnLog` (a scrollable, newest-first history of
   every per-turn data point — a global "Planet" block plus the selected region's full block, each
   value carrying a good/bad-colored change chip vs. the prior turn; each non-baseline entry also has
   a per-entry **"More"** toggle revealing a `Collapse`d CALC section of the engine's `TurnDiagnostics`
@@ -465,7 +472,14 @@ the dashboard sparkline.
   **`RegionIncome`** breakdown both consume the `regionBudget` selector (`game/regionBudget.ts`) —
   `{ taxIncome, carbonTax, upkeep, net }` composed from the latest turn's `TurnDiagnostics`
   (`taxIncomeByRegion` / `carbonTaxRevenueByRegion` / `programSpendByRegion`), with a turn-0
-  projection fallback via the engine's `regionTaxIncome` / `carbonTaxRevenue` helpers.
+  projection fallback via the engine's `regionTaxIncome` / `carbonTaxRevenue` helpers. The **planet**
+  `Dashboard` reads the sibling `planetAggregate` selector (`game/planetAggregate.ts`), which rolls the
+  10 regions into one reading: totals **sum** (population, emissions, power demand, and each region's
+  `regionBudget` for income); the generation mix, grid intensity and storage are **generation-weighted**
+  by `electricityDemand`; crop yield and the five 0–100 quality metrics are **simple-averaged**. Grid
+  intensity is derived from the aggregated mix via the engine's `gridIntensityFromMix`. `GenerationMix`,
+  `RegionLevers` and `MetricBar` take minimal data props (not a whole `Region`), so both the region and
+  planet panels feed them the same components.
 - **Stacking order** (`Z_LAYERS` in `theme.ts`): overlays render at `overlay` (1000:
   `DataOverlay`, `EndingScreen`) / `overlayRaised` (1100: `PolicyDetailOverlay`). Mantine portals
   tooltips to `document.body` as siblings of those overlays, so the theme lifts the **Tooltip**

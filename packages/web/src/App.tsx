@@ -94,6 +94,7 @@ export default function App() {
         temperature={game.state.climate.temperatureAnomaly} co2={game.state.climate.co2Concentration}
         annualEmissions={game.state.climate.annualEmissions}
         regions={game.state.regions} history={game.history}
+        diagnostics={latestDiagnostics}
       />
       {game.ending && (
         <EndingScreen ending={game.ending} year={game.state.year} onPlayAgain={() => { game.reset(); setSelectedRegionId(null); }} />

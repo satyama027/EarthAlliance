@@ -1,24 +1,11 @@
-import { Paper, Stack, Text, Title, Progress, Group, Divider } from '@mantine/core';
+import { Paper, Stack, Text, Title, Divider } from '@mantine/core';
 import type { Region } from '@earth-alliance/engine';
-import { metricColor } from '../scene/metricColor.js';
 import { EmissionsBySource } from './EmissionsBySource.js';
 import { GenerationMix } from './GenerationMix.js';
 import { RegionLevers } from './RegionLevers.js';
 import { RegionIncome } from './RegionIncome.js';
+import { CapLabel, MetricBar } from './panelBits.js';
 import type { RegionBudget } from '../game/regionBudget.js';
-
-function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <Stack gap={2}>
-      <Group justify="space-between"><Text size="sm">{label}</Text><Text size="sm" fw={600}>{Math.round(value)}</Text></Group>
-      <Progress value={value} color={metricColor(value)} />
-    </Stack>
-  );
-}
-
-function CapLabel({ children }: { children: string }) {
-  return <Text size="xs" c="earth.7" tt="uppercase" fw={600}>{children}</Text>;
-}
 
 export function RegionPanel({ region, budget }: { region: Region | null; budget?: RegionBudget }) {
   if (!region) {
@@ -37,20 +24,25 @@ export function RegionPanel({ region, budget }: { region: Region | null; budget?
 
         <Divider my={4} />
         <CapLabel>Generation mix</CapLabel>
-        <GenerationMix region={region} />
+        <GenerationMix mix={region.generationMix} intensity={region.gridCarbonIntensity} />
 
         <Divider my={4} />
         <CapLabel>Energy &amp; land levers</CapLabel>
-        <RegionLevers region={region} />
+        <RegionLevers
+          gridIntensity={region.gridCarbonIntensity}
+          storage={region.energyStorageCapacity}
+          cropYield={region.agriculturalProductivity}
+          powerDemand={region.electricityDemand}
+        />
 
         {budget && <RegionIncome budget={budget} />}
 
         <Divider my={4} />
-        <Metric label="Public support" value={region.publicSupport} />
-        <Metric label="Equity" value={region.equityIndex} />
-        <Metric label="Biodiversity" value={region.biodiversityIndex} />
-        <Metric label="Water" value={region.waterAvailability} />
-        <Metric label="Land" value={region.landAvailability} />
+        <MetricBar label="Public support" value={region.publicSupport} />
+        <MetricBar label="Equity" value={region.equityIndex} />
+        <MetricBar label="Biodiversity" value={region.biodiversityIndex} />
+        <MetricBar label="Water" value={region.waterAvailability} />
+        <MetricBar label="Land" value={region.landAvailability} />
       </Stack>
     </Paper>
   );

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { ActionIcon, Box, Overlay, ScrollArea } from '@mantine/core';
 import { motion } from 'framer-motion';
-import type { Region } from '@earth-alliance/engine';
+import type { Region, TurnDiagnostics } from '@earth-alliance/engine';
 import { Dashboard } from './Dashboard.js';
 import { RegionPanel } from './RegionPanel.js';
 import { Z_LAYERS } from '../theme.js';
@@ -20,6 +20,8 @@ interface DataOverlayProps {
   annualEmissions: number;
   regions: Region[];
   history: ClimatePoint[];
+  /** Last turn's diagnostics — feeds the planet income rollup (Dashboard). */
+  diagnostics?: TurnDiagnostics | null;
 }
 
 /**
@@ -29,7 +31,7 @@ interface DataOverlayProps {
  * surface, framer-motion fade + rise); closes on ✕, Escape, or a backdrop click.
  */
 export function DataOverlay({
-  opened, onClose, region, budget, temperature, co2, annualEmissions, regions, history,
+  opened, onClose, region, budget, temperature, co2, annualEmissions, regions, history, diagnostics = null,
 }: DataOverlayProps) {
   useEffect(() => {
     if (!opened) return;
@@ -63,7 +65,7 @@ export function DataOverlay({
             ) : (
               <Dashboard
                 temperature={temperature} co2={co2} annualEmissions={annualEmissions}
-                regions={regions} history={history}
+                regions={regions} history={history} diagnostics={diagnostics}
               />
             )}
           </ScrollArea.Autosize>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Earth Alliance — Full planet data (enriched) — approved mockup</title>
+<style>
+  :root {
+    --earth-3:#63e6be; --earth-5:#20c997; --earth-6:#12b886; --earth-7:#0ca678;
+    --teal:#20c997; --teal-4:#38d9a9; --red:#ff6b6b; --yellow:#ffd43b;
+    --bg:#1a1b1e; --surface:#25262b; --surface-2:#2c2e33; --dark-8:#141517; --border:#373a40; --dark-4:#373a40;
+    --text:#c1c2c5; --text-strong:#f1f3f5; --dimmed:#909296;
+    --radius:8px; --radius-sm:4px;
+    /* emission-source colors */
+    --s-electricity:#f59f00; --s-transport:#4dabf7; --s-aviation:#66d9e8;
+    --s-industry:#868e96; --s-agriculture:#a9e34b; --s-landuse:#2f9e44;
+    /* generation colors */
+    --g-coal:#495057; --g-gas:#868e96; --g-oil:#e8590c; --g-nuclear:#9775fa;
+    --g-hydro:#4dabf7; --g-wind:#3bc9db; --g-solar:#ffd43b; --g-geo:#94d82d;
+    font-family: system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); padding:24px;
+         -webkit-font-smoothing:antialiased; }
+  h1 { font-size:18px; color:var(--text-strong); margin:0 0 4px; }
+  .lede { color:var(--dimmed); font-size:13px; margin:0 0 20px; max-width:900px; line-height:1.5; }
+  .lede b { color:var(--earth-3); font-weight:600; }
+  .flow { display:flex; gap:26px; align-items:flex-start; flex-wrap:wrap; }
+  .arrow { align-self:center; color:var(--earth-5); font-size:26px; }
+  .col { display:flex; flex-direction:column; gap:8px; }
+  .variant-label { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--earth-7);
+    font-weight:600; margin-bottom:2px; }
+  .caption { font-size:12px; color:var(--dimmed); max-width:400px; line-height:1.5; }
+  .caption b { color:var(--earth-3); font-weight:600; }
+
+  /* Overlay window (DataOverlay) */
+  .overlay-win { position:relative; width:400px; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:14px 16px; }
+  .close { position:absolute; top:10px; right:10px; width:28px; height:28px; border:none;
+    border-radius:var(--radius-sm); background:var(--surface-2); color:var(--text); font-size:14px; cursor:pointer; }
+  .h4 { font-size:16px; font-weight:700; color:var(--text-strong); margin:0 0 4px; }
+
+  .row { display:flex; justify-content:space-between; align-items:center; }
+  .row + .row { margin-top:6px; }
+  .row .lab { font-size:14px; }
+  .row .val { font-size:14px; font-weight:700; color:var(--text-strong); }
+  .warm { color:var(--yellow); }
+  .sub { font-size:11px; color:var(--dimmed); }
+
+  .sec { text-transform:uppercase; letter-spacing:.05em; color:var(--earth-7); font-size:11px; font-weight:600;
+    margin:12px 0 8px; }
+  .divider { border-top:1px solid var(--border); margin:12px 0 0; }
+
+  /* emissions / generation stacked bar */
+  .bar { display:flex; height:18px; border-radius:4px; overflow:hidden; background:var(--dark-8); }
+  .bar > span { height:100%; display:block; }
+  .gap { width:2px; background:var(--dark-8); flex:none; }
+
+  /* legend grid */
+  .legend { display:grid; grid-template-columns:auto 1fr auto; gap:5px 10px; margin-top:9px; font-size:12px; }
+  .legend .nm { display:flex; align-items:center; gap:7px; }
+  .legend .dot { width:10px; height:10px; border-radius:2px; flex:none; }
+  .legend .num { text-align:right; font-variant-numeric:tabular-nums; color:var(--dimmed); }
+  .legend .pct { text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+  .underline { border-bottom:1px dotted var(--dimmed); }
+
+  /* generation band legend */
+  .bandhead { grid-column:1/-1; display:flex; align-items:center; justify-content:space-between;
+    margin-top:6px; padding-bottom:2px; border-bottom:1px solid var(--dark-4); }
+  .bandhead .l { display:flex; align-items:center; gap:6px; }
+  .bandhead .l span.d { width:8px; height:8px; border-radius:2px; }
+  .bandhead .l span.t { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--dimmed); }
+  .bandhead .st { font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; }
+
+  /* grid-intensity gauge */
+  .gauge-head { display:flex; justify-content:space-between; align-items:center; }
+  .gauge-head .k { font-size:11px; color:var(--dimmed); }
+  .gauge-head .v { font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .gauge { position:relative; height:6px; border-radius:3px; margin-top:6px;
+    background:linear-gradient(90deg,#2f9e44 0%,#fab005 55%,#e03131 100%); }
+  .gauge .marker { position:absolute; top:-3px; width:2px; height:12px; background:#fff; border-radius:1px;
+    box-shadow:0 0 0 1px rgba(0,0,0,.6); }
+  .gauge-foot { display:flex; justify-content:space-between; margin-top:3px; }
+  .gauge-foot span { font-size:10px; color:var(--dimmed); }
+
+  /* levers 2x2 */
+  .levers { display:grid; grid-template-columns:1fr 1fr; gap:12px 14px; }
+  .lever .lh { display:flex; align-items:center; gap:4px; color:var(--dimmed); }
+  .lever .lh .k { font-size:11px; }
+  .lever .lh .i { display:inline-flex; align-items:center; justify-content:center; width:13px; height:13px;
+    border-radius:50%; font-size:9px; border:1px solid var(--dimmed); color:var(--dimmed); }
+  .lever .lv { font-size:13px; font-weight:700; color:var(--text-strong); margin-top:1px; }
+  .lever .lbar { height:6px; background:var(--dark-8); border-radius:3px; margin-top:4px; overflow:hidden; }
+  .lever .lbar > span { display:block; height:100%; }
+  .lever .lsub { font-size:11px; color:var(--dimmed); margin-top:2px; }
+
+  /* income ledger */
+  .income { display:grid; grid-template-columns:1fr auto; gap:7px 10px; font-size:12.5px; margin-top:6px; }
+  .income .lbl { display:flex; align-items:center; gap:7px; }
+  .income .amt { text-align:right; font-variant-numeric:tabular-nums; }
+  .pos { color:var(--teal-4); } .neg { color:var(--red); }
+  .income .dot { width:8px; height:8px; border-radius:2px; flex:none; }
+  .ctax-wrap { grid-column:1/-1; display:grid; grid-template-columns:1fr auto; gap:0 10px; align-items:center;
+    background:var(--surface-2); border-left:2px solid var(--earth-5); margin:0 -6px; padding:4px 6px 4px 8px;
+    border-radius:0 var(--radius-sm) var(--radius-sm) 0; }
+  .ctax-note { grid-column:1/-1; font-size:10.5px; color:var(--dimmed); margin-top:-1px; }
+  .net-row { grid-column:1/-1; display:flex; justify-content:space-between; align-items:baseline;
+    margin-top:2px; padding-top:8px; border-top:1px solid var(--dark-4); }
+  .net-row .nlbl { font-size:13px; font-weight:700; color:var(--text-strong); text-transform:uppercase; letter-spacing:.05em; }
+  .net-row .nval { font-size:14px; font-weight:700; color:var(--text-strong); font-variant-numeric:tabular-nums; }
+  .net-row .nval small { font-size:11px; font-weight:600; color:var(--dimmed); margin-left:2px; }
+
+  /* metric bars */
+  .metric { margin-top:8px; }
+  .metric .mh { display:flex; justify-content:space-between; }
+  .metric .mh .k { font-size:13px; } .metric .mh .v { font-size:13px; font-weight:600; }
+  .metric .mbar { height:8px; border-radius:999px; background:var(--surface-2); overflow:hidden; margin-top:3px; }
+  .metric .mbar > span { display:block; height:100%; border-radius:999px; }
+
+  .spark { margin-top:10px; }
+  .placeholder { color:var(--dimmed); font-size:11.5px; font-style:italic; }
+</style>
+</head>
+<body>
+  <h1>“Full planet data” — enriched to full region-parity (approved 2026-07-07)</h1>
+  <p class="lede">Today the planet drill-down (📊 <b>Full planet data</b> → DataOverlay → Dashboard) shows only
+    warming, CO₂, emissions, an emissions-by-source bar, and a temperature sparkline. The region drill-down shows
+    five more sections. This proposal makes the planet panel a <b>superset</b>: it keeps its climate-native block and
+    appends planet-level equivalents of every region section — <b>Generation mix</b>, <b>Energy &amp; land levers</b>,
+    <b>Income</b>, and the five <b>quality bars</b> — assembled from the already-approved components. Sample numbers
+    below are the 10-region aggregates (generation/levers demand-weighted; income summed; quality bars simple-averaged).</p>
+
+  <div class="flow">
+
+    <!-- BEFORE -->
+    <div class="col">
+      <div class="variant-label">Before — today’s planet panel</div>
+      <div class="overlay-win" style="width:320px;">
+        <button class="close">✕</button>
+        <div class="h4">Planet</div>
+        <div class="row"><span class="lab">Warming</span><span class="val warm">+1.35 °C</span></div>
+        <div class="row"><span class="lab">CO₂</span><span class="val">421 ppm</span></div>
+        <div class="row"><span class="lab">Emissions</span><span class="val">50.4 Gt/yr</span></div>
+        <div class="sec" style="margin-top:12px;">Emissions by source</div>
+        <div class="bar">
+          <span style="width:31%;background:var(--s-electricity)"></span>
+          <span style="width:25%;background:var(--s-industry)"></span>
+          <span style="width:17%;background:var(--s-transport)"></span>
+          <span style="width:13%;background:var(--s-agriculture)"></span>
+          <span style="width:8%;background:var(--s-landuse)"></span>
+          <span style="width:6%;background:var(--s-aviation)"></span>
+        </div>
+        <div class="spark"><svg width="240" height="40"><polyline fill="none" stroke="#63e6be" stroke-width="2"
+          points="0,30 30,28 60,26 90,25 120,22 150,20 180,17 210,14 240,11"/></svg></div>
+      </div>
+      <div class="caption">Warming / CO₂ / emissions / one bar / sparkline. Everything else a region shows is missing.</div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- AFTER -->
+    <div class="col">
+      <div class="variant-label">After — full region-parity planet panel</div>
+      <div class="overlay-win">
+        <button class="close">✕</button>
+        <div class="h4">Planet</div>
+        <div class="sub" style="margin-bottom:6px;">pop 8,050M · GDP/capita $17,400</div>
+
+        <div class="row"><span class="lab">Warming</span><span class="val warm">+1.35 °C</span></div>
+        <div class="row"><span class="lab">CO₂</span><span class="val">421 ppm</span></div>
+        <div class="row"><span class="lab">Emissions</span><span class="val">50.4 Gt/yr</span></div>
+
+        <div class="sec">Emissions by source</div>
+        <div class="bar">
+          <span style="width:31%;background:var(--s-electricity)"></span>
+          <span style="width:25%;background:var(--s-industry)"></span>
+          <span style="width:17%;background:var(--s-transport)"></span>
+          <span style="width:13%;background:var(--s-agriculture)"></span>
+          <span style="width:8%;background:var(--s-landuse)"></span>
+          <span style="width:6%;background:var(--s-aviation)"></span>
+        </div>
+        <div class="legend">
+          <span class="nm"><span class="dot" style="background:var(--s-electricity)"></span><span class="underline">Electricity</span></span><span class="num">15.6 Gt</span><span class="pct">31%</span>
+          <span class="nm"><span class="dot" style="background:var(--s-industry)"></span><span class="underline">Industry</span></span><span class="num">12.6 Gt</span><span class="pct">25%</span>
+          <span class="nm"><span class="dot" style="background:var(--s-transport)"></span><span class="underline">Transport</span></span><span class="num">8.6 Gt</span><span class="pct">17%</span>
+          <span class="nm"><span class="dot" style="background:var(--s-agriculture)"></span><span class="underline">Agriculture</span></span><span class="num">6.6 Gt</span><span class="pct">13%</span>
+          <span class="nm"><span class="dot" style="background:var(--s-landuse)"></span><span class="underline">Land use</span></span><span class="num">4.0 Gt</span><span class="pct">8%</span>
+          <span class="nm"><span class="dot" style="background:var(--s-aviation)"></span><span class="underline">Aviation &amp; shipping</span></span><span class="num">3.0 Gt</span><span class="pct">6%</span>
+        </div>
+
+        <div class="divider"></div>
+        <div class="sec">Generation mix</div>
+        <div class="gauge-head"><span class="k">Grid carbon intensity <span style="opacity:.7">(derived)</span></span><span class="v">0.52</span></div>
+        <div class="gauge"><span class="marker" style="left:calc(52% - 1px)"></span></div>
+        <div class="gauge-foot"><span>0 · clean</span><span>coal · 1.0</span></div>
+        <div class="bar" style="margin-top:10px;">
+          <span style="width:27%;background:var(--g-coal)"></span>
+          <span style="width:22%;background:var(--g-gas)"></span>
+          <span style="width:3%;background:var(--g-oil)"></span>
+          <span class="gap"></span>
+          <span style="width:10%;background:var(--g-nuclear)"></span>
+          <span class="gap"></span>
+          <span style="width:15%;background:var(--g-hydro)"></span>
+          <span style="width:11%;background:var(--g-wind)"></span>
+          <span style="width:9%;background:var(--g-solar)"></span>
+          <span style="width:3%;background:var(--g-geo)"></span>
+        </div>
+        <div class="legend">
+          <div class="bandhead"><span class="l"><span class="d" style="background:var(--g-oil)"></span><span class="t">Fossil</span></span><span class="st">52%</span></div>
+          <span class="nm"><span class="dot" style="background:var(--g-coal)"></span><span class="underline">Coal</span></span><span class="num"></span><span class="pct">27%</span>
+          <span class="nm"><span class="dot" style="background:var(--g-gas)"></span><span class="underline">Gas</span></span><span class="num"></span><span class="pct">22%</span>
+          <span class="nm"><span class="dot" style="background:var(--g-oil)"></span><span class="underline">Oil</span></span><span class="num"></span><span class="pct">3%</span>
+          <div class="bandhead"><span class="l"><span class="d" style="background:var(--g-nuclear)"></span><span class="t">Nuclear</span></span><span class="st">10%</span></div>
+          <span class="nm"><span class="dot" style="background:var(--g-nuclear)"></span><span class="underline">Nuclear</span></span><span class="num"></span><span class="pct">10%</span>
+          <div class="bandhead"><span class="l"><span class="d" style="background:var(--g-hydro)"></span><span class="t">Renewable</span></span><span class="st">38%</span></div>
+          <span class="nm"><span class="dot" style="background:var(--g-hydro)"></span><span class="underline">Hydro</span></span><span class="num"></span><span class="pct">15%</span>
+          <span class="nm"><span class="dot" style="background:var(--g-wind)"></span><span class="underline">Wind</span></span><span class="num"></span><span class="pct">11%</span>
+          <span class="nm"><span class="dot" style="background:var(--g-solar)"></span><span class="underline">Solar</span></span><span class="num"></span><span class="pct">9%</span>
+          <span class="nm"><span class="dot" style="background:var(--g-geo)"></span><span class="underline">Geothermal</span></span><span class="num"></span><span class="pct">3%</span>
+        </div>
+
+        <div class="divider"></div>
+        <div class="sec">Energy &amp; land levers</div>
+        <div class="levers">
+          <div class="lever"><div class="lh"><span class="k">Grid intensity</span><span class="i">i</span></div>
+            <div class="lv">0.52</div><div class="lbar"><span style="width:52%;background:var(--s-electricity)"></span></div></div>
+          <div class="lever"><div class="lh"><span class="k">Storage built</span><span class="i">i</span></div>
+            <div class="lv">34%</div><div class="lbar"><span style="width:34%;background:var(--earth-6)"></span></div></div>
+          <div class="lever"><div class="lh"><span class="k">Crop yield</span><span class="i">i</span></div>
+            <div class="lv">103</div><div class="lbar"><span style="width:100%;background:var(--s-agriculture)"></span></div></div>
+          <div class="lever"><div class="lh"><span class="k">Power demand</span><span class="i">i</span></div>
+            <div class="lv">24.8</div><div class="lsub">grows with GDP</div></div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="sec">Income</div>
+        <div class="income">
+          <span class="lbl"><span class="dot" style="background:var(--teal)"></span>Tax (GDP)</span><span class="amt pos">+9,240</span>
+          <div class="ctax-wrap">
+            <span class="lbl" style="color:var(--text-strong);font-weight:600;"><span class="dot" style="background:var(--earth-5)"></span>Carbon tax</span>
+            <span class="amt pos">+184</span>
+            <span class="ctax-note">shrinks as the planet decarbonises</span>
+          </div>
+          <span class="lbl"><span class="dot" style="background:var(--red)"></span>Policy upkeep</span><span class="amt neg">−1,420</span>
+          <div class="net-row"><span class="nlbl">Net</span><span class="nval">$8,004 <small>/turn</small></span></div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="metric"><div class="mh"><span class="k">Public support</span><span class="v">51</span></div><div class="mbar"><span style="width:51%;background:var(--yellow)"></span></div></div>
+        <div class="metric"><div class="mh"><span class="k">Equity</span><span class="v">58</span></div><div class="mbar"><span style="width:58%;background:var(--yellow)"></span></div></div>
+        <div class="metric"><div class="mh"><span class="k">Biodiversity</span><span class="v">62</span></div><div class="mbar"><span style="width:62%;background:var(--earth-5)"></span></div></div>
+        <div class="metric"><div class="mh"><span class="k">Water</span><span class="v">66</span></div><div class="mbar"><span style="width:66%;background:var(--earth-5)"></span></div></div>
+        <div class="metric"><div class="mh"><span class="k">Land</span><span class="v">71</span></div><div class="mbar"><span style="width:71%;background:var(--earth-5)"></span></div></div>
+
+        <div class="spark" style="margin-top:12px;"><svg width="240" height="40"><polyline fill="none" stroke="#63e6be" stroke-width="2"
+          points="0,30 30,28 60,26 90,25 120,22 150,20 180,17 210,14 240,11"/></svg></div>
+      </div>
+      <div class="caption">Same section order and visual language as a region’s <b>Full region data</b>, so the two
+        drill-downs read identically — only the numbers are global.</div>
+    </div>
+
+  </div>
+</body>
+</html>

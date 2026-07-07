@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import { Box, Group, Text, Tooltip } from '@mantine/core';
-import type { GenerationSource, Region } from '@earth-alliance/engine';
+import type { GenerationMix as Mix, GenerationSource } from '@earth-alliance/engine';
 import { GENERATION_COLORS } from '../theme.js';
 
 /** The three bands, in bar order, each listing its sources (also in bar order within the band). */
@@ -30,19 +30,17 @@ const TOOLTIP: Record<GenerationSource, string> = {
 const pct = (v: number) => Math.round(v * 100);
 
 /** Sources of a band that have a non-zero share, ordered by size descending. */
-function bandSources(mix: Region['generationMix'], sources: GenerationSource[]) {
+function bandSources(mix: Mix, sources: GenerationSource[]) {
   return sources.filter((s) => mix[s] > 0).sort((a, b) => mix[b] - mix[a]);
 }
 
 /**
- * Per-region electricity generation mix (RegionPanel). A derived grid-intensity gauge over a banded
- * stacked bar (fossil | nuclear | renewable, separated by 2px gaps) and a band-grouped legend with
- * subtotals. Mirrors the EmissionsBySource visual language. Grid intensity is DERIVED from the mix.
+ * Electricity generation mix (region or planet). A derived grid-intensity gauge over a banded stacked
+ * bar (fossil | nuclear | renewable, separated by 2px gaps) and a band-grouped legend with subtotals.
+ * Mirrors the EmissionsBySource visual language. Grid intensity is DERIVED from the mix, passed in by
+ * the caller (per-region value, or the planet-aggregate's `gridIntensityFromMix`).
  */
-export function GenerationMix({ region }: { region: Region }) {
-  const mix = region.generationMix;
-  const intensity = region.gridCarbonIntensity;
-
+export function GenerationMix({ mix, intensity }: { mix: Mix; intensity: number }) {
   return (
     <Box>
       {/* Derived grid-intensity readout + gauge */}

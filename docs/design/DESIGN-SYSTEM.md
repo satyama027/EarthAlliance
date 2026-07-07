@@ -136,7 +136,7 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   rendered from the pre-baked `src/assets/world-map.svg` (real Natural Earth geometry). Each region
   is one filled shape in its `REGION_COLORS` hue with **no internal country borders** — only region
   partition lines. Realistic ocean (gradient + graticule). Click a region to select it (others dim
-  to 0.32; hover brightens). India follows the Government-of-India depiction (J&K incl. Azad
+  to 0.32; hover brightens); **click the ocean / empty space to deselect** back to the planet view. India follows the Government-of-India depiction (J&K incl. Azad
   Kashmir, Gilgit-Baltistan, Shaksgam, Aksai Chin). Replaces the former 3D R3F globe.
 - **ResourceBar** — bordered `Paper`. Left: year/turn (`fw={700}`) followed by an inline **climate
   cluster** (Variant A) — **Warming** (colored by `temperatureColor`, with a 🌡 glyph) and **CO₂** —
@@ -154,10 +154,14 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   (mirrors `validateSelection` / the disabled End Turn). Rendered as a **sticky header** at the top of
   `AppShell.Main` (`position: sticky; top: 0`, body-colored background) so it stays visible while the
   player works the policy board.
-- **Dashboard** — bordered `Paper`, title "Planet", warming/CO₂/emissions rows, temperature value
-  colored by `temperatureColor`, then an **Emissions by source** block (the per-source totals summed
-  across all regions), trailed by a `Sparkline` (240×40) of temperature history. **Now rendered inside
-  the `DataOverlay`** (planet view, when no region is selected), not inline.
+- **Dashboard** — bordered `Paper`, title "Planet", a dimmed `pop … · GDP/capita …` totals subtitle,
+  warming/CO₂/emissions rows (temperature colored by `temperatureColor`), then **full region-parity**:
+  the same sections a `RegionPanel` shows, in the same order and visual language, only with **planet
+  aggregates** (from the `planetAggregate` selector) — **Emissions by source**, **Generation mix**,
+  **Energy & land levers**, **Income** (carbon-tax note reads "the planet"), and the five **quality
+  bars** (`MetricBar`) — trailed by a `Sparkline` (240×40) of temperature history. Aggregation:
+  totals sum; generation/levers are generation-weighted by demand; crop yield + quality bars are
+  simple-averaged. **Rendered inside the `DataOverlay`** (planet view, when no region is selected).
 - **EmissionsBySource** (`EmissionsBySource.tsx`, shared by Dashboard + RegionPanel) — a horizontal
   **stacked bar** (`dark-8` track, each source a `SOURCE_COLORS` segment) over a 3-column **legend**
   grid (`source · Gt · %`), sources **ordered by size** (descending). Each legend label carries a
@@ -165,7 +169,9 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   source that can go negative (`landUse` after reforestation) renders as a dashed-teal **sink**
   segment left of a thin zero divider, with positives stacked to its right; its legend value shows a
   `−` sign in `teal.4` and reads `sink` instead of a %.
-- **GenerationMix** (`GenerationMix.tsx`, RegionPanel) — the region's electricity generation split.
+- **GenerationMix** (`GenerationMix.tsx`, RegionPanel + Dashboard) — an electricity generation split
+  (per-region, or the demand-weighted planet aggregate — it takes `{ mix, intensity }`, not a whole
+  `Region`, so both panels feed it).
   A **derived grid-intensity readout** (`Grid carbon intensity (derived)` + value) over a thin
   green→amber→red **gauge** with a white marker at `gridCarbonIntensity` (`0 · clean` … `coal · 1.0`);
   then an 18px **banded stacked bar** (`dark-8` track) split into **fossil | nuclear | renewable**

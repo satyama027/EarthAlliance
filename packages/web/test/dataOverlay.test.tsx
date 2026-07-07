@@ -32,6 +32,21 @@ describe('DataOverlay', () => {
     expect(screen.getByText('Electricity')).toBeInTheDocument();
   });
 
+  it('gives the planet view full region-parity: generation mix, levers, income and quality bars', () => {
+    wrap(<DataOverlay opened onClose={() => {}} region={null} {...climate} />);
+    // Generation mix block + its banded legend.
+    expect(screen.getByText(/generation mix/i)).toBeInTheDocument();
+    expect(screen.getByText('Fossil')).toBeInTheDocument();
+    // Energy & land levers (labels unique to the lever grid).
+    expect(screen.getByText(/storage built/i)).toBeInTheDocument();
+    expect(screen.getByText(/power demand/i)).toBeInTheDocument();
+    // Income ledger, summed across regions.
+    expect(screen.getByText('Income')).toBeInTheDocument();
+    expect(screen.getByText('Net')).toBeInTheDocument();
+    // The five simple-averaged quality bars.
+    expect(screen.getByText('Biodiversity')).toBeInTheDocument();
+  });
+
   it('shows the selected region breakdown, levers and metrics when a region is selected', () => {
     const region = SAMPLE_REGIONS[0]!; // north-america
     wrap(<DataOverlay opened onClose={() => {}} region={region} {...climate} />);
