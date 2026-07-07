@@ -33,6 +33,7 @@ export interface Reading {
   regionalEmissions: number;
   sources: SourceValues;               // the six emission sources
   electricityByFuel: ElectricityByFuel; // electricity split by emitting fuel
+  generationMix: GenerationMix;        // the 8 generation shares (sum to 1)
   budget: RegionBudget;                // income ledger (tax / carbon-tax / upkeep / net)
   publicSupport: number;
   biodiversityIndex: number;
@@ -64,6 +65,7 @@ function regionReading(r: Region, diagnostics: TurnDiagnostics | null): Reading 
     regionalEmissions: r.regionalEmissions,
     sources: pickSources(r as unknown as Record<string, number>),
     electricityByFuel: electricityFuelEmissions(r.electricityDemand, r.generationMix),
+    generationMix: r.generationMix,
     budget: regionBudget(r, diagnostics),
     publicSupport: r.publicSupport,
     biodiversityIndex: r.biodiversityIndex,
@@ -78,6 +80,7 @@ function planetReading(regions: Region[], diagnostics: TurnDiagnostics | null): 
     regionalEmissions: p.regionalEmissions,
     sources: p.sources,
     electricityByFuel: electricityFuelEmissions(p.electricityDemand, p.generationMix),
+    generationMix: p.generationMix,
     budget: p.budget,
     publicSupport: p.publicSupport,
     biodiversityIndex: p.biodiversityIndex,
@@ -86,10 +89,15 @@ function planetReading(regions: Region[], diagnostics: TurnDiagnostics | null): 
   };
 }
 
+const ZERO_MIX: GenerationMix = {
+  coal: 0, gas: 0, oil: 0, nuclear: 0, hydro: 0, wind: 0, solar: 0, geothermal: 0,
+};
+
 const ZERO_READING: Reading = {
   regionalEmissions: 0,
   sources: pickSources({}),
   electricityByFuel: { coal: 0, gas: 0, oil: 0 },
+  generationMix: ZERO_MIX,
   budget: { taxIncome: 0, carbonTax: 0, upkeep: 0, net: 0 },
   publicSupport: 0, biodiversityIndex: 0, waterAvailability: 0, landAvailability: 0,
 };

@@ -67,6 +67,12 @@ describe('MetricTrend', () => {
     expect(screen.getByText(/since 2025/i)).toBeInTheDocument();
   });
 
+  it('shows a neutral flat chip (not a colored arrow) when the value did not move', () => {
+    const flat: TrendPoint[] = [{ year: 2025, value: 5.6 }, { year: 2030, value: 5.6 }];
+    wrap(<MetricTrend points={flat} color="#f59f00" unit="Gt CO₂/yr" goodUp={false} />);
+    expect(screen.getByText(/flat since 2025/)).toBeInTheDocument();
+  });
+
   it('draws a dot marker at every turn point', () => {
     const { container } = wrap(<MetricTrend points={points} color="#63e6be" unit="/100" goodUp />);
     expect(container.querySelectorAll('circle').length).toBe(points.length);

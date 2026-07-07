@@ -4,7 +4,7 @@ import {
 import type { TurnRecord } from '../src/game/useGame.js';
 import { electricityFuelEmissions, readingAt } from '../src/game/metricSeries.js';
 import {
-  METRIC_TREE, topLevelIds, findNode, nodeValue, nodeSeries,
+  METRIC_TREE, topLevelIds, findNode, nodeValue, nodeSeries, changeSince,
   type Entity,
 } from '../src/game/metricTree.js';
 import { planetAggregate } from '../src/game/planetAggregate.js';
@@ -83,9 +83,10 @@ describe('METRIC_TREE structure', () => {
     ]);
   });
 
-  it('Electricity drills into coal/gas/oil (the only real fuel split)', () => {
+  it('Electricity is the custom generation/emissions panel over coal/gas/oil', () => {
     const elec = findNode(['emissions', 'electricity'])!;
-    expect(elec.kind).toBe('composition');
+    expect(elec.kind).toBe('electricity');
+    // keeps the fuel children so the emissions still sum-check (coal/gas/oil trend leaves)
     expect(elec.children!.map((c) => c.id)).toEqual(['coal', 'gas', 'oil']);
     expect(elec.children!.every((c) => c.kind === 'trend')).toBe(true);
   });
@@ -132,5 +133,21 @@ describe('nodeValue / nodeSeries', () => {
     const total = nodeValue(emissions, PLANET, log);
     const parts = emissions.children!.reduce((sum, c) => sum + nodeValue(c, PLANET, log), 0);
     expect(parts).toBeCloseTo(total, 6);
+  });
+});
+
+describe('changeSince', () => {
+  it('is flat (neutral —, no direction) when the change rounds to zero', () => {
+    const c = changeSince(0.004, false); // rounds to 0.00 at 2-dp
+    expect(c.arrow).toBe('—');
+    expect(c.tone).toBe('flat');
+    expect(c.label).toBe('flat');
+  });
+
+  it('colors a rise/fall good or bad by the metric direction', () => {
+    expect(changeSince(2, true)).toMatchObject({ arrow: '▲', tone: 'good' });
+    expect(changeSince(2, false)).toMatchObject({ arrow: '▲', tone: 'bad' });
+    expect(changeSince(-2, true)).toMatchObject({ arrow: '▼', tone: 'bad' });
+    expect(changeSince(-2, false)).toMatchObject({ arrow: '▼', tone: 'good' });
   });
 });

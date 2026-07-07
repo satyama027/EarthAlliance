@@ -17,7 +17,7 @@ export interface MetricNode {
   id: string;
   label: string;
   unit: string;                       // e.g. 'Gt CO₂/yr', '/100', '$/turn'
-  kind: 'composition' | 'trend';
+  kind: 'composition' | 'trend' | 'electricity';
   read(r: Reading): number;
   children?: MetricNode[];
   /** Fixed swatch/line color. Index leaves omit it → colored by value via `metricColor`. */
@@ -42,7 +42,9 @@ export const METRIC_TREE: MetricNode[] = [
     goodUp: false, read: (r) => r.regionalEmissions,
     children: [
       {
-        id: 'electricity', label: 'Electricity', unit: GT, kind: 'composition', color: SOURCE_COLORS.electricity,
+        // Custom infographic (generation donut + emissions converging streams) — see ElectricityPanel.
+        // Keeps coal/gas/oil trend children so the emissions still sum-check and stay drillable.
+        id: 'electricity', label: 'Electricity', unit: GT, kind: 'electricity', color: SOURCE_COLORS.electricity,
         goodUp: false, read: (r) => r.sources.electricity,
         children: [
           emissionLeaf('coal', 'Coal', GENERATION_COLORS.coal, (r) => r.electricityByFuel.coal),
@@ -111,4 +113,23 @@ export function fmtNum(value: number): string {
 export function headlineParts(value: number, unit: string): { main: string; suffix: string } {
   const dollar = unit.startsWith('$');
   return { main: `${dollar ? '$' : ''}${fmtNum(value)}`, suffix: dollar ? unit.slice(1) : unit };
+}
+
+export type ChangeTone = 'good' | 'bad' | 'flat';
+export interface ChangeChip { arrow: '▲' | '▼' | '—'; tone: ChangeTone; label: string; }
+
+/** Mantine text colors for the change-chip tones (flat = neutral grey — never a colored arrow). */
+export const CHANGE_TONE_COLOR: Record<ChangeTone, string> = { good: 'earth.3', bad: 'red.4', flat: 'dimmed' };
+
+/**
+ * The value-change indicator shared by `MetricTrend` and the electricity panel. A rise/fall shows
+ * `▲`/`▼` colored good/bad by the metric's `goodUp`; a change that rounds to zero at display precision
+ * is **flat** — a neutral-grey `—` labeled "flat", so no-change never masquerades as a colored move.
+ */
+export function changeSince(delta: number, goodUp: boolean): ChangeChip {
+  const mag = Math.abs(delta);
+  const label = mag >= 1 ? mag.toFixed(1) : mag.toFixed(2);
+  if (Number(label) === 0) return { arrow: '—', tone: 'flat', label: 'flat' };
+  const good = goodUp ? delta > 0 : delta < 0;
+  return { arrow: delta > 0 ? '▲' : '▼', tone: good ? 'good' : 'bad', label };
 }

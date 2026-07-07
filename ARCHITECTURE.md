@@ -71,8 +71,8 @@ EarthAlliance/
 │        ├─ scene/           # WorldMap (inlines world-map.svg) + metricColor
 │        ├─ assets/          # world-map.svg — baked HD region map (generated, committed)
 │        ├─ components/      # Mantine DOM HUD (ResourceBar, RegionInfoBox, DataOverlay, DrillDownPanel,
-│        │                   #   MetricGrid, Composition, MetricTrend, EmissionsBySource, GenerationMix,
-│        │                   #   PolicyBoard, PolicyCard, PolicyDetailOverlay, EndingScreen, Sparkline)
+│        │                   #   MetricGrid, Composition, MetricTrend, ElectricityPanel, EmissionsBySource,
+│        │                   #   GenerationMix, PolicyBoard, PolicyCard, PolicyDetailOverlay, EndingScreen, Sparkline)
 │        └─ audio/           # useSfx + sound (Web Audio SFX, event-driven)
 └─ docs/superpowers/         # specs and implementation plans
 ```
@@ -460,8 +460,13 @@ the dashboard sparkline.
   backdrop), `DrillDownPanel` (the **config-driven, recursive metric drill-down** that replaced the
   flat `Dashboard`/`RegionPanel`: an entity header + breadcrumb over one of `MetricGrid` (the top-level
   six-tile grid — **Emissions · Public support · Income · Biodiversity · Water · Land**), `Composition`
-  (a "contribution of each part" stacked bar / signed ledger), or `MetricTrend` (a value-vs-year line
-  graph). The **metric tree** (`game/metricTree.ts`) declares each node's kind; every value/series is a
+  (a "contribution of each part" stacked bar / signed ledger), `MetricTrend` (a value-vs-year line
+  graph), or the custom **`ElectricityPanel`** for the **Electricity** node (metric-tree kind
+  `electricity`) — a **generation-mix donut** (8 sources, `Fossil`/`Clean`-grouped legend, clean share
+  in the hole) over **converging emission streams** (stream width = a source's Gt, merging to the
+  electricity total; nuclear + renewables are dashed, zero-width, labelled `0`), keeping generation and
+  emissions two **separate** graphics. The **metric tree** (`game/metricTree.ts`) declares each node's
+  kind; every value/series is a
   pure selector over `turnLog` (see below), so the planet and any region share one tree),
   `TurnLog` (a scrollable, newest-first history of
   every per-turn data point — a global "Planet" block plus the selected region's full block, each
@@ -477,16 +482,21 @@ the dashboard sparkline.
   the tree never branches on entity type. **No engine change and no new storage**: every series is
   derived from `useGame`'s `turnLog`, which already holds the turn-0 baseline plus a full `WorldState`
   snapshot per turn — so "history for the planet and all regions from the start of the game" already
-  exists. The one real fuel-level split (Emissions → Electricity → coal/gas/oil) is computed by
-  `electricityFuelEmissions` (`electricityDemand × share × emissionFactor`, summing to the `electricity`
-  total); the four index metrics and every leaf sector are trend leaves (no modeled composition).
+  exists. The `Reading` carries the six emission `sources`, per-fuel `electricityByFuel`
+  (`electricityFuelEmissions` = `electricityDemand × share × emissionFactor`, summing to the
+  `electricity` total), the 8-source `generationMix`, and the income `budget`. Emissions →
+  **Electricity** is the custom `ElectricityPanel` (generation donut + converging emission streams —
+  see §5 components) driven by `generationMix` + `electricityByFuel`; the four index metrics and every
+  leaf sector are trend leaves (no modeled composition). The change chip (headline + trend) uses the
+  shared `changeSince`/`CHANGE_TONE_COLOR` vocabulary — `▲/▼` colored good/bad, or a neutral-grey
+  **`— flat`** when the value rounds to unchanged.
   Income composition reuses the `regionBudget` selector (`{ taxIncome, carbonTax, upkeep, net }`), the
   same one behind the `RegionInfoBox` Income stat. `planetAggregate` rolls the 10 regions into one
   reading: totals **sum**; the generation mix / grid intensity / storage are **demand-weighted**; crop
-  yield and the five 0–100 quality metrics are **simple-averaged**. *(The generation-share mix bar,
-  grid-intensity gauge and coupling-variable levers the old panels showed are not currently surfaced by
-  the drill-down; `GenerationMix`/`RegionLevers`/`RegionIncome`/`MetricBar` remain in the tree pending a
-  decision on re-surfacing them under Electricity.)*
+  yield and the five 0–100 quality metrics are **simple-averaged**. *(The generation-share mix is now
+  surfaced as the `ElectricityPanel` donut; the grid-intensity gauge and coupling-variable levers the
+  old panels showed are still not surfaced — `GenerationMix`/`RegionLevers`/`RegionIncome`/`MetricBar`
+  remain retired pending a decision on the remaining levers.)*
 - **Stacking order** (`Z_LAYERS` in `theme.ts`): overlays render at `overlay` (1000:
   `DataOverlay`, `EndingScreen`) / `overlayRaised` (1100: `PolicyDetailOverlay`). Mantine portals
   tooltips to `document.body` as siblings of those overlays, so the theme lifts the **Tooltip**

@@ -160,7 +160,8 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   dot) + a dimmed summary line **shown only at the overview** (drilled levels drop it — the breadcrumb
   + content stand alone), then a **breadcrumb** (`Overview › Emissions › Electricity › Coal`; each
   prior crumb is an earth-tinted button, the current is bold text) and, per level, one of:
-  the top-level `MetricGrid`, a `Composition`, or a `MetricTrend` — **with no separate section label**
+  the top-level `MetricGrid`, a `Composition`, a `MetricTrend`, or the custom **`ElectricityPanel`**
+  (the `electricity` node kind) — **with no separate section label**
   (the breadcrumb's current crumb already names the view). Owns the drill `path`; the
   `DataOverlay` re-keys it by entity so the path resets when the selection changes. The metric tree
   (`game/metricTree.ts`) is the single source of truth; every value/series is a pure selector over
@@ -180,7 +181,9 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   a `›` drills into further composition, a `📈` opens that part's trend.
 - **MetricTrend** (`MetricTrend.tsx`) — the reusable value-vs-year line graph (generalizes
   `Sparkline`, which stays the tile mini-trend). Reads **turn by turn**. Headline = latest value +
-  unit + a change chip (`▲/▼ Δ since <year>`, `earth.3` good / `red.4` bad by the node's `goodUp`;
+  unit + a **change chip** (`▲/▼ Δ since <year>`, `earth.3` good / `red.4` bad by the node's `goodUp`;
+  a change that rounds to zero is a neutral-grey **`— flat`**, never a colored arrow — the shared
+  `changeSince` / `CHANGE_TONE_COLOR` vocabulary in `game/metricTree.ts`, also used by `ElectricityPanel`;
   change shown to enough precision that a small real move never rounds to `0.0`). Chart (`dark-8`
   panel, viewBox `0 0 400 180`): the **Y axis is baselined at 0** (so a small change reads as small,
   not a cliff; a sink shows the 0 line) with nice-number ticks (1/2/5 × 10ⁿ) + **horizontal value
@@ -199,12 +202,21 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   `planetAggregate` and `game/metricSeries`. Historical look: a horizontal stacked bar (`dark-8`
   track, `SOURCE_COLORS` segments) over a `source · Gt · %` legend, size-ordered, with the negative
   `landUse` **sink** case.
+- **ElectricityPanel** (`ElectricityPanel.tsx`) — the custom drill-down view for the **Electricity**
+  node (metric-tree kind `electricity`). Two **separate** infographics, one concern each, never mixed:
+  a **generation-mix donut** on top (8 sources in fossils-then-clean order, drawn as `stroke-dasharray`
+  ring segments in `GENERATION_COLORS`; the **clean share** — nuclear + renewables — sits in the hole)
+  beside a **grouped legend** (`Fossil` vs `Clean` columns, each with a subtotal, sources largest-first);
+  a `Divider`; then **converging emission streams** below — an SVG where each source flows into a pool
+  labelled the electricity total (`= X.X Gt CO₂/yr` + the shared change chip). A stream's **width = its
+  emissions** (coal fat, gas/oil thin); **nuclear + the four renewables are dashed, zero-width lines
+  labelled `0`** (generate power, emit nothing). Each source is labelled at its origin with its Gt
+  value. Reads `Reading.generationMix` + `electricityByFuel`; no new tokens.
 - **GenerationMix** / **RegionLevers** / **RegionIncome** / **MetricBar** — components of the retired
-  Dashboard/RegionPanel. **Not currently surfaced** by the drill-down (the redesign is metric-first:
-  the electricity fuel drill shows per-fuel *emissions*, not the full 8-source generation *share* mix,
-  grid-intensity gauge, storage/crop-yield levers). Retained in the tree pending a decision on whether
-  to re-surface the generation-share mix + levers under Electricity. `GenerationMix` still renders the
-  derived grid-intensity gauge + banded fossil/nuclear/renewable bar + band legend when mounted.
+  Dashboard/RegionPanel. **Not currently surfaced** by the drill-down (the generation-share mix now
+  appears as the `ElectricityPanel` donut instead; grid-intensity gauge + storage/crop-yield levers are
+  still unsurfaced). Retained in the tree pending a decision on the remaining levers. `GenerationMix`
+  still renders the derived grid-intensity gauge + banded fossil/nuclear/renewable bar when mounted.
 - **RegionInfoBox** (`RegionInfoBox.tsx`) — the compact glance-card beside the map (the map row's
   right column). Bordered `Paper` (`p="sm"`), **content-height and top-aligned** so it reads as a small
   card, never a column rivaling the map. Two states keyed off the selected region:

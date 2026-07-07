@@ -3,6 +3,7 @@ import { Box, Group, Paper, Stack, Text, Title, UnstyledButton } from '@mantine/
 import { MetricGrid } from './MetricGrid.js';
 import { Composition, type CompositionItem } from './Composition.js';
 import { MetricTrend } from './MetricTrend.js';
+import { ElectricityPanel } from './ElectricityPanel.js';
 import { metricColor } from '../scene/metricColor.js';
 import { REGION_COLORS } from '../theme.js';
 import { planetAggregate } from '../game/planetAggregate.js';
@@ -55,11 +56,12 @@ export function DrillDownPanel({ entity, log }: DrillDownPanelProps) {
   const node = path.length ? findNode(path) : null;
 
   const renderNode = (n: MetricNode) => {
+    if (n.kind === 'electricity') return <ElectricityPanel entity={entity} log={log} />;
     if (n.kind === 'composition') {
       const mode = n.compose ?? 'sum';
       const items: CompositionItem[] = (n.children ?? []).map((c) => {
         const value = nodeValue(c, entity, log);
-        return { id: c.id, label: c.label, value, color: c.color ?? metricColor(value), drillable: c.kind === 'composition', flow: c.flow };
+        return { id: c.id, label: c.label, value, color: c.color ?? metricColor(value), drillable: c.kind !== 'trend', flow: c.flow };
       });
       return (
         <Composition

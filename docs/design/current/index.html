@@ -375,6 +375,81 @@
         </div>
         <div class="xs dimmed" style="margin-top:9px;">A <b style="color:var(--earth-3);">dot + value at every turn</b> and a vertical gridline per turn year. On a long game the dots/gridlines stay at every turn but value/year labels thin (every ~6th + first/last). Series from <b style="color:var(--earth-3);">turnLog</b>.</div>
       </div>
+
+      <!-- Electricity node — the custom ElectricityPanel (generation donut + emissions converging streams) -->
+      <div class="paper" style="flex:1 1 300px; position:relative; max-width:360px;">
+        <div class="h4">East Asia</div>
+        <div class="xs" style="margin:8px 0 12px;"><span style="color:var(--earth-3);font-weight:600;">Overview</span> <span class="dimmed">›</span> <span style="color:var(--earth-3);font-weight:600;">Emissions</span> <span class="dimmed">›</span> <span class="strong">Electricity</span></div>
+
+        <!-- Generation mix — donut + Fossil/Clean grouped legend -->
+        <div class="xs dimmed" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Generation mix <span style="text-transform:none;letter-spacing:0;font-weight:400;">— share of power · = 100%</span></div>
+        <div style="display:flex;gap:16px;align-items:center;margin-top:10px;">
+          <div style="position:relative;width:130px;height:130px;flex:0 0 auto;">
+            <svg viewBox="0 0 120 120" width="130" height="130">
+              <g transform="rotate(-90 60 60)" fill="none" stroke-width="15">
+                <circle cx="60" cy="60" r="42" stroke="#495057" stroke-dasharray="124.0 139.9" stroke-dashoffset="0"/>
+                <circle cx="60" cy="60" r="42" stroke="#868e96" stroke-dasharray="18.5 245.4" stroke-dashoffset="-124.0"/>
+                <circle cx="60" cy="60" r="42" stroke="#e8590c" stroke-dasharray="2.64 261.26" stroke-dashoffset="-142.5"/>
+                <circle cx="60" cy="60" r="42" stroke="#9775fa" stroke-dasharray="15.83 248.07" stroke-dashoffset="-145.1"/>
+                <circle cx="60" cy="60" r="42" stroke="#4dabf7" stroke-dasharray="34.3 229.6" stroke-dashoffset="-160.97"/>
+                <circle cx="60" cy="60" r="42" stroke="#3bc9db" stroke-dasharray="31.67 232.23" stroke-dashoffset="-195.3"/>
+                <circle cx="60" cy="60" r="42" stroke="#ffd43b" stroke-dasharray="34.3 229.6" stroke-dashoffset="-226.9"/>
+                <circle cx="60" cy="60" r="42" stroke="#94d82d" stroke-dasharray="2.64 261.26" stroke-dashoffset="-261.2"/>
+              </g>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+              <span class="strong" style="font-size:21px;line-height:1;">45%</span>
+              <span class="dimmed" style="font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;margin-top:2px;">clean</span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;flex:1;font-size:12px;">
+            <div>
+              <div class="row" style="border-bottom:1px solid var(--border);padding-bottom:3px;margin-bottom:5px;"><span class="xs dimmed" style="text-transform:uppercase;font-weight:700;">Fossil</span><span class="strong" style="font-size:11px;">55%</span></div>
+              <div class="row"><span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#495057;margin-right:7px;"></span>Coal</span><span class="strong">47%</span></div>
+              <div class="row"><span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#868e96;margin-right:7px;"></span>Gas</span><span class="strong">7%</span></div>
+              <div class="row"><span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#e8590c;margin-right:7px;"></span>Oil</span><span class="strong">1%</span></div>
+            </div>
+            <div>
+              <div class="row" style="border-bottom:1px solid var(--border);padding-bottom:3px;margin-bottom:5px;"><span class="xs dimmed" style="text-transform:uppercase;font-weight:700;">Clean</span><span class="strong" style="font-size:11px;">45%</span></div>
+              <div class="row"><span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#4dabf7;margin-right:7px;"></span>Hydro</span><span class="strong">13%</span></div>
+              <div class="row"><span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#ffd43b;margin-right:7px;"></span>Solar</span><span class="strong">13%</span></div>
+              <div class="row"><span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#3bc9db;margin-right:7px;"></span>Wind</span><span class="strong">12%</span></div>
+              <div class="row"><span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#9775fa;margin-right:7px;"></span>Nuclear</span><span class="strong">6%</span></div>
+              <div class="row"><span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#94d82d;margin-right:7px;"></span>Geoth.</span><span class="strong">1%</span></div>
+            </div>
+          </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0 12px;" />
+
+        <!-- Electricity emissions — converging streams merging to the total; clean sources dashed at 0 -->
+        <div class="xs dimmed" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Electricity emissions <span style="text-transform:none;letter-spacing:0;font-weight:400;">— stream width = Gt CO₂/yr</span></div>
+        <svg viewBox="0 0 470 300" width="100%" style="display:block;overflow:visible;margin-top:8px;">
+          <path d="M148,20 C270,20 270,125 360,125 L360,175 C270,175 270,70 148,70 Z" fill="#495057" fill-opacity="0.92"/>
+          <path d="M148,76.85 C270,76.85 270,175 360,175 L360,178.3 C270,178.3 270,80.15 148,80.15 Z" fill="#868e96" fill-opacity="0.92"/>
+          <path d="M148,111.645 C270,111.645 270,178.3 360,178.3 L360,179 C270,179 270,112.355 148,112.355 Z" fill="#e8590c" fill-opacity="0.92"/>
+          <path d="M148,145.5 C270,145.5 270,179 360,179" fill="none" stroke="#9775fa" stroke-width="1.4" stroke-dasharray="3 3" stroke-opacity="0.6"/>
+          <path d="M148,179 C270,179 270,179 360,179" fill="none" stroke="#4dabf7" stroke-width="1.4" stroke-dasharray="3 3" stroke-opacity="0.6"/>
+          <path d="M148,212.5 C270,212.5 270,179 360,179" fill="none" stroke="#3bc9db" stroke-width="1.4" stroke-dasharray="3 3" stroke-opacity="0.6"/>
+          <path d="M148,246 C270,246 270,179 360,179" fill="none" stroke="#ffd43b" stroke-width="1.4" stroke-dasharray="3 3" stroke-opacity="0.6"/>
+          <path d="M148,279.5 C270,279.5 270,179 360,179" fill="none" stroke="#94d82d" stroke-width="1.4" stroke-dasharray="3 3" stroke-opacity="0.6"/>
+          <rect x="360" y="125" width="15" height="54" rx="4" fill="#495057"/>
+          <rect x="360" y="175" width="15" height="3.3" fill="#868e96"/>
+          <rect x="360" y="178.3" width="15" height="0.7" fill="#e8590c"/>
+          <text x="384" y="151" fill="#f1f3f5" font-size="22" font-weight="800" letter-spacing="-0.5">= 6.0</text>
+          <text x="385" y="165" fill="#909296" font-size="9.5">Gt CO₂/yr</text>
+          <text x="385" y="179" fill="#909296" font-size="10" font-weight="700">— flat since 2025</text>
+          <rect x="6" y="40.5" width="9" height="9" rx="2" fill="#495057"/><text x="20" y="49" fill="#f1f3f5" font-size="11.5">Coal</text><text x="142" y="49" text-anchor="end" fill="#f1f3f5" font-size="11.5" font-weight="700">5.6 <tspan fill="#909296" font-size="9" font-weight="400">Gt</tspan></text>
+          <rect x="6" y="74" width="9" height="9" rx="2" fill="#868e96"/><text x="20" y="82.5" fill="#f1f3f5" font-size="11.5">Gas</text><text x="142" y="82.5" text-anchor="end" fill="#f1f3f5" font-size="11.5" font-weight="700">0.37 <tspan fill="#909296" font-size="9" font-weight="400">Gt</tspan></text>
+          <rect x="6" y="107.5" width="9" height="9" rx="2" fill="#e8590c"/><text x="20" y="116" fill="#f1f3f5" font-size="11.5">Oil</text><text x="142" y="116" text-anchor="end" fill="#f1f3f5" font-size="11.5" font-weight="700">0.08 <tspan fill="#909296" font-size="9" font-weight="400">Gt</tspan></text>
+          <rect x="6" y="141" width="9" height="9" rx="2" fill="#9775fa"/><text x="20" y="149.5" fill="#f1f3f5" font-size="11.5">Nuclear</text><text x="142" y="149.5" text-anchor="end" fill="#63e6be" font-size="11.5" font-weight="700">0</text>
+          <rect x="6" y="174.5" width="9" height="9" rx="2" fill="#4dabf7"/><text x="20" y="183" fill="#f1f3f5" font-size="11.5">Hydro</text><text x="142" y="183" text-anchor="end" fill="#63e6be" font-size="11.5" font-weight="700">0</text>
+          <rect x="6" y="208" width="9" height="9" rx="2" fill="#3bc9db"/><text x="20" y="216.5" fill="#f1f3f5" font-size="11.5">Wind</text><text x="142" y="216.5" text-anchor="end" fill="#63e6be" font-size="11.5" font-weight="700">0</text>
+          <rect x="6" y="241.5" width="9" height="9" rx="2" fill="#ffd43b"/><text x="20" y="250" fill="#f1f3f5" font-size="11.5">Solar</text><text x="142" y="250" text-anchor="end" fill="#63e6be" font-size="11.5" font-weight="700">0</text>
+          <rect x="6" y="275" width="9" height="9" rx="2" fill="#94d82d"/><text x="20" y="283.5" fill="#f1f3f5" font-size="11.5">Geotherm</text><text x="142" y="283.5" text-anchor="end" fill="#63e6be" font-size="11.5" font-weight="700">0</text>
+        </svg>
+        <div class="xs dimmed" style="margin-top:10px;">Two <b style="color:var(--text-strong);">separate</b> graphics: generation (donut, share) vs emissions (streams, Gt). Clean sources generate power but emit <b style="color:var(--earth-3);">0</b> — dashed, zero-width.</div>
+      </div>
     </div>
   </div>
 

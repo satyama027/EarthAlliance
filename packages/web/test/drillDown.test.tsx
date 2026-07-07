@@ -33,18 +33,17 @@ describe('DrillDownPanel — planet', () => {
     }
   });
 
-  it('drills Emissions → sectors → Electricity → fuels, then shows a trend leaf', async () => {
+  it('drills Emissions → Electricity into the generation/emissions panel', async () => {
     wrap(<DrillDownPanel entity={{ kind: 'planet' }} log={log} />);
     await userEvent.click(screen.getByRole('button', { name: /emissions/i }));
     // sector rows appear
     expect(screen.getByRole('button', { name: /transport/i })).toBeInTheDocument();
-    const elec = screen.getByRole('button', { name: /electricity/i });
-    await userEvent.click(elec);
-    // fuel rows appear
-    expect(screen.getByRole('button', { name: /coal/i })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: /coal/i }));
-    // trend leaf — the change chip renders; the breadcrumb's current crumb names it
-    expect(screen.getByText(/since 2025/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /electricity/i }));
+    // the custom electricity panel: two separated sections + the emissions-total change chip
+    expect(screen.getByText('Generation mix')).toBeInTheDocument();
+    expect(screen.getByText('Electricity emissions')).toBeInTheDocument();
+    expect(screen.getByText('clean')).toBeInTheDocument();      // donut hole = clean share
+    expect(screen.getByText(/since 20\d\d/i)).toBeInTheDocument();
   });
 
   it('breadcrumb navigates back to a prior level and to the overview', async () => {

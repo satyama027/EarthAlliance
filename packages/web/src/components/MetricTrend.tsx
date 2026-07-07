@@ -1,6 +1,6 @@
 import { Box, Group, Text } from '@mantine/core';
 import type { TrendPoint } from '../game/metricTree.js';
-import { headlineParts } from '../game/metricTree.js';
+import { headlineParts, changeSince, CHANGE_TONE_COLOR } from '../game/metricTree.js';
 
 interface MetricTrendProps {
   points: TrendPoint[];
@@ -37,12 +37,6 @@ function fmtVal(v: number): string {
   return a >= 10 ? v.toFixed(0) : a >= 1 ? v.toFixed(1) : v.toFixed(2);
 }
 
-/** Format the change chip: whole/large values to 1 dp, small values to 2 dp (never a false "0.0"). */
-function fmtChange(v: number): string {
-  const a = Math.abs(v);
-  return a >= 1 ? a.toFixed(1) : a.toFixed(2);
-}
-
 /**
  * Which turns get *text* labels (value above the dot + year below). Dots and vertical gridlines are
  * drawn at every turn regardless; only the text thins so it never overlaps: everything for a short
@@ -74,9 +68,7 @@ export function MetricTrend({ points, color, unit, goodUp = true }: MetricTrendP
   const n = points.length;
   const latest = n ? points[n - 1]!.value : 0;
   const first = n ? points[0]!.value : 0;
-  const delta = latest - first;
-  const good = goodUp ? delta >= 0 : delta <= 0;
-  const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '—';
+  const chip = changeSince(latest - first, goodUp);
   const { main: headline, suffix } = headlineParts(latest, unit);
 
   const plotW = W - mL - mR, plotH = H - mT - mB;
@@ -103,8 +95,8 @@ export function MetricTrend({ points, color, unit, goodUp = true }: MetricTrendP
           {headline}<Text span c="dimmed" fw={600} style={{ fontSize: 12, marginLeft: 3 }}>{suffix}</Text>
         </Text>
         {n > 1 && (
-          <Text span fw={600} style={{ fontSize: 11.5 }} c={good ? 'earth.3' : 'red.4'}>
-            {arrow} {fmtChange(delta)} since {points[0]!.year}
+          <Text span fw={600} style={{ fontSize: 11.5 }} c={CHANGE_TONE_COLOR[chip.tone]}>
+            {chip.arrow} {chip.label} since {points[0]!.year}
           </Text>
         )}
       </Group>
