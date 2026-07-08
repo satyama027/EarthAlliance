@@ -29,14 +29,34 @@ const TONE_HEX: Record<ChangeTone, string> = { good: '#63e6be', bad: '#ff6b6b', 
 
 const pct = (v: number) => Math.round(v * 100);
 const fmtGt = (v: number) => (v >= 1 ? v.toFixed(1) : v.toFixed(2));
+// Real generation runs ~300 (Oceania) → ~30,000 (planet) TWh; round to hundreds above 1,000, tens
+// below, so the figure reads clean across that whole range.
+const fmtTWh = (v: number) => {
+  const step = v >= 1000 ? 100 : 10;
+  return (Math.round(v / step) * step).toLocaleString('en-US');
+};
 const emissionOf = (s: GenerationSource, fuel: ElectricityByFuel): number =>
   s === 'coal' ? fuel.coal : s === 'gas' ? fuel.gas : s === 'oil' ? fuel.oil : 0;
 
-function SecLabel({ children, note }: { children: string; note: string }) {
+function SecLabel({ children, note }: { children: string; note?: string }) {
   return (
     <Text tt="uppercase" fw={700} c="dimmed" style={{ fontSize: 10, letterSpacing: '.06em' }}>
-      {children} <Text span c="dimmed" fw={400} tt="none" style={{ letterSpacing: 0 }}>{note}</Text>
+      {children}
+      {note && <> <Text span c="dimmed" fw={400} tt="none" style={{ letterSpacing: 0 }}>{note}</Text></>}
     </Text>
+  );
+}
+
+/** Right-aligned headline: total real power generation (TWh/yr) for the region/planet. */
+function GenTotal({ twh }: { twh: number }) {
+  return (
+    <Box style={{ textAlign: 'right', lineHeight: 1.05 }}>
+      <Text span fw={700} c="var(--mantine-color-gray-1)" style={{ fontSize: 15, fontVariantNumeric: 'tabular-nums' }}>
+        {fmtTWh(twh)}
+      </Text>
+      <Text span c="dimmed" style={{ fontSize: 10, marginLeft: 3 }}>TWh/yr</Text>
+      <Text c="dimmed" tt="uppercase" style={{ fontSize: 9, letterSpacing: '.07em' }}>total generation</Text>
+    </Box>
   );
 }
 
@@ -156,7 +176,10 @@ export function ElectricityPanel({ entity, log }: ElectricityPanelProps) {
   return (
     <Stack gap="sm">
       <Box>
-        <SecLabel note="— share of power · = 100%">Generation mix</SecLabel>
+        <Group justify="space-between" align="center" gap="sm" wrap="nowrap">
+          <SecLabel>Generation mix</SecLabel>
+          <GenTotal twh={latest.generationTWh} />
+        </Group>
         <Group gap={16} align="center" mt={10} wrap="nowrap">
           <Donut mix={latest.generationMix} />
           <GenLegend mix={latest.generationMix} />

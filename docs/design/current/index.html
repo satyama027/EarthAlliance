@@ -381,8 +381,14 @@
         <div class="h4">East Asia</div>
         <div class="xs" style="margin:8px 0 12px;"><span style="color:var(--earth-3);font-weight:600;">Overview</span> <span class="dimmed">›</span> <span style="color:var(--earth-3);font-weight:600;">Emissions</span> <span class="dimmed">›</span> <span class="strong">Electricity</span></div>
 
-        <!-- Generation mix — donut + Fossil/Clean grouped legend -->
-        <div class="xs dimmed" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Generation mix <span style="text-transform:none;letter-spacing:0;font-weight:400;">— share of power · = 100%</span></div>
+        <!-- Generation mix — heading row: bare label + right-aligned total power generation (TWh/yr) -->
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <div class="xs dimmed" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Generation mix</div>
+          <div style="text-align:right;line-height:1.05;">
+            <span class="strong" style="font-size:15px;font-variant-numeric:tabular-nums;">11,800</span><span class="dimmed" style="font-size:10px;margin-left:3px;">TWh/yr</span>
+            <div class="dimmed" style="font-size:9px;text-transform:uppercase;letter-spacing:.07em;">total generation</div>
+          </div>
+        </div>
         <div style="display:flex;gap:16px;align-items:center;margin-top:10px;">
           <div style="position:relative;width:130px;height:130px;flex:0 0 auto;">
             <svg viewBox="0 0 120 120" width="130" height="130">

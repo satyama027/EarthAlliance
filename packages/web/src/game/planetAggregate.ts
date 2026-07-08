@@ -1,5 +1,5 @@
 import {
-  gridIntensityFromMix,
+  gridIntensityFromMix, generationTWh,
   type Region, type GenerationMix, type TurnDiagnostics,
 } from '@earth-alliance/engine';
 import { EMISSION_SOURCES, type SourceValues } from '../components/EmissionsBySource.js';
@@ -18,6 +18,7 @@ export interface PlanetAggregate {
   generationMix: GenerationMix;      // demand-weighted shares (sum to 1)
   gridCarbonIntensity: number;       // derived from the aggregated mix
   electricityDemand: number;         // sum (power demand)
+  generationTWh: number;             // sum (real power generation, TWh/yr)
   energyStorageCapacity: number;     // demand-weighted average
   agriculturalProductivity: number;  // simple average (crop yield)
   budget: RegionBudget;              // summed income ledger
@@ -74,6 +75,7 @@ export function planetAggregate(regions: Region[], diagnostics: TurnDiagnostics 
     generationMix,
     gridCarbonIntensity: gridIntensityFromMix(generationMix),
     electricityDemand: totalDemand,
+    generationTWh: regions.reduce((s, r) => s + generationTWh(r), 0),
     energyStorageCapacity: regions.reduce((s, r) => s + r.energyStorageCapacity * r.electricityDemand, 0) / demandDivisor,
     agriculturalProductivity: avg((r) => r.agriculturalProductivity),
     budget,

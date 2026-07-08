@@ -173,6 +173,11 @@ regions (Oceania, Sub-Saharan, Russia-Central Asia) go nuclear-heavy; uranium-po
 Europe) are floored and lean on renewables. `rebalanceMix` remains as a Σ-drift safety net (now a
 no-op since conversions conserve Σ). Mixes are seeded from real ~2024 generation data (Ember/EIA/IEA),
 with `electricityDemand` set so `demand × intensity` preserves each region's real electricity CO₂.
+Because `electricityDemand` is that abstract coal-equivalent unit (not TWh), a fixed per-region
+calibration `TWH_PER_DEMAND_UNIT` (baked from real ~2025 generation in `REAL_GENERATION_TWH_2025`,
+`data/regions.ts`) bridges it to a player-facing figure: `generationTWh(region) = electricityDemand ×
+factor` (`generation.ts`), which scales with demand as it grows. Unknown region ids fall back to the
+demand-weighted global average factor.
 
 Three remaining **coupling variables** carry the other trade-offs: `electricityDemand`,
 `agriculturalProductivity` (index, baseline 100), and `energyStorageCapacity` (0–1, gates renewable
@@ -484,9 +489,11 @@ the dashboard sparkline.
   snapshot per turn — so "history for the planet and all regions from the start of the game" already
   exists. The `Reading` carries the six emission `sources`, per-fuel `electricityByFuel`
   (`electricityFuelEmissions` = `electricityDemand × share × emissionFactor`, summing to the
-  `electricity` total), the 8-source `generationMix`, and the income `budget`. Emissions →
-  **Electricity** is the custom `ElectricityPanel` (generation donut + converging emission streams —
-  see §5 components) driven by `generationMix` + `electricityByFuel`; the four index metrics and every
+  `electricity` total), the 8-source `generationMix`, the total real generation `generationTWh`
+  (engine `generationTWh`; planet = Σ regions), and the income `budget`. Emissions →
+  **Electricity** is the custom `ElectricityPanel` (generation donut + total-generation TWh headline +
+  converging emission streams — see §5 components) driven by `generationMix` + `generationTWh` +
+  `electricityByFuel`; the four index metrics and every
   leaf sector are trend leaves (no modeled composition). The change chip (headline + trend) uses the
   shared `changeSince`/`CHANGE_TONE_COLOR` vocabulary — `▲/▼` colored good/bad, or a neutral-grey
   **`— flat`** when the value rounds to unchanged.

@@ -1,4 +1,4 @@
-import type { Region } from '../types.js';
+import type { Region, RegionId } from '../types.js';
 
 // Per-region ~2025 data. ALL emission figures — `regionalEmissions` and the six per-source
 // fields — are in **Gt CO₂/yr** (gigatonnes of CO₂ per year). The six sources sum to
@@ -137,3 +137,25 @@ export const SAMPLE_REGIONS: readonly Region[] = [
     agriculturalProductivity: 100, energyStorageCapacity: 0.03,
   },
 ];
+
+// Real ~2024 electricity generation (TWh/yr) per region — the same anchors noted in the header
+// comment above (South Asia ≈ 2,100: India ≈ 1,950 + neighbours). `electricityDemand` itself is an
+// abstract coal-equivalent unit (tuned for emissions, not TWh), so this map is the *only* bridge to a
+// player-facing "how much power" figure. It is calibration, not simulation state — nothing mutates it.
+export const REAL_GENERATION_TWH_2025: Record<RegionId, number> = {
+  'north-america': 5300, 'europe': 3300, 'sub-saharan-africa': 450, 'south-asia': 2100,
+  'east-asia': 11600, 'latin-america': 1500, 'russia-central-asia': 1400, 'mena': 1400,
+  'southeast-asia': 1100, 'oceania': 290,
+};
+
+// TWh generated per unit of `electricityDemand`, baked from each region's 2025 baseline demand
+// (TWh ÷ demand₂₀₂₅). Fixed per region, so `generationTWh` scales purely with demand as it grows.
+export const TWH_PER_DEMAND_UNIT: Record<RegionId, number> = Object.fromEntries(
+  SAMPLE_REGIONS.map((r) => [r.id, (REAL_GENERATION_TWH_2025[r.id] ?? 0) / r.electricityDemand]),
+);
+
+// Demand-weighted global average factor (Σ real TWh ÷ Σ demand) — the fallback for any region id not
+// in the calibration map (e.g. a custom scenario), so an unknown grid still yields a plausible TWh.
+export const DEFAULT_TWH_PER_DEMAND_UNIT =
+  SAMPLE_REGIONS.reduce((s, r) => s + (REAL_GENERATION_TWH_2025[r.id] ?? 0), 0) /
+  SAMPLE_REGIONS.reduce((s, r) => s + r.electricityDemand, 0);

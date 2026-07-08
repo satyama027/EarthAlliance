@@ -5,8 +5,8 @@ export type { ModelParams, SubModel, SimContext, TurnScratch } from './models/ty
 export { DEFAULT_MODELS } from './models/pipeline.js';
 export { DEFAULT_PARAMS, DEFAULT_SCENARIO, END_YEAR } from './data/scenario.js';
 export type { Scenario } from './data/scenario.js';
-export { SAMPLE_REGIONS } from './data/regions.js';
-export { GENERATION_SOURCES, GENERATION_SOURCE_IDS, gridIntensityFromMix } from './generation.js';
+export { SAMPLE_REGIONS, REAL_GENERATION_TWH_2025, TWH_PER_DEMAND_UNIT } from './data/regions.js';
+export { GENERATION_SOURCES, GENERATION_SOURCE_IDS, gridIntensityFromMix, generationTWh } from './generation.js';
 export type { GenerationSource, GenerationMix, GenerationSourceSpec } from './generation.js';
 
 export { createInitialState } from './state.js';

@@ -1,5 +1,5 @@
 import {
-  GENERATION_SOURCES,
+  GENERATION_SOURCES, generationTWh,
   type GenerationMix, type Region, type TurnDiagnostics,
 } from '@earth-alliance/engine';
 import type { TurnRecord } from './useGame.js';
@@ -34,6 +34,7 @@ export interface Reading {
   sources: SourceValues;               // the six emission sources
   electricityByFuel: ElectricityByFuel; // electricity split by emitting fuel
   generationMix: GenerationMix;        // the 8 generation shares (sum to 1)
+  generationTWh: number;               // total real power generation (TWh/yr)
   budget: RegionBudget;                // income ledger (tax / carbon-tax / upkeep / net)
   publicSupport: number;
   biodiversityIndex: number;
@@ -66,6 +67,7 @@ function regionReading(r: Region, diagnostics: TurnDiagnostics | null): Reading 
     sources: pickSources(r as unknown as Record<string, number>),
     electricityByFuel: electricityFuelEmissions(r.electricityDemand, r.generationMix),
     generationMix: r.generationMix,
+    generationTWh: generationTWh(r),
     budget: regionBudget(r, diagnostics),
     publicSupport: r.publicSupport,
     biodiversityIndex: r.biodiversityIndex,
@@ -81,6 +83,7 @@ function planetReading(regions: Region[], diagnostics: TurnDiagnostics | null): 
     sources: p.sources,
     electricityByFuel: electricityFuelEmissions(p.electricityDemand, p.generationMix),
     generationMix: p.generationMix,
+    generationTWh: p.generationTWh,
     budget: p.budget,
     publicSupport: p.publicSupport,
     biodiversityIndex: p.biodiversityIndex,
@@ -98,6 +101,7 @@ const ZERO_READING: Reading = {
   sources: pickSources({}),
   electricityByFuel: { coal: 0, gas: 0, oil: 0 },
   generationMix: ZERO_MIX,
+  generationTWh: 0,
   budget: { taxIncome: 0, carbonTax: 0, upkeep: 0, net: 0 },
   publicSupport: 0, biodiversityIndex: 0, waterAvailability: 0, landAvailability: 0,
 };

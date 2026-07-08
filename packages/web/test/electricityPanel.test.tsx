@@ -31,6 +31,16 @@ describe('ElectricityPanel', () => {
     expect(screen.getByText('Electricity emissions')).toBeInTheDocument();
   });
 
+  it('shows total power generation (TWh/yr) on the heading row and drops the "share of power" note', () => {
+    wrap(<ElectricityPanel entity={{ kind: 'region', id: EA }} log={log} />);
+    expect(screen.getByText('TWh/yr')).toBeInTheDocument();
+    expect(screen.getByText(/total generation/i)).toBeInTheDocument();
+    // East Asia is a very large grid (~11,600 TWh) — the figure should be in the thousands
+    expect(screen.getByText(/^\d{2},\d{3}$/)).toBeInTheDocument();
+    // the trimmed heading no longer carries the "— share of power · = 100%" note
+    expect(screen.queryByText(/share of power/i)).toBeNull();
+  });
+
   it('draws the generation donut (8 slices) with the clean share in the hole', () => {
     const { container } = wrap(<ElectricityPanel entity={{ kind: 'region', id: EA }} log={log} />);
     expect(screen.getByText('clean')).toBeInTheDocument();

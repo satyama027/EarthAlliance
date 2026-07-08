@@ -206,12 +206,17 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   node (metric-tree kind `electricity`). Two **separate** infographics, one concern each, never mixed:
   a **generation-mix donut** on top (8 sources in fossils-then-clean order, drawn as `stroke-dasharray`
   ring segments in `GENERATION_COLORS`; the **clean share** — nuclear + renewables — sits in the hole)
-  beside a **grouped legend** (`Fossil` vs `Clean` columns, each with a subtotal, sources largest-first);
+  beside a **grouped legend** (`Fossil` vs `Clean` columns, each with a subtotal, sources largest-first).
+  The generation heading is a `space-between` row: the bare **`Generation mix`** label on the left (the
+  old `— share of power · = 100%` note is dropped) and a right-aligned **total power generation** stat —
+  real **TWh/yr** (bold value + dimmed `TWh/yr` + a small dimmed `TOTAL GENERATION` caption), rounded to
+  hundreds (tens below 1,000). It reads `Reading.generationTWh` (engine `generationTWh` = `electricityDemand
+  × twhPerDemandUnit`, so it scales with demand over turns; planet = Σ regions);
   a `Divider`; then **converging emission streams** below — an SVG where each source flows into a pool
   labelled the electricity total (`= X.X Gt CO₂/yr` + the shared change chip). A stream's **width = its
   emissions** (coal fat, gas/oil thin); **nuclear + the four renewables are dashed, zero-width lines
   labelled `0`** (generate power, emit nothing). Each source is labelled at its origin with its Gt
-  value. Reads `Reading.generationMix` + `electricityByFuel`; no new tokens.
+  value. Reads `Reading.generationMix` + `electricityByFuel` + `generationTWh`; no new tokens.
 - **GenerationMix** / **RegionLevers** / **RegionIncome** / **MetricBar** — components of the retired
   Dashboard/RegionPanel. **Not currently surfaced** by the drill-down (the generation-share mix now
   appears as the `ElectricityPanel` donut instead; grid-intensity gauge + storage/crop-yield levers are

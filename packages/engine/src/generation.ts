@@ -9,6 +9,9 @@
  * zero-carbon sources (nuclear + the four renewables) contribute 0.
  */
 
+import type { Region } from './types.js';
+import { TWH_PER_DEMAND_UNIT, DEFAULT_TWH_PER_DEMAND_UNIT } from './data/regions.js';
+
 /** A single generation source. Renewables are the four tagged below; nuclear is zero-carbon but NOT renewable. */
 export type GenerationSource =
   | 'coal' | 'gas' | 'oil'                       // fossil
@@ -59,6 +62,18 @@ export function drawFromFossils(mix: GenerationMix, amount: number): number {
     remaining -= take;
   }
   return amount - remaining;
+}
+
+/**
+ * A region's total power generation in **real TWh/yr** (a player-facing magnitude). `electricityDemand`
+ * is an abstract coal-equivalent unit, so this multiplies it by the region's fixed calibration factor
+ * (`TWH_PER_DEMAND_UNIT`, baked from real 2025 generation). Because the factor is constant, the figure
+ * scales purely with demand as it grows over turns. Regions outside the calibration map fall back to
+ * the demand-weighted global average factor.
+ */
+export function generationTWh(region: Region): number {
+  const factor = TWH_PER_DEMAND_UNIT[region.id] ?? DEFAULT_TWH_PER_DEMAND_UNIT;
+  return region.electricityDemand * factor;
 }
 
 /** Average grid carbon intensity (0–1) implied by a generation mix. */

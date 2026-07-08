@@ -1,4 +1,4 @@
-import { gridIntensityFromMix, type Region, type GenerationMix, type TurnDiagnostics } from '@earth-alliance/engine';
+import { gridIntensityFromMix, generationTWh, type Region, type GenerationMix, type TurnDiagnostics } from '@earth-alliance/engine';
 import { planetAggregate } from '../src/game/planetAggregate.js';
 
 /** A generation mix with everything zero except the given overrides. */
@@ -71,6 +71,12 @@ describe('planetAggregate', () => {
     const p = planetAggregate([A, B], null);
     expect(p.gridCarbonIntensity).toBeCloseTo(gridIntensityFromMix(p.generationMix), 9);
     expect(p.gridCarbonIntensity).toBeCloseTo(0.18125, 9); // (0.725·2 + 0·6)/8
+  });
+
+  it('sums real generation (TWh) across regions', () => {
+    const p = planetAggregate([A, B], null);
+    expect(p.generationTWh).toBeGreaterThan(0);
+    expect(p.generationTWh).toBeCloseTo(generationTWh(A) + generationTWh(B), 6);
   });
 
   it('sums power demand, demand-weights storage, simple-averages crop yield', () => {

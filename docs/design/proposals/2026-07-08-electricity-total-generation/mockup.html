@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Electricity panel — trim heading + total power generation</title>
+<style>
+  :root {
+    --earth-3:#63e6be; --earth-5:#20c997; --earth-7:#0ca678;
+    --red:#ff6b6b; --yellow:#ffd43b; --orange:#ffa94d;
+    --bg:#1a1b1e; --surface:#25262b; --surface-2:#2c2e33; --border:#373a40; --inset:#141517;
+    --text:#c1c2c5; --text-strong:#f1f3f5; --dimmed:#909296;
+    --coal:#495057; --gas:#868e96; --oil:#e8590c; --nuclear:#9775fa;
+    --hydro:#4dabf7; --wind:#3bc9db; --solar:#ffd43b; --geo:#94d82d; --elec:#f59f00;
+    --radius:8px; --radius-sm:4px; font-family: system-ui, sans-serif;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); padding:20px; -webkit-font-smoothing:antialiased; }
+  .note { max-width:520px; margin:0 auto 18px; padding:12px 16px; background:var(--surface);
+    border:1px solid var(--border); border-radius:var(--radius); font-size:13px; color:var(--dimmed); line-height:1.55; }
+  .note strong { color:var(--text-strong); } .note .good { color:var(--earth-3); } .note .del { color:var(--red); text-decoration:line-through; }
+
+  .stage { max-width:520px; margin:0 auto 26px; }
+  .stage > h2 { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--earth-3); margin:0 0 8px; font-weight:700; }
+
+  .win { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
+  .h4 { font-size:15px; font-weight:700; color:var(--text-strong); margin:0; }
+  .crumb { font-size:12px; margin:8px 0 12px; }
+  .crumb .b { color:var(--earth-3); font-weight:600; } .crumb .s { color:var(--dimmed); } .crumb .cur { color:var(--text-strong); font-weight:700; }
+  .dimmed { color:var(--dimmed); } .strong { color:var(--text-strong); font-weight:700; }
+
+  /* ── heading row: seclabel (left) + total-generation stat (right) ── */
+  .sechead { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .seclabel { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--dimmed); font-weight:700; }
+  .seclabel .n { color:var(--dimmed); font-weight:400; text-transform:none; letter-spacing:0; }
+  .gentotal { text-align:right; line-height:1.05; }
+  .gentotal .v { font-size:15px; font-weight:700; color:var(--text-strong); font-variant-numeric:tabular-nums; }
+  .gentotal .u { font-size:10px; font-weight:400; color:var(--dimmed); margin-left:2px; }
+  .gentotal .cap { display:block; font-size:9px; text-transform:uppercase; letter-spacing:.07em; color:var(--dimmed); margin-top:1px; }
+
+  hr.sep { border:none; border-top:1px solid var(--border); margin:16px 0 12px; }
+
+  /* generation donut + legend */
+  .genwrap { display:flex; gap:16px; align-items:center; margin-top:10px; }
+  .donut { width:130px; height:130px; flex:0 0 auto; position:relative; }
+  .donut .ctr { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .donut .ctr .big { font-size:21px; font-weight:800; color:var(--text-strong); line-height:1; }
+  .donut .ctr .lbl { font-size:9.5px; color:var(--dimmed); text-transform:uppercase; letter-spacing:.06em; margin-top:2px; }
+  .glegend { display:grid; grid-template-columns:1fr 1fr; gap:0 16px; flex:1; }
+  .ghead { display:flex; justify-content:space-between; align-items:baseline; font-size:10px;
+    text-transform:uppercase; letter-spacing:.05em; color:var(--dimmed); font-weight:700;
+    border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:5px; }
+  .ghead .p { color:var(--text-strong); font-size:11px; font-variant-numeric:tabular-nums; }
+  .glegend .it { display:flex; align-items:center; gap:7px; font-size:12px; padding:1.5px 0; }
+  .glegend .sw { width:9px; height:9px; border-radius:2px; flex:0 0 auto; }
+  .glegend .nm { color:var(--text); flex:1; }
+  .glegend .v { color:var(--text-strong); font-weight:700; font-variant-numeric:tabular-nums; }
+</style>
+</head>
+<body>
+
+<div class="note">
+  <strong>Two changes to the Electricity drill-down.</strong>
+  (1) The first heading drops its note — <span class="del">GENERATION MIX — share of power · = 100%</span>
+  becomes just <strong>GENERATION MIX</strong>.
+  (2) A <strong>total power generation</strong> figure now sits right-aligned on that heading row —
+  real <strong>TWh/yr</strong>, derived from the region's demand so it grows across turns.
+  Data: East&nbsp;Asia (matches the screenshot). Everything below the divider is unchanged.
+</div>
+
+<div class="stage">
+  <h2>Revised Electricity panel</h2>
+  <div class="win">
+    <div class="h4">East Asia</div>
+    <div class="crumb"><span class="b">Overview</span> <span class="s">›</span>
+      <span class="b">Emissions</span> <span class="s">›</span> <span class="cur">Electricity</span></div>
+
+    <!-- ── GENERATION ── heading row now carries the total-generation stat on the right -->
+    <div class="sechead">
+      <span class="seclabel">Generation mix</span>
+      <span class="gentotal"><span class="v">11,800</span><span class="u">TWh/yr</span><span class="cap">total generation</span></span>
+    </div>
+
+    <div class="genwrap">
+      <div class="donut">
+        <svg viewBox="0 0 120 120" width="130" height="130">
+          <g transform="rotate(-90 60 60)" fill="none" stroke-width="15">
+            <circle cx="60" cy="60" r="42" stroke="#495057" stroke-dasharray="113.47 150.42" stroke-dashoffset="0"/>
+            <circle cx="60" cy="60" r="42" stroke="#868e96" stroke-dasharray="18.47 245.42" stroke-dashoffset="-113.47"/>
+            <circle cx="60" cy="60" r="42" stroke="#e8590c" stroke-dasharray="2.64 261.25" stroke-dashoffset="-131.94"/>
+            <circle cx="60" cy="60" r="42" stroke="#9775fa" stroke-dasharray="15.83 248.06" stroke-dashoffset="-134.58"/>
+            <circle cx="60" cy="60" r="42" stroke="#4dabf7" stroke-dasharray="34.31 229.58" stroke-dashoffset="-150.41"/>
+            <circle cx="60" cy="60" r="42" stroke="#3bc9db" stroke-dasharray="36.94 226.95" stroke-dashoffset="-184.72"/>
+            <circle cx="60" cy="60" r="42" stroke="#ffd43b" stroke-dasharray="39.58 224.31" stroke-dashoffset="-221.66"/>
+            <circle cx="60" cy="60" r="42" stroke="#94d82d" stroke-dasharray="2.64 261.25" stroke-dashoffset="-261.24"/>
+          </g>
+        </svg>
+        <div class="ctr"><span class="big">49%</span><span class="lbl">clean</span></div>
+      </div>
+      <div class="glegend">
+        <div class="ggroup">
+          <div class="ghead"><span>Fossil</span><span class="p">51%</span></div>
+          <span class="it"><span class="sw" style="background:var(--coal);"></span><span class="nm">Coal</span><span class="v">43%</span></span>
+          <span class="it"><span class="sw" style="background:var(--gas);"></span><span class="nm">Gas</span><span class="v">7%</span></span>
+          <span class="it"><span class="sw" style="background:var(--oil);"></span><span class="nm">Oil</span><span class="v">1%</span></span>
+        </div>
+        <div class="ggroup">
+          <div class="ghead"><span>Clean</span><span class="p">49%</span></div>
+          <span class="it"><span class="sw" style="background:var(--solar);"></span><span class="nm">Solar</span><span class="v">15%</span></span>
+          <span class="it"><span class="sw" style="background:var(--wind);"></span><span class="nm">Wind</span><span class="v">14%</span></span>
+          <span class="it"><span class="sw" style="background:var(--hydro);"></span><span class="nm">Hydro</span><span class="v">13%</span></span>
+          <span class="it"><span class="sw" style="background:var(--nuclear);"></span><span class="nm">Nuclear</span><span class="v">6%</span></span>
+          <span class="it"><span class="sw" style="background:var(--geo);"></span><span class="nm">Geotherm</span><span class="v">1%</span></span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="sep" />
+
+    <!-- ── EMISSIONS ── unchanged -->
+    <div class="sechead"><span class="seclabel">Electricity emissions <span class="n">— stream width = Gt CO₂/yr</span></span></div>
+    <svg viewBox="0 0 470 300" width="100%" style="display:block; overflow:visible; margin-top:8px;">
+      <!-- streams -->
+      <path d="M148,20.22 C270,20.22 270,123 360,123 L360,172.57 C270,172.57 270,69.78 148,69.78 Z" fill="#495057" fill-opacity="0.92"/>
+      <path d="M148,76.69 C270,76.69 270,172.57 360,172.57 L360,176.20 C270,176.20 270,80.32 148,80.32 Z" fill="#868e96" fill-opacity="0.92"/>
+      <path d="M148,111.6 C270,111.6 270,176.20 360,176.20 L360,177 C270,177 270,112.4 148,112.4 Z" fill="#e8590c" fill-opacity="0.92"/>
+      <path d="M148,145.5 C270,145.5 270,177 360,177" fill="none" stroke="#9775fa" stroke-width="1.4" stroke-dasharray="3 3" stroke-opacity="0.6"/>
+      <path d="M148,179 C270,179 270,177 360,177" fill="none" stroke="#4dabf7" stroke-width="1.4" stroke-dasharray="3 3" stroke-opacity="0.6"/>
+      <path d="M148,212.5 C270,212.5 270,177 360,177" fill="none" stroke="#3bc9db" stroke-width="1.4" stroke-dasharray="3 3" stroke-opacity="0.6"/>
+      <path d="M148,246 C270,246 270,177 360,177" fill="none" stroke="#ffd43b" stroke-width="1.4" stroke-dasharray="3 3" stroke-opacity="0.6"/>
+      <path d="M148,279.5 C270,279.5 270,177 360,177" fill="none" stroke="#94d82d" stroke-width="1.4" stroke-dasharray="3 3" stroke-opacity="0.6"/>
+
+      <!-- pool / total -->
+      <rect x="360" y="123" width="15" height="54" rx="4" fill="#495057"/>
+      <rect x="360" y="172.57" width="15" height="3.63" fill="#868e96"/>
+      <rect x="360" y="176.20" width="15" height="0.8" fill="#e8590c"/>
+      <text x="384" y="151" fill="#f1f3f5" font-size="22" font-weight="800" letter-spacing="-0.5">= 6.1</text>
+      <text x="385" y="165" fill="#909296" font-size="9.5">Gt CO₂/yr</text>
+      <text x="385" y="179" fill="#ff6b6b" font-size="10" font-weight="700">▲ 0.07 since 2025</text>
+
+      <!-- source labels -->
+      <rect x="6" y="40.5" width="9" height="9" rx="2" fill="#495057"/><text x="20" y="49" fill="#f1f3f5" font-size="11.5">Coal</text><text x="142" y="49" text-anchor="end" fill="#f1f3f5" font-size="11.5" font-weight="700">5.6 <tspan fill="#909296" font-size="9" font-weight="400">Gt</tspan></text>
+      <rect x="6" y="74" width="9" height="9" rx="2" fill="#868e96"/><text x="20" y="82.5" fill="#f1f3f5" font-size="11.5">Gas</text><text x="142" y="82.5" text-anchor="end" fill="#f1f3f5" font-size="11.5" font-weight="700">0.41 <tspan fill="#909296" font-size="9" font-weight="400">Gt</tspan></text>
+      <rect x="6" y="107.5" width="9" height="9" rx="2" fill="#e8590c"/><text x="20" y="116" fill="#f1f3f5" font-size="11.5">Oil</text><text x="142" y="116" text-anchor="end" fill="#f1f3f5" font-size="11.5" font-weight="700">0.09 <tspan fill="#909296" font-size="9" font-weight="400">Gt</tspan></text>
+      <rect x="6" y="141" width="9" height="9" rx="2" fill="#9775fa"/><text x="20" y="149.5" fill="#f1f3f5" font-size="11.5">Nuclear</text><text x="142" y="149.5" text-anchor="end" fill="#63e6be" font-size="11.5" font-weight="700">0</text>
+      <rect x="6" y="174.5" width="9" height="9" rx="2" fill="#4dabf7"/><text x="20" y="183" fill="#f1f3f5" font-size="11.5">Hydro</text><text x="142" y="183" text-anchor="end" fill="#63e6be" font-size="11.5" font-weight="700">0</text>
+      <rect x="6" y="208" width="9" height="9" rx="2" fill="#3bc9db"/><text x="20" y="216.5" fill="#f1f3f5" font-size="11.5">Wind</text><text x="142" y="216.5" text-anchor="end" fill="#63e6be" font-size="11.5" font-weight="700">0</text>
+      <rect x="6" y="241.5" width="9" height="9" rx="2" fill="#ffd43b"/><text x="20" y="250" fill="#f1f3f5" font-size="11.5">Solar</text><text x="142" y="250" text-anchor="end" fill="#63e6be" font-size="11.5" font-weight="700">0</text>
+      <rect x="6" y="275" width="9" height="9" rx="2" fill="#94d82d"/><text x="20" y="283.5" fill="#f1f3f5" font-size="11.5">Geotherm</text><text x="142" y="283.5" text-anchor="end" fill="#63e6be" font-size="11.5" font-weight="700">0</text>
+    </svg>
+  </div>
+</div>
+
+</body>
+</html>
