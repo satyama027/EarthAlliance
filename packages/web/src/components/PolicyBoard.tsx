@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Paper, Group, Text, Button, ScrollArea, Box, Divider, Stack } from '@mantine/core';
+import { Paper, Group, Text, ScrollArea, Box, Divider, Stack } from '@mantine/core';
 import { validateSelection, type WorldState, type PolicySelection } from '@earth-alliance/engine';
 import { REGION_COLORS } from '../theme.js';
 import { regionPolicyView, type CardVM } from '../game/policyView.js';
 import { PolicyCard, CardFace } from './PolicyCard.js';
 import { PolicyDetailOverlay } from './PolicyDetailOverlay.js';
+import { TurnControl } from './TurnControl.js';
 
 interface PolicyBoardProps {
   state: WorldState;
@@ -151,49 +152,60 @@ export function PolicyBoard(props: PolicyBoardProps) {
 
       {error && <Text c="red" size="sm" mb="xs" role="alert">⚠ {error}</Text>}
 
-      {!region || !view ? (
-        <Box style={{ border: '1px dashed var(--mantine-color-dark-4)', borderRadius: 8, padding: 22 }}>
-          <Text c="dimmed" size="sm">Select a region on the map to manage its policies.</Text>
+      {/* The cards tray is slimmed so a right gutter opens for the turn controls (summary + End Turn). */}
+      <Box style={{ display: 'flex', gap: 16, alignItems: 'stretch', paddingLeft: 6 }}>
+        <Box style={{ flex: '1 1 auto', minWidth: 0 }}>
+          {!region || !view ? (
+            <Box style={{ border: '1px dashed var(--mantine-color-dark-4)', borderRadius: 8, padding: 22 }}>
+              <Text c="dimmed" size="sm">Select a region on the map to manage its policies.</Text>
+            </Box>
+          ) : (
+            // Lanes sit SIDE BY SIDE (Active | Available) rather than stacked, so the board is
+            // ~one card-row tall — leaving the map far more vertical room. Each lane keeps its own
+            // horizontal card scroll.
+            <Box style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
+              {/* Active lane */}
+              <div data-droplane="active" style={{ flex: '1 1 38%', minWidth: 0, borderRadius: 8,
+                border: armedBorder(activeArmed),
+                background: activeArmed ? 'rgba(32,201,151,.04)' : 'transparent', padding: 8 }}>
+                <Text size="xs" fw={700} c="dimmed" tt="uppercase" mb={6} style={{ letterSpacing: '.06em' }}>
+                  Active · {region.name} · {view.active.length}
+                  <Text span size="xs" c="dimmed" tt="none" fw={500} style={{ letterSpacing: 0 }}> — drag a card here to enact (or ✕ to remove)</Text>
+                </Text>
+                <LaneStrip cards={view.active} emptyText="Nothing active here yet." slots={activeSlots}
+                  armed={activeArmed} draggingId={draggingId}
+                  onInspect={setDetailVm} onDragStart={startDrag} />
+              </div>
+
+              <Divider orientation="vertical" />
+
+              {/* Available lane */}
+              <div data-droplane="available" style={{ flex: '1 1 62%', minWidth: 0, borderRadius: 8, padding: 8 }}>
+                <Text size="xs" fw={700} c="dimmed" tt="uppercase" mb={6} style={{ letterSpacing: '.06em' }}>
+                  Available · {view.available.length}
+                  <Text span size="xs" c="dimmed" tt="none" fw={500} style={{ letterSpacing: 0 }}> — drag a card into Active to enact in {region.name} ←</Text>
+                </Text>
+                <LaneStrip cards={view.available} emptyText="No more policies available here." slots={0}
+                  armed={false} draggingId={draggingId}
+                  onInspect={setDetailVm} onDragStart={startDrag} />
+              </div>
+            </Box>
+          )}
         </Box>
-      ) : (
-        <Stack gap={6}>
-          {/* Active lane */}
-          <div data-droplane="active" style={{ borderRadius: 8, border: armedBorder(activeArmed),
-            background: activeArmed ? 'rgba(32,201,151,.04)' : 'transparent', padding: 8 }}>
-            <Text size="xs" fw={700} c="dimmed" tt="uppercase" mb={6} style={{ letterSpacing: '.06em' }}>
-              Active · {region.name} · {view.active.length}
-              <Text span size="xs" c="dimmed" tt="none" fw={500} style={{ letterSpacing: 0 }}> — drag a card here to enact (or ✕ to remove)</Text>
-            </Text>
-            <LaneStrip cards={view.active} emptyText="Nothing active here yet." slots={activeSlots}
-              armed={activeArmed} draggingId={draggingId}
-              onInspect={setDetailVm} onDragStart={startDrag} />
-          </div>
 
-          <Divider />
-
-          {/* Available lane */}
-          <div data-droplane="available" style={{ borderRadius: 8, padding: 8 }}>
-            <Text size="xs" fw={700} c="dimmed" tt="uppercase" mb={6} style={{ letterSpacing: '.06em' }}>
-              Available · {view.available.length}
-              <Text span size="xs" c="dimmed" tt="none" fw={500} style={{ letterSpacing: 0 }}> — drag a card up to enact in {region.name} ↑</Text>
-            </Text>
-            <LaneStrip cards={view.available} emptyText="No more policies available here." slots={0}
-              armed={false} draggingId={draggingId}
-              onInspect={setDetailVm} onDragStart={startDrag} />
-          </div>
-        </Stack>
-      )}
-
-      {/* Footer: global this-turn summary + End Turn */}
-      <Group mt="md" gap="lg" align="center">
-        <SummaryCol k="Staged this turn" v={`${props.stagedTotal}${props.cancels.length ? ` · ${props.cancels.length} stopping` : ''}`} />
-        <SummaryCol k="Cost now" v={`$${Math.round(props.costNow.money)}`} />
-        <SummaryCol k="Upkeep next turn" v={`$${Math.round(props.upkeepNext)} / turn`} />
-        <Box style={{ marginLeft: 'auto', textAlign: 'right' }}>
-          {props.validationReason && <Text c="red" size="xs" mb={4}>{props.validationReason}</Text>}
-          <Button size="md" disabled={!props.canEndTurn} onClick={props.onEndTurn}>End Turn ▶</Button>
+        {/* Reclaimed right gutter: this-turn summary + the icon End Turn, pinned bottom-right. */}
+        <Box style={{ flex: '0 0 150px' }}>
+          <TurnControl
+            stagedTotal={props.stagedTotal}
+            cancelsCount={props.cancels.length}
+            costNow={props.costNow}
+            upkeepNext={props.upkeepNext}
+            validationReason={props.validationReason}
+            canEndTurn={props.canEndTurn}
+            onEndTurn={props.onEndTurn}
+          />
         </Box>
-      </Group>
+      </Box>
 
       {/* Detail overlay — opened by single click / Enter; its action button runs the same enact/stop. */}
       <PolicyDetailOverlay
@@ -245,23 +257,15 @@ function LaneStrip({ cards, emptyText, slots, armed, draggingId, onInspect, onDr
 function DropSlot({ armed }: { armed: boolean }) {
   return (
     <Box data-testid="drop-slot" style={{
-      width: 180, flex: '0 0 180px', minHeight: 150, borderRadius: 8,
+      width: 180, flex: '0 0 180px', minHeight: 84, borderRadius: 8,
       border: armed ? '1.6px dashed var(--mantine-color-earth-5)' : '1.6px dashed var(--mantine-color-dark-4)',
       background: armed ? 'rgba(32,201,151,.08)' : 'transparent',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
-      textAlign: 'center', padding: 10,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+      textAlign: 'center', padding: 8,
     }}>
-      <Text style={{ fontSize: 22, lineHeight: 1 }} c={armed ? 'earth.5' : 'dark.2'}>＋</Text>
+      <Text style={{ fontSize: 18, lineHeight: 1 }} c={armed ? 'earth.5' : 'dark.2'}>＋</Text>
       <Text size="xs" fw={600} c={armed ? 'earth.3' : 'dark.2'}>drop a policy here</Text>
     </Box>
   );
 }
 
-function SummaryCol({ k, v }: { k: string; v: string }) {
-  return (
-    <Box>
-      <Text size="xs" c="dimmed" tt="uppercase" style={{ letterSpacing: '.05em' }}>{k}</Text>
-      <Text fw={700}>{v}</Text>
-    </Box>
-  );
-}

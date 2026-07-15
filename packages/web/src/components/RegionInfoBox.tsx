@@ -32,6 +32,17 @@ function Unit({ children }: { children: ReactNode }) {
   return <Text span size="xs" c="dimmed" ml={2}>{children}</Text>;
 }
 
+/** A compact single-line label + bold value (value may carry a dimmed unit suffix). Used by the
+ *  space-tight region card so each stat is one row rather than a two-line stacked pair. */
+function KV({ label, value, unit }: { label: string; value: string; unit?: string }) {
+  return (
+    <Group justify="space-between" wrap="nowrap" gap={10}>
+      <Text size="xs" c="dimmed">{label}</Text>
+      <Text size="sm" fw={700}>{value}{unit && <Unit>{unit}</Unit>}</Text>
+    </Group>
+  );
+}
+
 /**
  * The compact info box beside the map. A single region click surfaces its headline numbers
  * (GDP/capita · emissions · public support); with no region selected it shows planet quick-stats
@@ -63,31 +74,27 @@ export function RegionInfoBox({ region, temperature, co2, annualEmissions, budge
   }
 
   return (
-    <Paper p="sm" withBorder>
-      <Stack gap="xs">
-        <Box>
-          <Group gap={7} wrap="nowrap">
-            <Box w={10} h={10} style={{ borderRadius: 3, flex: '0 0 auto',
-              background: REGION_COLORS[region.id] ?? 'var(--mantine-color-dimmed)' }} />
-            <Text fw={700} size="sm">{region.name}</Text>
+    <Paper p="xs" withBorder>
+      <Stack gap={4}>
+        <Group gap={7} wrap="nowrap">
+          <Box w={10} h={10} style={{ borderRadius: 3, flex: '0 0 auto',
+            background: REGION_COLORS[region.id] ?? 'var(--mantine-color-dimmed)' }} />
+          <Text fw={700} size="sm">{region.name}</Text>
+          <Text size="xs" c="dimmed">· pop {(region.population / 1e6).toFixed(0)}M</Text>
+        </Group>
+        <KV label="GDP per capita" value={`$${Math.round(region.gdpPerCapita).toLocaleString('en-US')}`} />
+        <KV label="Emissions" value={region.regionalEmissions.toFixed(1)} unit="Gt/yr" />
+        {budget && (
+          <KV label="Income" value={`$${Math.round(budget.net).toLocaleString('en-US')}`} unit="/turn" />
+        )}
+        <Group justify="space-between" wrap="nowrap" gap={10}>
+          <Text size="xs" c="dimmed">Public support</Text>
+          <Group gap={6} wrap="nowrap" style={{ flex: '0 1 120px' }}>
+            <Progress value={region.publicSupport} color={metricColor(region.publicSupport)} size="sm" style={{ flex: 1 }} />
+            <Text size="sm" fw={700}>{Math.round(region.publicSupport)}</Text>
           </Group>
-          <Text size="xs" c="dimmed" mt={1}>pop {(region.population / 1e6).toFixed(0)}M</Text>
-        </Box>
-        <Stack gap={8}>
-          <Stat label="GDP per capita">${Math.round(region.gdpPerCapita).toLocaleString('en-US')}</Stat>
-          <Stat label="Emissions">{region.regionalEmissions.toFixed(1)}<Unit>Gt/yr</Unit></Stat>
-          {budget && (
-            <Stat label="Income">${Math.round(budget.net).toLocaleString('en-US')}<Unit>/turn</Unit></Stat>
-          )}
-          <Stack gap={4}>
-            <Group justify="space-between">
-              <Text size="xs" c="dimmed">Public support</Text>
-              <Text size="sm" fw={700}>{Math.round(region.publicSupport)}</Text>
-            </Group>
-            <Progress value={region.publicSupport} color={metricColor(region.publicSupport)} size="sm" />
-          </Stack>
-        </Stack>
-        <Button fullWidth color="earth" size="sm" leftSection="📊" onClick={onOpenData}>
+        </Group>
+        <Button fullWidth color="earth" size="xs" leftSection="📊" onClick={onOpenData}>
           Full region data
         </Button>
       </Stack>

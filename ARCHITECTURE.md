@@ -442,12 +442,28 @@ the dashboard sparkline.
   time (see below), so it carries the South Asia hue and selects with South Asia — not an overlay
   painted on top. The geometry is baked offline by `scripts/generate-map.mjs` — **no D3/TopoJSON
   ships at runtime** (the former R3F globe and `three` are gone).
-  The page is laid out top→bottom so the action sits above the fold: a **sticky `ResourceBar`
-  header** (`position: sticky; top: 0`) → a **map row** (map `Grid.Col span={{ base: 12, md: 9 }}`,
-  fixed `height: 480`; the inline SVG's `preserveAspectRatio="meet"` keeps the whole world centered)
-  beside a compact **`RegionInfoBox`** (`span={{ base: 12, md: 3 }}`, stacking on narrow) →
-  full-width `PolicyBoard` → full-width `TurnLog` (demoted to bottom as reference/history). The map's
-  height is fixed independent of the info box, so a short/tall info box never letterboxes the SVG.
+  The page (`App.tsx`, `AppShell padding={0}`) is laid out so the whole turn is taken **without
+  scrolling**: a **sticky `ResourceBar` header** → a **map row** (map beside a **compact
+  `RegionInfoBox`**) → the full-width `PolicyBoard`; the `TurnLog` renders **after**, just below the
+  fold (reference/history). Two decisions make this fit and stay **stable**:
+  - **The map has a viewport-derived FIXED height, not a flex one:**
+    `height: clamp(180px, calc(100dvh − 376px), 560px)`. Because the height depends only on the
+    screen (via `100dvh`) and **not** on the board's content, the map is **identical with or without a
+    region selected** — clicking a region never resizes it. It grows on tall screens and shrinks on
+    short ones. (An earlier `flex: 1` map was abandoned: its height depended on the board, so it
+    *collapsed* when the lanes appeared; a reserve-the-board hack fixed the jump but bloated the empty
+    state and could overflow.) The inline SVG (`preserveAspectRatio="meet"`) just renders the whole
+    world smaller, centered.
+  - **The two policy lanes sit SIDE BY SIDE (Active | Available), not stacked.** Stacking two
+    full-size card rows costs ~540px of height and starved the map (~180px on a ~820px screen);
+    side-by-side makes the board only **one** card-row tall (~320px), so the map more than doubles
+    (~430px on a ~820px screen) — full-size cards, no scroll, stable. It trades plentiful horizontal
+    space for scarce vertical space. Each lane keeps its own horizontal card scroll; a **vertical
+    `Divider`** separates them; **End Turn** lives in the far-right gutter (see `TurnControl`). The
+    `clamp` offset (376) budgets the resource bar + one-row board + chrome so End Turn stays in view
+    (verified with an ~18px margin below End Turn at the fullest turn-0 board). Region **labels are
+    15px** bold (bumped from 13 for readability, in `world-map.svg` + its `generate-map.mjs` source),
+    and the sticky `ResourceBar` uses a tight `py={6}` so the reclaimed height feeds the map.
   The **full** per-region/per-planet emissions detail is not inline — it lives in the `DataOverlay`,
   now opened from the `RegionInfoBox` 📊 button. (This replaced the earlier two-column
   `Grid align="stretch"` layout, where a tall selected-region panel stretched the map container and

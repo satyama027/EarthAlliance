@@ -21,7 +21,7 @@ export function ResourceBar({ year, turn, money, costNow, temperature, co2 }: Re
   const showClimate = temperature !== undefined && co2 !== undefined;
 
   return (
-    <Paper p="sm" withBorder>
+    <Paper px="sm" py={6} withBorder>
       <Stack gap={over ? 6 : 0}>
         <Group justify="space-between" wrap="nowrap">
           <Group gap="md" wrap="nowrap">

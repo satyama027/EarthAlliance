@@ -106,7 +106,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" wid
     .region { cursor: pointer; transition: opacity .15s ease, filter .15s ease; }
     .region:hover { filter: brightness(1.12); }
     .region.dim { opacity: .32; }
-    .rlabel { fill: #fff; font: 700 13px system-ui, sans-serif; text-anchor: middle;
+    .rlabel { fill: #fff; font: 700 15px system-ui, sans-serif; text-anchor: middle;
       paint-order: stroke; stroke: rgba(0,0,0,.6); stroke-width: 2.6px; pointer-events: none; }
     .partition, .graticule { pointer-events: none; }
   </style>

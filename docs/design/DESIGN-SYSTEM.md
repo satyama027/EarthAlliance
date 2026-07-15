@@ -113,20 +113,25 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
 
 ## Spacing & layout
 
-- Mantine spacing scale (`xs`, `sm`, `md`, `xl`). Panels pad `p="sm"`; ending screen `p="xl"`.
-- App frame: `AppShell` with `padding="md"`. A **sticky ResourceBar header** sits at the top of
-  `AppShell.Main` (`position: sticky; top: 0; zIndex: 200`), above the grid.
-- Main layout (top→bottom, so the action sits above the fold): sticky resource header → a **map row**
-  (map `Grid.Col span={{ base: 12, md: 9 }}` + **RegionInfoBox** `span={{ base: 12, md: 3 }}`,
-  stacking on narrow) → full-width **PolicyBoard** (`span 12`) → full-width **TurnLog**
-  (`span 12`, demoted to bottom as reference/history). The **full Planet (Dashboard) and Region
-  (RegionPanel) detail are not inline** — they live in the **emissions data overlay**
-  (`DataOverlay`), now opened from the **RegionInfoBox 📊 button**. The map keeps its **fixed 480px
-  height** independent of the info box, so a short or tall info box never re-introduces the old
-  `align="stretch"` height-coupling that let a tall panel stretch the map container and letterbox the SVG.
-- Scene viewport: fixed `height: 480` (full-width), radius `8`. The inline `world-map.svg` uses
-  `preserveAspectRatio="xMidYMid meet"`, so the **whole world is always shown**, centered; the slim
-  top/bottom bands fall back to the scene's `#05080f` ocean.
+- Mantine spacing scale (`xs`, `sm`, `md`, `xl`). Panels pad `p="sm"`; the compact `RegionInfoBox`
+  pads `p="xs"`; ending screen `p="xl"`.
+- App frame: `AppShell padding={0}` wrapping a normal-flow column (padding inside). A **sticky
+  ResourceBar header** (`position: sticky; top: 0; zIndex: 200`) is its first row.
+- Main layout (one viewport, no scroll to End Turn): sticky resource header → a **map row** (the
+  **map** beside the **compact RegionInfoBox** `flex: 0 0 clamp(220px,22vw,260px)`, top-aligned) →
+  the full-width **PolicyBoard** → **TurnLog** (below the fold, reference/history). The **full
+  Planet/Region detail** lives in the **`DataOverlay`**, opened from the RegionInfoBox 📊 button.
+- **Scene viewport — a viewport-derived FIXED height, not flex:**
+  `height: clamp(180px, calc(100dvh − 376px), 560px)`. The height depends only on the screen, **not**
+  on the board content, so the map is **identical with or without a region selected** (clicking a
+  region never resizes it) while still growing on tall screens / shrinking on short ones. (A `flex: 1`
+  map was abandoned — it collapsed when the lanes appeared.) The inline `world-map.svg` uses
+  `preserveAspectRatio="xMidYMid meet"`, so the **whole world is always shown**, centered; the black
+  side/top bands are the scene's `#05080f` ocean (the map is wider than the world at short heights).
+- **Side-by-side lanes make it fit:** the two full-size policy lanes are laid out **Active | Available
+  in one row** (not stacked), so the board is only one card-row tall (~320px) — that's what leaves the
+  map ~430px on a ~820px screen instead of ~180px. Trades plentiful horizontal space for scarce
+  vertical space; each lane keeps its own horizontal card scroll. No card compaction, no page scroll.
 
 ---
 
@@ -283,19 +288,24 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   a floating overlay (see PolicyBoard). Click/tap and Enter/Space are the accessible, testable
   equivalents. Keeps `role="button"`, `aria-pressed`, `aria-disabled`, `aria-label`.
 - **PolicyBoard** — bordered `Paper`, full width, scoped to the selected region (header shows region
-  name + `REGION_COLORS` dot). Two stacked lanes — **Active** (top, what's running here) and
-  **Available** (bottom, enactable here) — each a horizontal `ScrollArea` of `PolicyCard`s separated
-  by a `Divider`; each lane carries a `data-droplane` attribute for drop hit-testing. The Active lane
+  name + `REGION_COLORS` dot). Two **side-by-side** lanes — **Active** (left, `flex 38%`, what's
+  running here) and **Available** (right, `flex 62%`, enactable here) — separated by a **vertical
+  `Divider`**, each a horizontal `ScrollArea` of `PolicyCard`s carrying a `data-droplane` attribute for
+  drop hit-testing. (Side-by-side, not stacked, keeps the board one card-row tall so the map stays
+  large — see Spacing & layout.) The Active lane
   shows **empty drop slots** (dashed `dark-4` ghost cards, "＋ drop a policy here", 2 when policies can
-  be added) so the drop target is always visible. **Drag a card up** to enact, or **✕** to remove: the
+  be added) so the drop target is always visible. **Drag a card into Active** to enact, or **✕** to remove: the
   dragged card is rendered in a **floating overlay** (`createPortal` to `document.body`, `position:
   fixed`, `z-index 9999`, rotate -3°/scale 1.05 + drop shadow) so it floats **above both lanes** and is
   never clipped; the drop lane is found with `document.elementFromPoint` (scroll-correct). Hovering the
   Active lane while dragging arms it + its slots earth-dashed (`earth-5`). A valid drop into the Active
   lane stages the policy (it stays); a tap/click/Enter is the equivalent; an unaffordable attempt shows
   a red **error banner** (`role="alert"`) and does nothing. Empty state (no region): dashed box "Select
-  a region on the map to manage its policies." Footer: global this-turn summary (Staged / Cost now /
-  Upkeep next turn) + validation reason in red + primary "End Turn ▶".
+  a region on the map to manage its policies." The board body is a **flex row**: the lanes are
+  **slimmed** to open a **right gutter** that holds the **`TurnControl`** — the this-turn summary
+  (Staged / Cost now / Upkeep) stacked at the top and the primary **End Turn** action pinned at the
+  **bottom-right** as an **icon `ActionIcon` (⏭) with a hover `Tooltip`** (disabled + validation reason
+  shown when the turn can't end). This replaced the old full-width footer row, so the board is shorter.
 - **EndingScreen** — full-screen `Overlay` (black, 85% opacity), centered; kind `Badge`
   (win=teal / loss=red / ambiguous=yellow), large title, description, "Play again". Fades/slides
   in (framer-motion).

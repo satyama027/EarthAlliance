@@ -181,10 +181,16 @@
   .err { display:flex; align-items:center; gap:8px; background:#3a2326; color:var(--red);
     border:1px solid #5a2a2e; border-radius:var(--radius-sm); padding:8px 12px; font-size:12.5px;
     font-weight:600; margin:0 0 12px; }
-  .foot { display:flex; align-items:center; gap:18px; margin-top:14px; }
-  .foot .k { font-size:11px; color:var(--dimmed); text-transform:uppercase; letter-spacing:.05em; }
-  .foot .v { font-size:15px; font-weight:700; color:var(--text-strong); }
-  .foot .btn { margin-left:auto; width:auto; padding:11px 26px; }
+  /* Board body: slimmed lanes + a reclaimed right gutter holding the turn controls. */
+  .board-body { display:flex; gap:16px; padding-left:6px; }
+  .board-lanes { flex:1 1 auto; min-width:0; display:flex; gap:14px; align-items:stretch; }
+  .lane-col { min-width:0; }
+  .board-gutter { flex:0 0 150px; display:flex; flex-direction:column; align-items:flex-end; text-align:right; }
+  .board-gutter .k { font-size:11px; color:var(--dimmed); }
+  .board-gutter .v { font-size:13px; font-weight:700; color:var(--text-strong); }
+  .board-gutter .grow { flex:1; }
+  .endturn-ico { width:52px; height:44px; border-radius:9px; background:var(--earth-6, #12b886); color:#03291f;
+    border:none; font-size:22px; font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; }
 
   /* Emissions data overlay (boxed here so it sits in the gallery; live it is a fixed dark overlay,
      EndingScreen pattern: rgba(0,0,0,.85) backdrop, centered Paper, framer-motion fade + rise). */
@@ -243,10 +249,14 @@
 
 <!-- ── Main app layout ───────────────────────────────────────────── -->
 <div class="app">
-  <!-- Map row — map (≈75%) + compact RegionInfoBox side column. A single region click surfaces the
-       headline stats here; the 📊 button drills into the data overlay. (North America selected, to
-       match the PolicyBoard/TurnLog below.) Map keeps its fixed 480px height, so the info box's
-       height never letterboxes the SVG. -->
+  <!-- Map row — map + compact RegionInfoBox side column. A single region click surfaces the headline
+       stats here; the 📊 button drills into the data overlay. (North America selected, to match the
+       PolicyBoard/TurnLog below.) In the live app the map has a viewport-derived FIXED height —
+       `clamp(180px, calc(100dvh − 376px), 560px)` — so it is the SAME size with or without a region
+       selected (no shrink on click) while adapting to screen height. Paired with the side-by-side
+       policy lanes below, that keeps a large map + full cards + no scroll to End Turn. The 480 below
+       is just a representative height for this static gallery. -->
+  <div class="col-full">
   <div class="col-full">
     <div class="maprow">
       <div class="scene" style="height:480px; min-height:0;">
@@ -575,7 +585,12 @@
         <span class="sub">· North America — costs scaled to this region (GDP share ≈ 21%)</span>
       </div>
 
-      <!-- Active lane (with empty drop slots showing where a dragged card lands) -->
+      <!-- Body: the slimmed cards tray on the left, the reclaimed right gutter on the right -->
+      <div class="board-body">
+      <div class="board-lanes">
+
+      <!-- Active lane (LEFT) — side by side with Available so the board stays one card-row tall -->
+      <div class="lane-col" style="flex:1 1 38%;">
       <div class="lane-label">Active · North America · 3 <span class="hint">— single-click a card for details · double-click or drag to remove</span></div>
       <div class="lane-drop">
         <div class="tray">
@@ -616,10 +631,13 @@
         </div>
       </div>
 
-      <hr style="border:none; border-top:1px solid var(--border); margin:10px 0;" />
+      </div><!-- /Active lane-col -->
 
-      <!-- Available lane -->
-      <div class="lane-label">Available · 3 <span class="hint">— single-click for details · double-click or drag up to enact in North America ↑</span></div>
+      <div style="width:1px; background:var(--border); align-self:stretch;"></div>
+
+      <!-- Available lane (RIGHT) -->
+      <div class="lane-col" style="flex:1 1 62%;">
+      <div class="lane-label">Available · 3 <span class="hint">— single-click for details · double-click or drag into Active to enact in North America ←</span></div>
       <div class="lane-drop">
         <div class="tray">
           <div class="card">
@@ -643,14 +661,19 @@
           </div>
         </div>
       </div>
+      </div><!-- /Available lane-col -->
 
-      <!-- Footer: global this-turn summary + End Turn -->
-      <div class="foot">
-        <div><div class="k">Staged this turn</div><div class="v">1</div></div>
-        <div><div class="k">Cost now</div><div class="v">$52</div></div>
-        <div><div class="k">Upkeep next turn</div><div class="v">$406 / turn</div></div>
-        <button class="btn">End Turn ▶</button>
+      </div><!-- /board-lanes -->
+
+      <!-- Reclaimed right gutter: this-turn summary (top) + icon End Turn (bottom-right, tooltip on hover) -->
+      <div class="board-gutter">
+        <div><span class="k">Staged </span><span class="v">1</span></div>
+        <div><span class="k">Cost now </span><span class="v">$52</span></div>
+        <div><span class="k">Upkeep </span><span class="v">$406/turn</span></div>
+        <div class="grow"></div>
+        <button class="endturn-ico" aria-label="End turn" title="End turn">⏭</button>
       </div>
+      </div><!-- /board-body -->
     </div>
   </div>
 </div>

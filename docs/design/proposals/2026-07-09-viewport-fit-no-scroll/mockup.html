@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Earth Alliance — viewport-fit (End Turn beside slimmed lanes)</title>
+<style>
+  :root{
+    --body:#1a1b1e; --panel:#25262b; --panel-2:#2c2e33; --border:#373a40;
+    --dimmed:#909296; --text:#e9ecef;
+    --earth-6:#12b886; --earth-5:#20c997; --earth-3:#63e6be; --red:#e03131;
+    --map-a:#0d2440; --map-b:#071529; --map-c:#05080f; --graticule:#1b3a5c;
+    --energy:#f59f00; --industry:#868e96; --land:#2f9e44; --social:#1971c2; --frontier:#9c36b5;
+    --east-asia:#38d9a9;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:#0d0e10;color:var(--text);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .page{max-width:1080px;margin:0 auto;padding:26px 22px 60px}
+  h1{font-size:20px;margin:0 0 4px}
+  .lede{color:var(--dimmed);font-size:13px;margin:0 0 6px;line-height:1.55}
+  .lede b{color:var(--text)}
+  .tag{display:inline-block;background:rgba(18,184,134,.14);color:var(--earth-3);
+    border:1px solid rgba(18,184,134,.4);border-radius:5px;padding:1px 8px;font-size:11px;margin:0 2px}
+  .cap{font-size:12px;color:var(--dimmed);margin:16px 0 8px}
+  .cap b{color:var(--text)}
+
+  .device{border:1px solid var(--border);border-radius:12px;overflow:hidden;
+    box-shadow:0 20px 50px rgba(0,0,0,.5);background:var(--body)}
+  .viewport{position:relative;overflow:hidden}
+  .viewport.tall{height:860px}
+  .rule{position:absolute;left:0;right:0;border-top:1px dashed rgba(99,230,190,.55);pointer-events:none}
+  .rule span{position:absolute;right:6px;top:-16px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--earth-3);background:var(--body);padding:0 6px;border:1px dashed rgba(99,230,190,.55);border-bottom:none;border-radius:6px 6px 0 0}
+
+  .shell{height:100%;display:flex;flex-direction:column;gap:9px;padding:9px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:8px}
+
+  .resbar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;flex:0 0 auto}
+  .resbar .left{display:flex;align-items:center;gap:16px;font-size:13px}
+  .resbar .yr{font-weight:700}.resbar .warm{color:#ffa94d;font-weight:700}
+  .resbar .co2{color:var(--dimmed)}.resbar .co2 b{color:var(--text)}
+  .badge{background:rgba(18,184,134,.15);color:var(--earth-3);border:1px solid rgba(18,184,134,.4);
+    font-weight:700;font-size:13px;padding:4px 11px;border-radius:20px}
+
+  .maprow{flex:1 1 auto;min-height:0;display:flex;gap:9px}
+  .map{flex:1 1 auto;min-height:120px;border-radius:8px;overflow:hidden;position:relative;
+    background:radial-gradient(120% 120% at 50% 20%,var(--map-a),var(--map-b) 55%,var(--map-c));border:1px solid var(--border)}
+  .map svg{position:absolute;inset:0;width:100%;height:100%}
+  .map .note{position:absolute;right:8px;top:7px;font-size:10px;color:var(--earth-3);
+    background:rgba(18,184,134,.12);border:1px solid rgba(18,184,134,.35);border-radius:4px;padding:1px 6px}
+
+  .rightcol{flex:0 0 244px;display:flex;flex-direction:column;gap:9px;min-height:0}
+  .info{padding:9px 11px}
+  .info .name{display:flex;align-items:center;gap:7px;font-weight:700;font-size:13px}
+  .info .name .sub{color:var(--dimmed);font-weight:400;font-size:11px}
+  .dot{width:10px;height:10px;border-radius:3px;display:inline-block;flex:0 0 auto}
+  .kv{display:flex;justify-content:space-between;gap:10px;font-size:12px;margin-top:6px}
+  .kv .k{color:var(--dimmed)}.kv .v{font-weight:700}
+  .supp{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:12px}
+  .supp .bar{flex:1;height:6px;border-radius:4px;background:#3a3d42;overflow:hidden}
+  .supp .bar>i{display:block;height:100%;background:var(--earth-5)}
+  .btn-earth{display:block;width:100%;margin-top:9px;text-align:center;background:var(--earth-6);
+    color:#03291f;font-weight:700;font-size:12px;padding:6px;border-radius:6px;border:none;cursor:pointer}
+
+  /* PolicyBoard: header, then a row of [slimmed lanes] + [right gutter holding summary + icon End Turn] */
+  .board{flex:0 0 auto;padding:9px 12px 10px}
+  .board .hd{display:flex;align-items:center;gap:7px;font-weight:700;font-size:14px;margin-bottom:6px}
+  .board .hd .rn{color:var(--dimmed);font-weight:400;font-size:11px}
+  .boardrow{display:flex;gap:16px;padding-left:6px}          /* small left gutter = left dead space */
+  .lanes{flex:1 1 auto;min-width:0}                          /* the slimmed cards tray */
+  .lane-lbl{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dimmed);margin:1px 0 5px}
+  .lane-lbl .hint{text-transform:none;letter-spacing:0;font-weight:500}
+  .lane{display:flex;gap:12px;overflow:hidden}
+  .card{flex:0 0 180px;min-height:200px;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:10px}
+  .card.staged{outline:2px solid var(--earth-5);outline-offset:-1px}
+  .card .art{height:34px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:20px}
+  .card .nm{font-size:13px;font-weight:700;line-height:1.2;margin-top:8px}
+  .card .pill{display:inline-block;margin-top:5px;font-size:9px;padding:1px 7px;border-radius:10px;background:rgba(18,184,134,.15);color:var(--earth-3)}
+  .card .desc{font-size:11px;color:var(--dimmed);margin-top:5px;line-height:1.3;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card .cost{margin-top:7px;font-size:11px;color:var(--earth-3);font-weight:700}
+  .slot{flex:0 0 180px;min-height:150px;border:1.5px dashed var(--border);border-radius:8px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:3px;color:#6c6f75}
+  .slot .plus{font-size:22px;line-height:1}.slot .st{font-size:9px;font-weight:600}
+  .divider{height:1px;background:var(--border);margin:8px 0}
+
+  /* right-hand gutter (the reclaimed right dead space) */
+  .board-right{flex:0 0 150px;display:flex;flex-direction:column;align-items:flex-end;text-align:right}
+  .board-right .summ{font-size:11px;color:var(--dimmed);line-height:1.7}
+  .board-right .summ b{color:var(--text)}
+  .board-right .spacer{flex:1}
+  .endturn-wrap{position:relative;margin-top:8px}
+  .endturn-ico{width:52px;height:44px;border-radius:9px;background:var(--earth-6);color:#03291f;border:none;cursor:pointer;
+    font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .tip{position:absolute;bottom:52px;right:-4px;background:#0b0c0e;color:var(--text);border:1px solid var(--border);
+    border-radius:6px;padding:4px 9px;font-size:11px;white-space:nowrap;box-shadow:0 6px 16px rgba(0,0,0,.5)}
+  .tip:after{content:"";position:absolute;right:18px;bottom:-5px;width:9px;height:9px;background:#0b0c0e;
+    border-right:1px solid var(--border);border-bottom:1px solid var(--border);transform:rotate(45deg)}
+  .tip b{color:var(--earth-3)}
+
+  .legend{margin-top:22px;font-size:12px;color:var(--dimmed);line-height:1.65}
+  .legend b{color:var(--text)}
+  .chip{display:inline-block;border:1px dashed rgba(99,230,190,.5);color:var(--earth-3);border-radius:4px;padding:0 6px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Redesign — End&nbsp;Turn as an icon in the reclaimed right gutter</h1>
+  <p class="lede">
+    <span class="tag">1 · map flexes</span> (was fixed 480) &nbsp;
+    <span class="tag">2 · slim the cards tray</span> → dead space opens on left &amp; right of the lanes &nbsp;
+    <span class="tag">3 · End Turn icon lands in the right gutter</span> (bottom-right), <b>tooltip on hover</b> &nbsp;
+    <span class="tag">4 · region card compacted</span>.
+  </p>
+  <p class="lede">
+    No footer row anymore — the summary + End&nbsp;Turn sit <b>beside</b> the lanes, so the board is shorter. Frame is a
+    real <b>860px laptop</b> height; dashed line = the <b>~820px minimum</b> this needs (two full lanes are ~410px, immovable).
+    The tooltip bubble over the ▶▶ icon is shown to illustrate the hover state.
+  </p>
+
+  <p class="cap"><b>Laptop, 860px usable</b> — resource bar + map + region card + both full lanes + End Turn (right gutter), no scroll</p>
+  <div class="device"><div class="viewport tall">
+    <div class="shell">
+      <div class="panel resbar">
+        <div class="left"><span class="yr">Year 2025 · Turn 3</span>
+          <span class="warm">🌡 +1.24 °C</span><span class="co2">CO₂ <b>421 ppm</b></span></div>
+        <span class="badge">💰 Money: 8,400</span>
+      </div>
+
+      <div class="maprow">
+        <div class="map">
+          <span class="note">map flexes to fill leftover height</span>
+          <svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid meet">
+            <g stroke="var(--graticule)" stroke-width=".5" opacity=".5">
+              <line x1="0" y1="50" x2="400" y2="50"/><line x1="0" y1="100" x2="400" y2="100"/>
+              <line x1="0" y1="150" x2="400" y2="150"/><line x1="100" y1="0" x2="100" y2="200"/>
+              <line x1="200" y1="0" x2="200" y2="200"/><line x1="300" y1="0" x2="300" y2="200"/></g>
+            <path d="M55,60 L110,52 L120,92 L78,108 Z" fill="#4dabf7" opacity=".85"/>
+            <path d="M92,112 L120,100 L118,152 L90,152 Z" fill="#ffa94d" opacity=".85"/>
+            <path d="M188,55 L214,52 L214,73 L186,75 Z" fill="#9775fa" opacity=".85"/>
+            <path d="M198,82 L236,80 L233,112 L196,110 Z" fill="#69db7c" opacity=".85"/>
+            <path d="M214,66 L246,60 L251,81 L219,83 Z" fill="#ffd43b" opacity=".85"/>
+            <path d="M246,60 L300,58 L305,79 L250,81 Z" fill="#f783ac" opacity=".85"/>
+            <path d="M250,81 L282,79 L284,98 L252,100 Z" fill="#ff8787" opacity=".85"/>
+            <path d="M286,79 L332,72 L337,102 L289,104 Z" fill="var(--east-asia)" opacity=".95" stroke="var(--earth-5)" stroke-width="1.5"/>
+            <path d="M300,107 L326,105 L324,127 L298,126 Z" fill="#a9e34b" opacity=".85"/>
+            <path d="M320,138 L356,134 L359,154 L322,156 Z" fill="#66d9e8" opacity=".85"/>
+          </svg>
+        </div>
+        <div class="rightcol">
+          <div class="panel info">
+            <div class="name"><i class="dot" style="background:var(--east-asia)"></i> East Asia <span class="sub">· 1,610M</span></div>
+            <div class="kv"><span class="k">GDP / cap</span><span class="v">$12,300</span></div>
+            <div class="kv"><span class="k">Emissions</span><span class="v">9.8 Gt/yr</span></div>
+            <div class="kv"><span class="k">Income</span><span class="v">$96 /turn</span></div>
+            <div class="supp"><span class="k" style="color:var(--dimmed)">Support</span><span class="bar"><i style="width:62%"></i></span><span style="font-weight:700">62</span></div>
+            <button class="btn-earth">📊 Full region data</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel board">
+        <div class="hd">Policies <i class="dot" style="background:var(--east-asia)"></i>
+          <span class="rn">· East Asia — costs scaled to this region</span></div>
+        <div class="boardrow">
+          <div class="lanes">
+            <div class="lane-lbl">Active · East Asia · 1 <span class="hint">— drag a card here to enact (or ✕ to remove)</span></div>
+            <div class="lane">
+              <div class="card staged"><div class="art" style="background:var(--land)">🌳</div>
+                <div class="nm">Reforestation</div><span class="pill">Buildout</span>
+                <div class="desc">Restore forest cover to pull CO₂ from the air as a growing carbon sink.</div>
+                <div class="cost">$40 · +10%/turn</div></div>
+              <div class="slot"><div class="plus">＋</div><div class="st">drop a policy here</div></div>
+              <div class="slot"><div class="plus">＋</div><div class="st">drop a policy here</div></div>
+            </div>
+            <div class="divider"></div>
+            <div class="lane-lbl">Available · 7 <span class="hint">— drag a card up to enact in East Asia ↑</span></div>
+            <div class="lane">
+              <div class="card"><div class="art" style="background:var(--energy)">⚡</div>
+                <div class="nm">Renewable Subsidy</div><span class="pill">Buildout</span>
+                <div class="desc">Convert the dirtiest fossil generation to wind &amp; solar each turn while funded.</div>
+                <div class="cost">$120 / turn</div></div>
+              <div class="card"><div class="art" style="background:var(--frontier)">🚀</div>
+                <div class="nm">Nuclear Buildout</div><span class="pill">Buildout</span>
+                <div class="desc">Firm zero-carbon power, capped by domestic uranium reserves.</div>
+                <div class="cost">$110 / turn</div></div>
+              <div class="card"><div class="art" style="background:var(--social)">🤝</div>
+                <div class="nm">Carbon Tax</div><span class="pill" style="background:rgba(25,113,194,.2);color:#74c0fc">Recurring</span>
+                <div class="desc">Price fossil output; raises revenue that shrinks as you decarbonize.</div>
+                <div class="cost">raises revenue</div></div>
+              <div class="card"><div class="art" style="background:var(--industry)">🏭</div>
+                <div class="nm">Green Steel</div><span class="pill">Buildout</span>
+                <div class="desc">Electrify and hydrogen-fire heavy industry to cut process emissions.</div>
+                <div class="cost">$85 / turn</div></div>
+            </div>
+          </div>
+
+          <!-- reclaimed RIGHT gutter: summary (top) + icon End Turn (bottom-right) -->
+          <div class="board-right">
+            <div class="summ">Staged <b>1</b><br>Cost <b>$250</b><br>Upkeep <b>$80/t</b></div>
+            <div class="spacer"></div>
+            <div class="endturn-wrap">
+              <div class="tip">End turn <b>▶▶</b></div>
+              <button class="endturn-ico" aria-label="End turn" title="End turn">⏭</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="rule" style="top:820px"><span>820px — min usable height</span></div>
+  </div></div>
+
+  <div class="legend">
+    <p><b>The move:</b> the cards tray is slimmed so a <b>right gutter</b> opens beside the lanes; the this-turn summary
+      stacks at its top and the <b>icon End Turn</b> (⏭, tooltip "End turn" on hover) sits at the <b>bottom-right</b>.
+      A matching small gap on the left balances it. This deletes the old footer row, so the board is shorter.</p>
+    <p><b>What changes:</b> <span class="chip">map height:480 → flex</span>,
+      <span class="chip">lanes slimmed → right gutter</span>, <span class="chip">End Turn text → icon + tooltip, in the gutter</span>,
+      <span class="chip">RegionInfoBox compacted</span>. Cards, both lanes, descriptions, drag-to-enact, 📊 overlay unchanged. No new tokens.</p>
+  </div>
+</div>
+</body>
+</html>
