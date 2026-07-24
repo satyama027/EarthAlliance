@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppShell, Box } from '@mantine/core';
 import { WorldMap } from './scene/WorldMap.js';
 import { ResourceBar } from './components/ResourceBar.js';
@@ -6,9 +6,11 @@ import { RegionInfoBox } from './components/RegionInfoBox.js';
 import { PolicyBoard } from './components/PolicyBoard.js';
 import { TurnLog } from './components/TurnLog.js';
 import { DataOverlay } from './components/DataOverlay.js';
+import { EndOfTurnReport } from './components/EndOfTurnReport.js';
 import { EndingScreen } from './components/EndingScreen.js';
 import { useGame } from './game/useGame.js';
 import { regionBudget } from './game/regionBudget.js';
+import { turnReport } from './game/turnReport.js';
 import { useSfx } from './audio/useSfx.js';
 import { type Region } from '@earth-alliance/engine';
 
@@ -17,11 +19,24 @@ export default function App() {
   const sfx = useSfx();
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null);
   const [dataOpen, setDataOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   // Play a sound for each event produced by the last turn.
   useEffect(() => {
     for (const e of game.lastEvents) sfx.playForEvent(e);
   }, [game.lastEvents, sfx]);
+
+  // The end-of-turn report is a pure diff of the two most recent turn snapshots.
+  const report = useMemo(() => turnReport(game.turnLog), [game.turnLog]);
+
+  // Auto-open the report whenever a turn is advanced (not on the initial mount, not when the turn
+  // ends the game — then the EndingScreen takes over instead).
+  const prevTurn = useRef(game.state.turn);
+  useEffect(() => {
+    const advanced = game.state.turn > prevTurn.current;
+    prevTurn.current = game.state.turn;
+    if (advanced && game.state.status !== 'ended') setReportOpen(true);
+  }, [game.state.turn, game.state.status]);
 
   const selectedRegion: Region | null =
     game.state.regions.find((r) => r.id === selectedRegionId) ?? null;
@@ -41,7 +56,8 @@ export default function App() {
           <Box style={{ position: 'sticky', top: 0, zIndex: 200, background: 'var(--mantine-color-body)' }}>
             <ResourceBar year={game.state.year} turn={game.state.turn}
               money={game.state.resources.money} costNow={game.costNow}
-              temperature={game.state.climate.temperatureAnomaly} co2={game.state.climate.co2Concentration} />
+              temperature={game.state.climate.temperatureAnomaly} co2={game.state.climate.co2Concentration}
+              canShowReport={report !== null} onShowReport={() => setReportOpen(true)} />
           </Box>
 
           {/* Map row. The map height is `clamp(min, 100dvh − board/chrome, max)`: it grows on tall
@@ -91,8 +107,9 @@ export default function App() {
         entity={selectedRegion ? { kind: 'region', id: selectedRegion.id } : { kind: 'planet' }}
         log={game.turnLog}
       />
+      <EndOfTurnReport opened={reportOpen} onClose={() => setReportOpen(false)} report={report} />
       {game.ending && (
-        <EndingScreen ending={game.ending} year={game.state.year} onPlayAgain={() => { game.reset(); setSelectedRegionId(null); }} />
+        <EndingScreen ending={game.ending} year={game.state.year} onPlayAgain={() => { game.reset(); setSelectedRegionId(null); setReportOpen(false); }} />
       )}
     </AppShell>
   );

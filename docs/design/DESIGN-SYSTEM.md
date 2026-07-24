@@ -148,8 +148,11 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   so the central climate metric stays glanceable without opening anything (`visibleFrom "sm"`; hidden
   on narrow widths). **Emissions is intentionally NOT here** — it lives in the RegionInfoBox /
   DataOverlay, so the always-on bar doesn't duplicate it. Right: just the single **Money** (`teal`)
-  `Badge` (`size="lg"`, `leftSection="💰"`); the old 📊 `ActionIcon` was **removed** (data drill-down
-  is now owned by the RegionInfoBox). The badge shows what is **REMAINING**
+  `Badge` (`size="lg"`, `leftSection="💰"`); the old data-drill-down 📊 `ActionIcon` was **removed** (drill-down
+  is now owned by the RegionInfoBox). A **new 📊 `ActionIcon`** (earth-filled, `size="lg"`, tooltip
+  "End-of-turn report") sits **left of the Money badge** to **reopen the last end-of-turn report**;
+  it is shown only once **≥1 turn has elapsed** (`canShowReport` — hidden on turn 0). Distinct role
+  from the retired one: it opens `EndOfTurnReport`, not the data overlay. The badge shows what is **REMAINING**
   to spend this turn — balance minus the staged
   `costNow.money` — not the raw balance, so staging a policy immediately drops the number. `costNow`
   counts **every** staged policy's first-turn GDP-scaled charge (one-time enactment *and*
@@ -251,6 +254,21 @@ Map surface tokens (`MAP_SURFACE`): ocean gradient `#0d2440`→`#071529`→`#050
   the panel is `key`ed by entity so the drill path resets on selection change. Closes on the ✕
   `ActionIcon` (top-right), `Escape`, or a backdrop click. Reuses the `EndingScreen` overlay pattern;
   adds **no new tokens**.
+- **EndOfTurnReport** (`EndOfTurnReport.tsx`) — the **end-of-turn summary**: a **blocking, dismissable**
+  modal shown right after **End Turn**, summarising how the five headline planet metrics changed over
+  the turn that just elapsed. Same overlay pattern as `DataOverlay`/`EndingScreen` (fixed `#000` /
+  0.85 backdrop, centered framer-motion fade + rise window ~380px; closes on **Continue** / ✕ / Escape
+  / backdrop). Bordered `Paper`: a header (a strong 22px **`End of Turn`** title on top over a dimmed
+  `Turn N · Year A → Year B` sub-line — largest text first, a clean two-tier hierarchy), then five list rows — **Temperature (🌡) ·
+  Emissions (💨) · CO₂ concentration (🌫️) · Treasury (💰) · Biodiversity (🦋)** — each `icon · label`
+  on the left and `new value + unit` plus a **Δ chip** on the right, hairline-separated (`#2b2d31`).
+  The Δ chip is the **shared** `changeSince` / `CHANGE_TONE_COLOR` vocabulary (arrow = direction; color
+  = good/bad by the metric's `goodUp`, a round-to-zero change = neutral **`— flat`**) — the same one
+  `MetricTrend` and the Turn Log use. Up-is-bad: temperature, emissions, CO₂; up-is-good: treasury,
+  biodiversity. A full-width primary **Continue** button dismisses it. Auto-opens on every turn from
+  turn 1 (suppressed when the ending turn also ends the game — `EndingScreen` takes over), and is
+  reopenable via the ResourceBar 📊 button. Values are a pure diff of the two latest `turnLog`
+  snapshots (biodiversity via `planetAggregate`); **no engine change, no new tokens**.
 - **TurnLog** — bordered `Paper` titled "Turn Log"; a `ScrollArea.Autosize` (max-height ~340) of
   per-turn entries, **newest first**. Each entry is a `dark-6` sub-card (`dark-4` border, radius 4)
   with a `Turn N · year` header, a **Planet** block (Warming/CO₂/Emissions/Damage) always, and the

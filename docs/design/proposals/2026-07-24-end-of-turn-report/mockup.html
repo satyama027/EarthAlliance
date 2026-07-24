@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Earth Alliance — End of Turn Report (mockup)</title>
+<style>
+  /* ── Design tokens (mirror of packages/web/src/theme.ts, Mantine dark scheme) ── */
+  :root {
+    --earth-3:#63e6be; --earth-5:#20c997; --earth-6:#12b886; --earth-7:#0ca678;
+    --teal:#20c997; --teal-light:#163a33;
+    --red:#ff6b6b; --yellow:#ffd43b; --orange:#ffa94d;
+    --bg:#1a1b1e; --surface:#25262b; --surface-2:#2c2e33; --border:#373a40;
+    --text:#c1c2c5; --text-strong:#f1f3f5; --dimmed:#909296;
+    --tile:#141517;
+    --radius:8px; --radius-sm:4px;
+    font-family: system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); padding:24px;
+         -webkit-font-smoothing:antialiased; }
+
+  .note { max-width:1000px; margin:0 auto 20px; padding:10px 14px;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    font-size:13px; color:var(--dimmed); line-height:1.5; }
+  .note strong { color:var(--text-strong); }
+  .note code { color:var(--earth-3); }
+
+  h2.section { max-width:1000px; margin:28px auto 10px; color:var(--text-strong);
+    font-size:13px; text-transform:uppercase; letter-spacing:.08em; }
+
+  .dimmed { color:var(--dimmed); } .strong { color:var(--text-strong); font-weight:700; }
+  .xs { font-size:11px; }
+
+  /* Reopen button in the sticky ResourceBar (📊, earth-filled ActionIcon). */
+  .barwrap { max-width:1000px; margin:0 auto 8px; }
+  .bar { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:8px 12px; display:flex; align-items:center; justify-content:space-between; }
+  .bar .left { display:flex; gap:12px; align-items:center; }
+  .bar .vsep { width:1px; height:16px; background:var(--border); }
+  .bar .clim { font-size:13px; }
+  .bar .right { display:flex; gap:8px; align-items:center; }
+  .report-btn { width:34px; height:34px; border:none; border-radius:var(--radius-sm);
+    background:var(--earth-6); color:#fff; font-size:16px; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; }
+  .report-btn:hover { background:var(--earth-5); }
+  .badge-money { background:var(--earth-7); color:#fff; padding:5px 12px; border-radius:999px;
+    font-size:13px; font-weight:600; }
+
+  /* Overlay backdrop (live: fixed rgba(0,0,0,.85); boxed here so it sits in the page). */
+  .backdrop { background:rgba(0,0,0,.82); border-radius:var(--radius); padding:40px 24px;
+    display:flex; justify-content:center; align-items:flex-start; }
+
+  /* ── The report window ── */
+  .report { width:380px; max-width:100%; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); position:relative; overflow:hidden;
+    box-shadow:0 20px 60px rgba(0,0,0,.5); }
+  .report .x { position:absolute; top:10px; right:10px; width:28px; height:28px; border-radius:6px;
+    border:none; background:var(--surface-2); color:var(--text); font-size:15px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; }
+  .report .x:hover { color:var(--text-strong); }
+  .report .head { padding:16px 18px 12px; }
+  .report .head .h { font-size:22px; font-weight:800; color:var(--text-strong); letter-spacing:-.2px;
+    line-height:1.1; }
+  .report .head .sub { font-size:13px; color:var(--dimmed); margin-top:4px; }
+  .report .body { padding:4px 18px 0; }
+  .report .foot { padding:14px 18px 18px; }
+  .continue { display:block; width:100%; padding:11px; border:none; border-radius:var(--radius-sm);
+    background:var(--earth-6); color:#fff; font-weight:700; font-size:14px; cursor:pointer; }
+  .continue:hover { background:var(--earth-5); }
+
+  /* Delta chip — arrow shows direction, color shows good/bad (shared vocab with Turn Log). */
+  .chip { font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .good { color:var(--earth-3); } .bad { color:var(--red); } .flat { color:var(--dimmed); }
+
+  /* Stacked list rows */
+  .rows { display:flex; flex-direction:column; }
+  .mrow { display:grid; grid-template-columns:26px 1fr auto auto; gap:10px; align-items:baseline;
+    padding:10px 2px; border-bottom:1px solid #2b2d31; }
+  .mrow:last-child { border-bottom:none; }
+  .mrow .ico { font-size:15px; text-align:center; line-height:1; }
+  .mrow .lbl { font-size:13px; color:var(--text); }
+  .mrow .val { font-size:15px; font-weight:700; color:var(--text-strong);
+    font-variant-numeric:tabular-nums; text-align:right; }
+  .mrow .val small { font-size:10px; font-weight:600; color:var(--dimmed); margin-left:3px; }
+  .mrow .chip { text-align:right; min-width:56px; }
+</style>
+</head>
+<body>
+
+<div class="note">
+  <strong>End of Turn Report — design mockup.</strong> A <strong>blocking, dismissable</strong> modal
+  shown right after <strong>End&nbsp;Turn</strong>, summarising how five planet metrics changed over the
+  turn that just elapsed. Reuses the <code>DataOverlay</code>/<code>EndingScreen</code> overlay pattern
+  (dark backdrop, centered window, framer-motion fade + rise; closes on Continue / ✕ / Esc / backdrop).
+  Each row shows the <strong>new value + a colored Δ chip</strong> — the arrow shows direction, the color
+  shows good/bad using the same vocabulary as the Turn Log (good = <span class="good">earth-3</span>,
+  bad = <span class="bad">red</span>, flat = dimmed). Up-is-bad: temperature, emissions, CO₂. Up-is-good:
+  treasury, biodiversity.
+</div>
+
+<!-- Reopen button placement in the sticky ResourceBar -->
+<h2 class="section">Reopen button — in the header (📊, enabled once ≥1 turn has passed)</h2>
+<div class="barwrap">
+  <div class="bar">
+    <span class="left">
+      <span class="strong">Year 2040 · Turn 3</span>
+      <span class="vsep"></span>
+      <span class="clim"><span style="color:var(--orange);font-weight:700;">🌡 +1.34 °C</span></span>
+      <span class="clim"><span class="dimmed">CO₂</span> <span class="strong">421 ppm</span></span>
+    </span>
+    <span class="right">
+      <button class="report-btn" title="End-of-turn report">📊</button>
+      <span class="badge-money">💰 Money: 1,490</span>
+    </span>
+  </div>
+  <div class="xs dimmed" style="margin:6px 2px 0;">
+    A small <strong>📊</strong> button sits left of the Money badge; click it to reopen the last
+    end-of-turn report. Hidden on turn 0 (no turn has elapsed yet).
+  </div>
+</div>
+
+<!-- The report modal -->
+<h2 class="section">The report modal (list layout · five metrics)</h2>
+<div class="app" style="max-width:1000px;margin:0 auto;">
+<div class="backdrop">
+
+  <div class="report">
+    <button class="x" title="Close">✕</button>
+    <div class="head">
+      <div class="h">End of Turn</div>
+      <div class="sub">Turn 3 · 2035 → 2040</div>
+    </div>
+    <div class="body">
+      <div class="rows">
+        <div class="mrow">
+          <span class="ico">🌡</span><span class="lbl">Temperature</span>
+          <span class="val">+1.34<small>°C</small></span><span class="chip bad">▲ 0.04</span>
+        </div>
+        <div class="mrow">
+          <span class="ico">💨</span><span class="lbl">Emissions</span>
+          <span class="val">41.2<small>Gt/yr</small></span><span class="chip good">▼ 0.3</span>
+        </div>
+        <div class="mrow">
+          <span class="ico">🌫️</span><span class="lbl">CO₂ concentration</span>
+          <span class="val">421<small>ppm</small></span><span class="chip bad">▲ 2</span>
+        </div>
+        <div class="mrow">
+          <span class="ico">💰</span><span class="lbl">Treasury</span>
+          <span class="val">1,490<small>$B</small></span><span class="chip good">▲ 42</span>
+        </div>
+        <div class="mrow">
+          <span class="ico">🦋</span><span class="lbl">Biodiversity</span>
+          <span class="val">61.6<small>/100</small></span><span class="chip bad">▼ 0.4</span>
+        </div>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="continue">Continue</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div class="note" style="margin-top:20px;">
+  <strong>Notes.</strong> Numbers are illustrative (matched to the gallery's Turn 3). The header title
+  <code>Turn N in review</code> + <code>Year A → B</code> frames it as "what the turn you just ended did".
+  A change that rounds to zero would show a neutral <span class="flat">— flat</span> chip (no colored
+  arrow), consistent with <code>MetricTrend</code>. Live, the window is ~380px wide and vertically
+  centered over the dimmed game.
+</div>
+
+</body>
+</html>

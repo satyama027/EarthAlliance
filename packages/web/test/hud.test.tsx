@@ -1,5 +1,7 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
+import { vi } from 'vitest';
 import type { ReactNode } from 'react';
 import { ResourceBar } from '../src/components/ResourceBar.js';
 import { Sparkline } from '../src/components/Sparkline.js';
@@ -44,6 +46,18 @@ describe('ResourceBar', () => {
   it('no longer renders the emissions-data button (the RegionInfoBox owns drill-down)', () => {
     wrap(<ResourceBar year={2030} turn={1} money={45} />);
     expect(screen.queryByRole('button', { name: /emissions data/i })).not.toBeInTheDocument();
+  });
+
+  it('shows the end-of-turn report button and fires onShowReport when a turn has elapsed', async () => {
+    const onShowReport = vi.fn();
+    wrap(<ResourceBar year={2030} turn={1} money={45} canShowReport onShowReport={onShowReport} />);
+    await userEvent.click(screen.getByRole('button', { name: /end-of-turn report/i }));
+    expect(onShowReport).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the report button on turn 0 (no turn has elapsed yet)', () => {
+    wrap(<ResourceBar year={2025} turn={0} money={45} onShowReport={() => {}} />);
+    expect(screen.queryByRole('button', { name: /end-of-turn report/i })).not.toBeInTheDocument();
   });
 });
 

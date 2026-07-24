@@ -231,6 +231,7 @@
         <span class="sm"><span class="dimmed">CO₂</span> <span class="strong">420 ppm</span></span>
       </span>
       <span style="display:flex; gap:8px; align-items:center;">
+        <button class="data-btn" title="End-of-turn report">📊</button>
         <span class="badge badge-lg badge-teal-solid">💰 Money: 1,448</span>
       </span>
     </div>
@@ -240,8 +241,10 @@
     glanceable (Variant A). <strong>Emissions moved out of the bar</strong> — it now lives in the
     RegionInfoBox / data overlay, so the always-on bar doesn't duplicate it. The single
     <strong>Money</strong> badge shows what is <strong>remaining</strong> to spend this turn (balance −
-    staged cost; the 1 staged policy below = −$52, so 1,500 → 1,448). The old <strong>📊</strong> header
-    button was <strong>removed</strong> — data drill-down is now the RegionInfoBox button beside the map.
+    staged cost; the 1 staged policy below = −$52, so 1,500 → 1,448). The old data-drill-down
+    <strong>📊</strong> button was <strong>removed</strong> — drill-down is now the RegionInfoBox button
+    beside the map. A <strong>new 📊 button</strong> (left of Money) reopens the <strong>end-of-turn
+    report</strong> (below); it appears only once ≥1 turn has elapsed.
     Over budget → badge turns red with an <span style="color:var(--red)">⚠ over budget</span> alert and
     End&nbsp;Turn is disabled, e.g.: <span class="badge badge-red" style="margin-left:4px;">💰 Money: -85</span>
   </div>
@@ -722,6 +725,57 @@
       <div style="padding:14px 18px; border-top:1px solid var(--border); display:flex; gap:12px; align-items:center;">
         <button class="btn" style="flex:1; background:#3a1f22; color:var(--red);">Stop funding</button>
         <span class="dimmed xs" style="flex:1;">Or double-click / drag the card.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── End of turn report (blocking modal after End Turn) ─────────── -->
+<h2 class="section">End-of-turn report (blocking modal after End Turn · reopen via header 📊)</h2>
+<div class="app">
+  <div style="grid-column:1/-1; background:rgba(0,0,0,.82); border-radius:var(--radius); padding:36px;
+              display:flex; align-items:center; justify-content:center;">
+    <!-- Live: a fixed dark overlay (EndingScreen/DataOverlay pattern), centered ~380px window,
+         framer-motion fade + rise; closes on Continue / ✕ / Esc / backdrop. -->
+    <div style="width:380px; max-width:100%; background:var(--surface); border:1px solid var(--border);
+                border-radius:var(--radius); overflow:hidden; position:relative; box-shadow:0 20px 60px rgba(0,0,0,.5);">
+      <button style="position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:6px;
+                     border:none; background:var(--surface-2); color:var(--text); font-size:15px; cursor:pointer;">✕</button>
+      <!-- header: title (largest, top) over a dimmed turn · years subtitle -->
+      <div style="padding:16px 18px 12px;">
+        <div style="font-size:22px; font-weight:800; color:var(--text-strong); letter-spacing:-.2px; line-height:1.1;">End of Turn</div>
+        <div style="font-size:13px; color:var(--dimmed); margin-top:4px;">Turn 3 · 2035 → 2040</div>
+      </div>
+      <!-- five metric rows: icon · label | value+unit · Δ chip (shared Turn-Log good/bad vocabulary) -->
+      <div style="padding:0 18px;">
+        <div style="display:grid; grid-template-columns:26px 1fr auto auto; gap:10px; align-items:baseline; padding:10px 0; border-bottom:1px solid #2b2d31;">
+          <span style="text-align:center; font-size:15px;">🌡</span><span class="sm">Temperature</span>
+          <span class="strong" style="font-variant-numeric:tabular-nums;">+1.34<span class="dimmed" style="font-size:10px; margin-left:3px;">°C</span></span>
+          <span class="strong" style="min-width:56px; text-align:right; color:var(--red);">▲ 0.04</span>
+        </div>
+        <div style="display:grid; grid-template-columns:26px 1fr auto auto; gap:10px; align-items:baseline; padding:10px 0; border-bottom:1px solid #2b2d31;">
+          <span style="text-align:center; font-size:15px;">💨</span><span class="sm">Emissions</span>
+          <span class="strong" style="font-variant-numeric:tabular-nums;">41.2<span class="dimmed" style="font-size:10px; margin-left:3px;">Gt/yr</span></span>
+          <span class="strong" style="min-width:56px; text-align:right; color:var(--earth-3);">▼ 0.30</span>
+        </div>
+        <div style="display:grid; grid-template-columns:26px 1fr auto auto; gap:10px; align-items:baseline; padding:10px 0; border-bottom:1px solid #2b2d31;">
+          <span style="text-align:center; font-size:15px;">🌫️</span><span class="sm">CO₂ concentration</span>
+          <span class="strong" style="font-variant-numeric:tabular-nums;">421<span class="dimmed" style="font-size:10px; margin-left:3px;">ppm</span></span>
+          <span class="strong" style="min-width:56px; text-align:right; color:var(--red);">▲ 2.0</span>
+        </div>
+        <div style="display:grid; grid-template-columns:26px 1fr auto auto; gap:10px; align-items:baseline; padding:10px 0; border-bottom:1px solid #2b2d31;">
+          <span style="text-align:center; font-size:15px;">💰</span><span class="sm">Treasury</span>
+          <span class="strong" style="font-variant-numeric:tabular-nums;">1,490<span class="dimmed" style="font-size:10px; margin-left:3px;">$B</span></span>
+          <span class="strong" style="min-width:56px; text-align:right; color:var(--earth-3);">▲ 42.0</span>
+        </div>
+        <div style="display:grid; grid-template-columns:26px 1fr auto auto; gap:10px; align-items:baseline; padding:10px 0;">
+          <span style="text-align:center; font-size:15px;">🦋</span><span class="sm">Biodiversity</span>
+          <span class="strong" style="font-variant-numeric:tabular-nums;">61.6<span class="dimmed" style="font-size:10px; margin-left:3px;">/100</span></span>
+          <span class="strong" style="min-width:56px; text-align:right; color:var(--red);">▼ 0.40</span>
+        </div>
+      </div>
+      <div style="padding:14px 18px 18px;">
+        <button class="btn">Continue</button>
       </div>
     </div>
   </div>
