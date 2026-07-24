@@ -24,6 +24,26 @@ describe('App integration', () => {
     expect(screen.getByText(/Year 2030/)).toBeInTheDocument();
   });
 
+  it('pops the end-of-turn report after End Turn, dismisses it, and reopens it from the header', async () => {
+    renderApp();
+    // No report before any turn has elapsed (and no reopen button on turn 0).
+    expect(screen.queryByText(/Turn 1 · 2025/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /end-of-turn report/i })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /end turn/i }));
+    // The blocking report appears summarising the turn that just elapsed.
+    const report = await screen.findByText(/Turn 1 · 2025\s*→\s*2030/);
+    expect(report).toBeInTheDocument();
+
+    // Continue dismisses it.
+    await userEvent.click(screen.getByRole('button', { name: /continue/i }));
+    expect(screen.queryByText(/Turn 1 · 2025\s*→\s*2030/)).not.toBeInTheDocument();
+
+    // The header 📊 button reopens the same report.
+    await userEvent.click(screen.getByRole('button', { name: /end-of-turn report/i }));
+    expect(screen.getByText(/Turn 1 · 2025\s*→\s*2030/)).toBeInTheDocument();
+  });
+
   it('opens the emissions-data overlay from the info-box button (planet view) and closes it', async () => {
     renderApp();
     // The full Planet/Region panels live in the overlay; the inline RegionInfoBox shows only the

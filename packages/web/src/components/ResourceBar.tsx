@@ -1,4 +1,4 @@
-import { Group, Paper, Text, Badge, Stack } from '@mantine/core';
+import { ActionIcon, Group, Paper, Text, Badge, Stack, Tooltip } from '@mantine/core';
 import { temperatureColor } from '../scene/metricColor.js';
 
 interface ResourceBarProps {
@@ -11,11 +11,14 @@ interface ResourceBarProps {
       lives in the RegionInfoBox / DataOverlay, not here, to avoid duplication. */
   temperature?: number;
   co2?: number;
+  /** Reopen the last end-of-turn report. The 📊 button shows only when `canShowReport` (≥1 turn). */
+  onShowReport?: () => void;
+  canShowReport?: boolean;
 }
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 
-export function ResourceBar({ year, turn, money, costNow, temperature, co2 }: ResourceBarProps) {
+export function ResourceBar({ year, turn, money, costNow, temperature, co2, onShowReport, canShowReport }: ResourceBarProps) {
   const moneyLeft = money - (costNow?.money ?? 0);
   const over = moneyLeft < 0;
   const showClimate = temperature !== undefined && co2 !== undefined;
@@ -37,7 +40,16 @@ export function ResourceBar({ year, turn, money, costNow, temperature, co2 }: Re
               </Group>
             )}
           </Group>
-          <Badge color={over ? 'red' : 'teal'} size="lg" leftSection="💰">Money: {fmt(moneyLeft)}</Badge>
+          <Group gap="xs" wrap="nowrap">
+            {canShowReport && onShowReport && (
+              <Tooltip label="End-of-turn report" withArrow>
+                <ActionIcon aria-label="End-of-turn report" variant="filled" color="earth" size="lg" onClick={onShowReport}>
+                  📊
+                </ActionIcon>
+              </Tooltip>
+            )}
+            <Badge color={over ? 'red' : 'teal'} size="lg" leftSection="💰">Money: {fmt(moneyLeft)}</Badge>
+          </Group>
         </Group>
         {over && (
           <Text role="alert" c="red" size="xs" fw={600} ta="right">

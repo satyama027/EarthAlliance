@@ -472,7 +472,8 @@ the dashboard sparkline.
   cluster — **Warming** colored by `temperatureColor` and **CO₂** (emissions lives in the
   `RegionInfoBox`/`DataOverlay`, not duplicated here); right: just the **remaining** money badge —
   `resources − costNow`, going red with an `⚠ over budget` `role="alert"` when a staged selection
-  exceeds the budget; rendered as the sticky top header), `RegionInfoBox` (the compact glance-card
+  exceeds the budget; plus a **📊** button (left of the money badge, shown once ≥1 turn has elapsed)
+  that reopens the `EndOfTurnReport`; rendered as the sticky top header), `RegionInfoBox` (the compact glance-card
   beside the map — a single region click surfaces its headline **GDP/capita · emissions · income ·
   public support**, or planet **warming · CO₂ · emissions** when none is selected, each state with a
   **📊** button that opens the `DataOverlay`), `DataOverlay` (the "Full data" window — a full-screen
@@ -494,7 +495,13 @@ the dashboard sparkline.
   value carrying a good/bad-colored change chip vs. the prior turn; each non-baseline entry also has
   a per-entry **"More"** toggle revealing a `Collapse`d CALC section of the engine's `TurnDiagnostics`
   calc internals), `PolicyBoard` of `PolicyCard`s (with the single-click `PolicyDetailOverlay`),
-  and `EndingScreen` (shown when `game.ending` is non-null).
+  `EndOfTurnReport` (a **blocking, dismissable** modal auto-opened after each End Turn — same
+  `Overlay` pattern as `DataOverlay` — summarising how five planet metrics changed over the elapsed
+  turn: **Temperature · Emissions · CO₂ · Treasury · Biodiversity**, each a row of `value + a
+  good/bad-colored Δ chip` via the shared `changeSince` vocabulary; a pure diff of the two latest
+  `turnLog` snapshots (`game/turnReport.ts`, biodiversity via `planetAggregate`), suppressed when the
+  turn ends the game so `EndingScreen` takes over), and `EndingScreen` (shown when `game.ending` is
+  non-null).
 - **The metric drill-down** (`game/metricTree.ts` + `game/metricSeries.ts`) is the data spine of the
   `DataOverlay`. Each `MetricNode` carries a single `read(reading) → number` accessor: the node's
   **headline value** is `read` of the latest turn's reading and its **trend series** is `read` mapped
