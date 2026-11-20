@@ -97,7 +97,7 @@ Concretely:
    The platform port makes either a contained change (a new adapter + a `packages/desktop` shell).
 7. **CI/CD on GitHub Actions:** on every PR run `pnpm -r test`, `pnpm -r typecheck`, `vite build`,
    and a Playwright smoke suite on **Chromium + WebKit** (desktop and phone viewports — WebKit
-   because of iOS); on `main` deploy to Cloudflare Pages; on a version tag push to itch.io.
+   because of iOS); on `master` deploy to Cloudflare Pages; on a version tag push to itch.io.
    Native shell builds join the pipeline at their milestones.
 
 ## Options Considered
@@ -187,7 +187,7 @@ rendering, physics) are things this turn-based, UI-centric game doesn't use. **R
 ## Consequences
 
 **Easier**
-- Shipping: a merge to `main` is live on the web; a tag ships to itch.io.
+- Shipping: a merge to `master` is live on the web; a tag ships to itch.io.
 - Adding any platform later is "write an adapter + a shell", never "port the game".
 - Offline play everywhere, with no servers to run, secure or pay for.
 - Testing stays where it is: Vitest for logic, plus Playwright for the real browser engines.
@@ -212,16 +212,18 @@ rendering, physics) are things this turn-based, UI-centric game doesn't use. **R
 ## Action Items
 
 **Phase 0 — browser foundation (now)**
-1. [ ] Set Vite `base: './'` and add a test/build check that `dist/index.html` uses relative asset URLs.
-2. [ ] Add `packages/web/src/platform/` — `SaveStore` / `AppLifecycle` interfaces + the browser
+1. [x] Set Vite `base: './'` and add a test/build check that `dist/index.html` uses relative asset URLs.
+2. [x] Add `packages/web/src/platform/` — `SaveStore` / `AppLifecycle` interfaces + the browser
        (IndexedDB) adapter, selected at boot by `import.meta.env.VITE_PLATFORM` (default `web`).
-3. [ ] Versioned save envelope + migrations module; extend `useGame` with `save` / `load` /
+       *(Built: `Platform` + `SaveStore`; `AppLifecycle` deferred until a shell needs it.)*
+3. [x] Versioned save envelope + migrations module; extend `useGame` with `save` / `load` /
        autosave-at-end-of-turn (TDD; engine untouched).
-4. [ ] Save export/import as a `.json` file.
-5. [ ] GitHub Actions `ci.yml`: install → `pnpm -r test` → `pnpm -r typecheck` → build.
+4. [x] Save export/import as a `.json` file (logic: `save/saveFile.ts`; the buttons ship with the save/load UI, item 7a).
+5. [x] GitHub Actions `ci.yml`: install → `pnpm -r test` → `pnpm -r typecheck` → build.
 6. [ ] Playwright smoke suite (start game → stage a policy → end turn → report shows) on
        Chromium + WebKit at desktop and phone viewports.
-7. [ ] Cloudflare Pages deploy from `main` (+ PR previews); custom domain when ready.
+7. [ ] Cloudflare Pages deploy from `master` (+ PR previews); custom domain when ready.
+7a. [ ] Save/load UI (Continue, Save, Load, Export, Import) — via the `visual-design-gate` process.
 
 **Phase 1 — phones in the browser**
 8. [ ] Compact (phone) layout shell — **via the `visual-design-gate` process** (mockup → approval → build).

@@ -1,0 +1,48 @@
+# Phase 0 CI (ADR-0001): every PR and every push to master must pass the same bar
+# CLAUDE.md defines as "done" — full typecheck + full test suite — plus a production build.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm version comes from the root package.json `packageManager` field.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+      - name: Test
+        run: pnpm -r test
+
+      - name: Build web
+        run: pnpm --filter @earth-alliance/web build
+
+      # The static bundle every platform shell consumes (ADR-0001); deploy jobs will pick it up.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: packages/web/dist
+          retention-days: 7

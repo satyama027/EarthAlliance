@@ -5,7 +5,10 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["node", "vitest/globals", "@testing-library/jest-dom"],
     "noEmit": true,
-    "moduleResolution": "Bundler"
+    "moduleResolution": "Bundler",
+    // Type-check against engine SOURCE, matching the vite/vitest resolve.alias,
+    // so a fresh checkout (CI) needs no engine build and types can never be stale.
+    "paths": { "@earth-alliance/engine": ["../engine/src/index.ts"] }
   },
   "include": ["src", "test", "vite.config.ts", "vitest.config.ts"]
 }

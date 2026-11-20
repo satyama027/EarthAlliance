@@ -40,8 +40,9 @@ pnpm workspace (`pnpm-workspace.yaml` → `packages/*`), ESM throughout, shared
 
 ```
 EarthAlliance/
-├─ package.json              # root scripts: test / test:watch / coverage / typecheck (pnpm -r)
+├─ package.json              # root scripts: test / test:watch / coverage / typecheck (pnpm -r); pins pnpm (packageManager)
 ├─ pnpm-workspace.yaml
+├─ .github/workflows/ci.yml  # CI: frozen install → typecheck → test → web build (+ dist artifact) — see §8
 ├─ tsconfig.base.json
 ├─ packages/
 │  ├─ engine/                # pure simulation core — zero UI deps
@@ -67,8 +68,12 @@ EarthAlliance/
 │     ├─ scripts/            # generate-map.mjs map baker + regions.mjs (region/GoI logic), build-time only
 │     └─ src/
 │        ├─ main.tsx         # React root + MantineProvider
-│        ├─ App.tsx          # composes map + HUD; owns selectedRegionId; wires SFX
-│        ├─ game/useGame.ts  # the React hook wrapping the engine (holds WorldState)
+│        ├─ App.tsx          # composes map + HUD; owns selectedRegionId; wires SFX; holds the Platform
+│        ├─ version.ts       # APP_VERSION (from VITE_APP_VERSION) stamped into saves
+│        ├─ game/useGame.ts  # the React hook wrapping the engine (holds WorldState; moves; save/load/autosave)
+│        ├─ save/            # saveGame.ts (versioned save envelope, parse/validate/migrate) + saveFile.ts (export/import .json)
+│        ├─ platform/        # the platform port (§9): types.ts (Platform, SaveStore), index.ts (createPlatform),
+│        │                   #   indexedDb.ts (browser saves), memory.ts (fallback/tests)
 │        ├─ scene/           # WorldMap (inlines world-map.svg) + metricColor
 │        ├─ assets/          # world-map.svg — baked HD region map (generated, committed)
 │        ├─ components/      # Mantine DOM HUD (ResourceBar, RegionInfoBox, DataOverlay, DrillDownPanel,
@@ -140,8 +145,11 @@ all consume the live TypeScript source — no manual engine rebuild step, and no
 stale `dist` shipping outdated data. (This bit once: a stale 5-region `dist` rendered behind
 a freshly-baked 10-region map, so the new regions showed on the map but resolved to no data
 when selected. `web/test/engineBoundary.test.ts` now guards that all 10 regions reach the
-client.) The engine's `dist` is still built (`tsc -p tsconfig.build.json`) for `tsc --noEmit`
-type-resolution and for any external consumer, but it is no longer on the web runtime path.
+client.) The web `tsconfig.json` also maps `@earth-alliance/engine` to that source via `paths`,
+so `tsc --noEmit` type-checks against live source too — a fresh checkout (CI) needs **no engine
+build** before `pnpm -r typecheck`, and types can never be stale. The engine's `dist` is still
+buildable (`tsc -p tsconfig.build.json`) for any external consumer, but nothing in the web
+package — runtime, tests or types — reads it.
 
 `WorldState` is the whole game in one object: `turn`/`year`/`status`/`endingId`,
 `resources` (money), `climate` (temperatureAnomaly, co2Concentration,
@@ -388,10 +396,36 @@ validation                      → validateSelection(state, staged); canEndTurn
 endTurn()                       → advanceTurn(state, staged, cancels)
                                   → setState(next); setLastEvents(events)
                                   → append snapshot to history; append {state,diagnostics} to turnLog
+                                  → append {selections: staged, cancellations: cancels} to moves
                                   → clear staged + cancels
+                                  → autosave: saves.write('autosave', toSave()) — fire-and-forget,
+                                    a failure only console.warns, play never stops
 ending                          → ENDINGS[state.endingId] when status === 'ended'
-reset()                         → createInitialState() + clear everything
+reset()                         → createInitialState() + clear everything (incl. moves)
+                                  + remove the 'autosave' slot (the player chose to start over)
+toSave()                        → createSave({turnLog, moves}) — the versioned SaveGame envelope
+loadSave(save)                  → state = last turnLog entry; turnLog/moves from the save;
+                                  history rebuilt from turnLog; staged/cancels/lastEvents cleared
+                                  (so loading never replays turn sounds)
 ```
+
+`useGame(options)` takes `{ saves?, appVersion?, now? }`; with no `saves` it plays without
+persistence (as the unit tests do). `App` creates the `Platform` once (`createPlatform()`, or an
+injected one in tests) and passes `platform.saves`. Startup does **not** auto-load or write
+anything — an earlier autosave survives a page reload untouched. *No UI reads saves yet*: a
+Continue / Save / Load / Export / Import surface is a visual change and goes through the
+`visual-design-gate` (§9).
+
+**Save format** (`save/saveGame.ts`): `SaveGame = { schemaVersion, appVersion, savedAt, seed,
+moves[], turnLog }`. `turnLog` restores the game *and* every history view exactly as played;
+`seed` (the baseline `rngSeed`) + `moves` are the deterministic replay record. `parseSave(raw)`
+accepts JSON text (an imported file) or an object (from IndexedDB), never throws, and returns
+`{ok:true, save}` or `{ok:false, reason}` with a player-readable reason. It rejects non-JSON,
+non-saves, saves from a **newer** schema, and structurally damaged turn logs/moves
+(`moves.length` must equal `turnLog.length − 1`); an **older** schema is upgraded through
+`MIGRATIONS[v]` one version at a time (none exist yet — v1 is the first format). `WorldState`
+inside each turn is checked structurally, not field-by-field. `save/saveFile.ts` exports a save
+as `earth-alliance-<year>-turn-<n>.json` (Blob download) and reads one back via `parseSave`.
 
 The `PolicyBoard` (driven by `App`'s `selectedRegionId`) derives its two lanes from
 `regionPolicyView(state, regionId, staged, cancels)` (`game/policyView.ts`, a pure, unit-tested
@@ -668,23 +702,43 @@ Two processes are mandatory for all work in this repo (also stated in `CLAUDE.md
    `PreToolUse` hook on `git commit`): the commit is blocked unless `ARCHITECTURE.md` is among
    the staged files.
 
+**CI** (`.github/workflows/ci.yml`, GitHub Actions) enforces the same bar on every pull request
+and every push to `master`: `pnpm install --frozen-lockfile` → `pnpm -r typecheck` →
+`pnpm -r test` → `pnpm --filter @earth-alliance/web build`, then uploads `packages/web/dist` as
+the `web-dist` artifact for later deploy jobs. pnpm's version comes from the root
+`packageManager` field (the single pin). `web/test/ci.test.ts` guards the workflow against
+drifting from this definition of done.
+
+Test-environment notes: `web/test/setup.ts` registers `fake-indexeddb` (jsdom has no
+IndexedDB) and polyfills `Blob.prototype.text`; its browser shims are skipped for suites that
+opt into `@vitest-environment node` (the CI guard and `web/test/build.test.ts`, which runs a real
+in-memory `vite build` and asserts `index.html` uses relative `./assets/` URLs).
+
 ---
 
-## 9. Platform & delivery (planned — ADR-0001, *Accepted*)
+## 9. Platform & delivery (ADR-0001, *Accepted* — phase 0 in progress)
 
-> **Status: accepted, not yet built.** This section records the agreed direction from
+> Direction recorded in
 > [`docs/adr/0001-platform-and-delivery-architecture.md`](docs/adr/0001-platform-and-delivery-architecture.md).
-> Today the game runs only as the Vite dev server / a local `vite build`; nothing is deployed,
-> and there is no save/load. Move items into §1–§8 as they are built.
+> **Built so far (phase 0):** relative-path build (`vite base: './'`, guarded by
+> `web/test/build.test.ts`); the platform port with the `web` adapter (IndexedDB saves, memory
+> fallback, file export); the versioned save format, `useGame` save/load + autosave (§5); CI (§8).
+> **Not yet:** any save/load **UI** (needs a design-gate mockup), Playwright smoke tests, the
+> Cloudflare Pages deploy, and phases 1–4. Nothing is deployed yet.
 
 **One static web build, many thin shells.** `packages/web/dist` is the single product artifact.
-Browser, PWA, mobile and desktop all load that same bundle; platform differences sit behind a
-**platform port** in `packages/web/src/platform/` (`SaveStore`, `AppLifecycle`, capability flags),
-chosen at boot by `import.meta.env.VITE_PLATFORM`. The engine is not affected.
+Browser, PWA, mobile and desktop all load that same bundle; platform differences sit behind the
+**platform port** in `packages/web/src/platform/`. Today it is `Platform = { kind, saves: SaveStore,
+exportSave(save) }`, with `SaveStore = { read, write, remove, list }` over named slots;
+lifecycle/capability hooks will be added when a shell first needs them. `createPlatform()` picks the
+adapter from `import.meta.env.VITE_PLATFORM` (default `web`, the only kind so far; unknown kinds
+throw). The `web` adapter stores saves in IndexedDB (`idb-keyval`, database `earth-alliance`, store
+`saves`) and falls back to an in-memory store when a browser has no IndexedDB. The engine is not
+affected.
 
 | Target | Delivery | Save adapter | Phase |
 | --- | --- | --- | --- |
-| Browser (owned site) | Cloudflare Pages, deployed from `main` via GitHub Actions | IndexedDB | 0 |
+| Browser (owned site) | Cloudflare Pages, deployed from `master` via GitHub Actions | IndexedDB | 0 |
 | Phones (no store) | PWA (`vite-plugin-pwa`, offline precache) + compact layout | IndexedDB | 1 |
 | itch.io | HTML5 zip pushed by `butler` on a version tag | IndexedDB | 2 |
 | iOS / Android stores | Capacitor shell (`packages/mobile`, `webDir → ../web/dist`) | IndexedDB (→ native fs if needed) | 3 |

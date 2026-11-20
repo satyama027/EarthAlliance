@@ -12,10 +12,13 @@ import { useGame } from './game/useGame.js';
 import { regionBudget } from './game/regionBudget.js';
 import { turnReport } from './game/turnReport.js';
 import { useSfx } from './audio/useSfx.js';
+import { createPlatform, type Platform } from './platform/index.js';
 import { type Region } from '@earth-alliance/engine';
 
-export default function App() {
-  const game = useGame();
+export default function App({ platform: given }: { platform?: Platform } = {}) {
+  // One platform adapter for the app's lifetime (ADR-0001); tests may inject their own.
+  const [platform] = useState<Platform>(() => given ?? createPlatform());
+  const game = useGame({ saves: platform.saves });
   const sfx = useSfx();
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null);
   const [dataOpen, setDataOpen] = useState(false);
