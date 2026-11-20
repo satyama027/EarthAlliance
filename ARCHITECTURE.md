@@ -28,7 +28,8 @@ view layer that calls the engine at turn boundaries and renders the resulting `W
 
 The dependency arrow points **one way only**: `web` depends on `engine`; `engine` depends
 on nothing in `web`, React, the DOM, or any rendering library. This is what lets the same
-engine later back a React Native or Electron client unchanged.
+engine back every platform shell unchanged — see §9 for how the game is delivered to the
+browser, phones and desktop.
 
 ---
 
@@ -666,3 +667,38 @@ Two processes are mandatory for all work in this repo (also stated in `CLAUDE.md
    (`.claude/hooks/require-architecture-md.sh`, wired via `.claude/settings.json` as a
    `PreToolUse` hook on `git commit`): the commit is blocked unless `ARCHITECTURE.md` is among
    the staged files.
+
+---
+
+## 9. Platform & delivery (planned — ADR-0001, *Proposed*)
+
+> **Status: not yet built.** This section records the agreed direction from
+> [`docs/adr/0001-platform-and-delivery-architecture.md`](docs/adr/0001-platform-and-delivery-architecture.md).
+> Today the game runs only as the Vite dev server / a local `vite build`; nothing is deployed,
+> and there is no save/load. Move items into §1–§8 as they are built.
+
+**One static web build, many thin shells.** `packages/web/dist` is the single product artifact.
+Browser, PWA, mobile and desktop all load that same bundle; platform differences sit behind a
+**platform port** in `packages/web/src/platform/` (`SaveStore`, `AppLifecycle`, capability flags),
+chosen at boot by `import.meta.env.VITE_PLATFORM`. The engine is not affected.
+
+| Target | Delivery | Save adapter | Phase |
+| --- | --- | --- | --- |
+| Browser (owned site) | Cloudflare Pages, deployed from `main` via GitHub Actions | IndexedDB | 0 |
+| Phones (no store) | PWA (`vite-plugin-pwa`, offline precache) + compact layout | IndexedDB | 1 |
+| itch.io | HTML5 zip pushed by `butler` on a version tag | IndexedDB | 2 |
+| iOS / Android stores | Capacitor shell (`packages/mobile`, `webDir → ../web/dist`) | IndexedDB (→ native fs if needed) | 3 |
+| Desktop | Electron if Steam/Steam Deck, else Tauri 2 — decided at the milestone (ADR-0002) | filesystem (+ Steamworks if Steam) | 4 |
+
+Key constraints this direction puts on the code:
+
+- **No backend, no runtime network calls.** The game is fully offline single-player.
+- **Relative asset paths** (`vite base: './'`) so the same bundle works at a domain root, inside
+  itch.io's iframe, in Capacitor and from a desktop `file://`/custom protocol.
+- **Rendering stays DOM + SVG** (no WebGL/game engine). WebKit is a first-class target because iOS
+  forces it; Playwright smoke tests run on Chromium + WebKit, desktop and phone viewports.
+- **Saves are a versioned envelope** `{ schemaVersion, appVersion, savedAt, seed, moves[], turnLog }`
+  with migrations; exportable/importable as a file. Measured sizes: `WorldState` ≈ 10 KB, full-game
+  `turnLog` ≈ 500 KB; `advanceTurn` ≈ 0.27 ms, so the engine stays on the main thread.
+- **Phones get a separate compact layout shell** (same components, same `useGame`), designed through
+  the `visual-design-gate` process; the desktop no-scroll layout (§5) is unchanged.
