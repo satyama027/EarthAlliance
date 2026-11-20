@@ -1,6 +1,6 @@
 # ADR-0001: Platform & delivery architecture — one web build, many shells
 
-**Status:** Proposed
+**Status:** Accepted (2026-11-20)
 **Date:** 2026-11-20
 **Deciders:** Project owner
 

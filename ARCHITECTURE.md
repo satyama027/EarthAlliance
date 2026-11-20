@@ -670,9 +670,9 @@ Two processes are mandatory for all work in this repo (also stated in `CLAUDE.md
 
 ---
 
-## 9. Platform & delivery (planned — ADR-0001, *Proposed*)
+## 9. Platform & delivery (planned — ADR-0001, *Accepted*)
 
-> **Status: not yet built.** This section records the agreed direction from
+> **Status: accepted, not yet built.** This section records the agreed direction from
 > [`docs/adr/0001-platform-and-delivery-architecture.md`](docs/adr/0001-platform-and-delivery-architecture.md).
 > Today the game runs only as the Vite dev server / a local `vite build`; nothing is deployed,
 > and there is no save/load. Move items into §1–§8 as they are built.
